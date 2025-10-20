@@ -1,0 +1,301 @@
+<style>
+    /* Custom Scrollbar */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: rgba(203, 213, 225, 0.5);
+        border-radius: 3px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Unified List Item Styles (Section, Faculty, Room) */
+    .section-list-item,
+    .faculty-list-item,
+    .room-list-item {
+        transition: all 0.2s ease;
+        position: relative;
+        border-left: 3px solid transparent;
+    }
+    
+    .section-list-item:hover,
+    .faculty-list-item:hover,
+    .room-list-item:hover {
+        background: #f8fafc;
+    }
+    
+    .section-list-item.selected {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-left: 3px solid #3b82f6;
+    }
+    
+    .faculty-list-item.selected {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-left: 3px solid #2563eb;
+    }
+    
+    .room-list-item.selected {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border-left: 3px solid #10b981;
+    }
+    
+    /* Table Styles */
+    .schedule-row {
+        transition: all 0.15s ease;
+    }
+    
+    .schedule-row:hover {
+        background-color: #f9fafb !important;
+    }
+    
+    /* Consistent table styling */
+    table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    
+    table thead {
+        background-color: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    table th {
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 12px 16px;
+        text-align: left;
+        white-space: nowrap;
+        background-color: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    table th:last-child {
+        text-align: right;
+    }
+    
+    table tbody tr {
+        border-bottom: 1px solid #e5e7eb;
+        background-color: white;
+    }
+    
+    table tbody tr:last-child {
+        border-bottom: none;
+    }
+    
+    table td {
+        padding: 12px 16px;
+        vertical-align: middle;
+    }
+    
+    /* Ensure overflow container for tables */
+    .table-container {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: calc(100vh - 280px);
+        border-radius: 0.5rem;
+    }
+    
+    /* Scrollbar styling for table container */
+    .table-container::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .table-container::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 400px;
+    }
+    
+    .toast {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        min-width: 300px;
+    }
+    
+    .toast-success { border-left: 4px solid #10b981; }
+    .toast-error { border-left: 4px solid #ef4444; }
+    .toast-info { border-left: 4px solid #3b82f6; }
+    
+    /* Day of week badges */
+    .day-badge {
+        display: inline-block;
+        padding: 0.25rem 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 0.5rem;
+    }
+    
+    .day-monday { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; border: 1px solid #93c5fd; }
+    .day-tuesday { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #9f1239; border: 1px solid #f9a8d4; }
+    .day-wednesday { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; border: 1px solid #86efac; }
+    .day-thursday { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; border: 1px solid #fcd34d; }
+    .day-friday { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #3730a3; border: 1px solid #a5b4fc; }
+    .day-saturday { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #6b21a8; border: 1px solid #d8b4fe; }
+    .day-sunday { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b; border: 1px solid #fca5a5; }
+    
+    /* Tab Styles */
+    .tab-button {
+        color: #6b7280;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .tab-button:hover {
+        color: #374151;
+        background: #f3f4f6;
+    }
+    
+    .tab-button.active {
+        color: #2563eb;
+        background: #eff6ff;
+        font-weight: 600;
+        border: 1px solid #bfdbfe;
+    }
+    
+    .tab-content {
+        display: none !important;
+    }
+    
+    .tab-content.active {
+        display: flex !important;
+    }
+    
+    /* Calendar View Styles */
+    .calendar-grid {
+        width: 100%;
+        font-size: 0.75rem;
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: calc(100vh - 320px);
+    }
+    
+    /* Scrollbar styling for calendar grid */
+    .calendar-grid::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .calendar-grid::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    
+    .calendar-grid::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    .calendar-grid::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    .calendar-grid > div {
+        display: grid;
+        min-width: 800px; /* Minimum width to prevent cramping */
+    }
+    
+    /* Ensure grid doesn't overflow but allows scroll */
+    .calendar-grid .grid-cols-8 {
+        grid-template-columns: minmax(60px, 80px) repeat(7, minmax(100px, 1fr));
+    }
+    
+    /* Ensure calendar cells have relative positioning for absolute schedule cards */
+    .calendar-grid [class*="grid-cols"] > div {
+        position: relative;
+    }
+    
+    /* Compact calendar cells */
+    .calendar-cell {
+        min-height: 50px;
+        font-size: 0.7rem;
+    }
+    
+    /* Compact schedule cards in calendar */
+    .calendar-schedule-card {
+        font-size: 0.6rem;
+        line-height: 1.1;
+        padding: 0.2rem !important;
+    }
+    
+    .calendar-schedule-card .text-xs {
+        font-size: 0.6rem;
+    }
+    
+    .calendar-schedule-card svg {
+        width: 0.7rem;
+        height: 0.7rem;
+    }
+    
+    /* Schedule card hover effects */
+    .calendar-grid .absolute {
+        transition: all 0.2s ease;
+    }
+    
+    .calendar-grid .absolute:hover {
+        z-index: 10;
+        transform: scale(1.05);
+    }
+    
+    /* View toggle button styles */
+    #viewToggleTable, #viewToggleCalendar {
+        user-select: none;
+    }
+    
+    /* Compact calendar header - sticky positioning */
+    .calendar-day-header {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.2rem;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 20;
+    }
+    
+    .calendar-time-cell {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.2rem;
+    }
+    
+    /* Sticky time column */
+    .calendar-grid .grid-cols-8 > div:first-child {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 10;
+    }
+</style>

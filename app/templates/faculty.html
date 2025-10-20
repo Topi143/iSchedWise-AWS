@@ -1,0 +1,1120 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Management - iSchedWise{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom Scrollbar */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Faculty List Item Styles */
+    .faculty-list-item {
+        transition: all 0.2s ease;
+    }
+    
+    .faculty-list-item:hover {
+        background: #f8fafc;
+    }
+    
+    .faculty-list-item.selected {
+        background: #eff6ff;
+        border-left: 3px solid #3b82f6;
+        border-bottom: none;
+    }
+    
+    .faculty-list-item.selected:hover {
+        background: #dbeafe;
+    }
+    
+    .subject-row {
+        transition: all 0.15s ease;
+    }
+    
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 400px;
+    }
+    
+    .toast {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: translateX(400px);
+        animation: slideIn 0.3s ease forwards;
+        min-width: 300px;
+    }
+    
+    .toast.removing {
+        animation: slideOut 0.3s ease forwards;
+    }
+    
+    @keyframes slideIn {
+        to {
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOut {
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+    
+    .toast-success {
+        border-left: 4px solid #10b981;
+    }
+    
+    .toast-error {
+        border-left: 4px solid #ef4444;
+    }
+    
+    .toast-info {
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: currentColor;
+        opacity: 0.3;
+        animation: progress 5s linear forwards;
+    }
+    
+    @keyframes progress {
+        to {
+            width: 0;
+        }
+    }
+    
+    .subject-badge {
+        transition: all 0.2s ease;
+    }
+    
+    .subject-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-4">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Flash Messages (Hidden - converted to toasts) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flashMessages" style="display: none;">
+                    {% for category, message in messages %}
+                        <div data-category="{{ category }}" data-message="{{ message }}"></div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="mb-3 flex-shrink-0 animate-slide-in">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            Faculty Management
+                            <span class="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ faculties|length }}</span>
+                            <span class="text-sm font-normal text-gray-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                                {{ active_settings.academic_year }} • {{ active_settings.semester }}
+                            </span>
+                        </h1>
+                        <p class="text-sm text-gray-600 mt-0.5">Manage faculty members and their subject assignments for the current academic period</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Panel Layout -->
+        <div class="flex-1 overflow-hidden flex gap-3">
+            {% if faculties %}
+            <!-- Left Panel: Faculty List -->
+            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Faculty
+                        <span id="faculty-count-badge" class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ faculties|length }}</span>
+                    </h3>
+                    <button onclick="openAddFacultyModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Faculty
+                    </button>
+                </div>
+                
+                <!-- Department Filter -->
+                <div class="p-3 border-b border-gray-200 flex-shrink-0">
+                    <select id="departmentFilter" onchange="filterByDepartment(this.value)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.department_code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Faculty List -->
+                <div class="flex-1 overflow-y-auto" id="facultyList">
+                    {% for faculty in faculties %}
+                    <div class="faculty-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer {% if selected_faculty and selected_faculty.id == faculty.id %}selected{% endif %}" 
+                         data-department-id="{{ faculty.department_id if faculty.department_id else '' }}"
+                         onclick="selectFaculty({{ faculty.id }}, '{{ faculty.full_name }}')">
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-bold text-gray-900 truncate">{{ faculty.full_name }}</h4>
+                                    {% if faculty.department %}
+                                    <p class="text-sm text-gray-600 truncate mt-0.5">{{ faculty.department.department_name }}</p>
+                                    {% else %}
+                                    <p class="text-sm text-gray-400 truncate mt-0.5">No Department</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="flex items-center text-gray-500">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
+                                    {% if faculty.id in faculty_workloads %}
+                                        {{ faculty_workloads[faculty.id].assigned_count }} {{ 'Subject' if faculty_workloads[faculty.id].assigned_count == 1 else 'Subjects' }}
+                                    {% else %}
+                                        0 Subjects
+                                    {% endif %}
+                                </span>
+                                {% if faculty.id in faculty_workloads %}
+                                <span class="px-2 py-1 font-semibold rounded-full {% if faculty_workloads[faculty.id].total_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ faculty_workloads[faculty.id].total_units }} units
+                                </span>
+                                <span class="text-gray-500">
+                                    {{ faculty_workloads[faculty.id].class_count }} {{ 'class' if faculty_workloads[faculty.id].class_count == 1 else 'classes' }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Panel: Faculty Details -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <!-- Header - Always Visible -->
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    {% if selected_faculty %}
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900">{{ selected_faculty.full_name }}</h3>
+                            {% if selected_faculty.department %}
+                            <p class="text-sm text-gray-600">{{ selected_faculty.department.department_name }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                            <button onclick="openAssignSubjectModal({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" 
+                                    class="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                            <button onclick="editFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}', {{ selected_faculty.department_id or 'null' }})" 
+                                    class="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Faculty">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="archiveFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" 
+                                    class="p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Faculty">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900">Faculty Details</h3>
+                            <p class="text-sm text-gray-600">Select a faculty member to view details</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Content Area -->
+                <div class="flex-1 overflow-y-auto {% if not selected_faculty %}p-8 bg-gray-50{% else %}p-4{% endif %}">
+                    {% if selected_faculty %}
+                        <!-- Workload Summary Card -->
+                        {% if selected_faculty.id in faculty_workloads %}
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 mb-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                    <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                    Teaching Workload
+                                </h3>
+                                <span class="px-4 py-2 text-lg font-bold rounded-full {% if faculty_workloads[selected_faculty.id].total_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ faculty_workloads[selected_faculty.id].total_units }} Units
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-white rounded-lg p-4 shadow-sm">
+                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Total Classes</p>
+                                    <p class="text-2xl font-bold text-blue-600">{{ faculty_workloads[selected_faculty.id].class_count }}</p>
+                                </div>
+                                <div class="bg-white rounded-lg p-4 shadow-sm">
+                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Assigned Units</p>
+                                    <p class="text-2xl font-bold text-indigo-600">{{ faculty_workloads[selected_faculty.id].assigned_units }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Subject Assignments -->
+                        {% if selected_faculty_assignments|length > 0 %}
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                                Assigned Subjects
+                                <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-sm rounded-full">{{ selected_faculty_assignments|length }}</span>
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                {% for assignment in selected_faculty_assignments %}
+                                <div class="subject-row bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="font-bold text-base text-blue-700">{{ assignment.subject_code }}</span>
+                                                <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+                                                    {{ assignment.total_units }} units
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-800 mb-2 font-medium">{{ assignment.course_description }}</p>
+                                            <div class="flex flex-wrap gap-3 text-xs text-gray-600">
+                                                {% if assignment.assignment_type == 'template' %}
+                                                <span class="flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                                    </svg>
+                                                    Template Assignment (All Instances)
+                                                </span>
+                                                {% elif assignment.subject %}
+                                                <span class="flex items-center">
+                                                    <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                    </svg>
+                                                    {{ assignment.subject.semester.year_level.curriculum.curriculum_code }}
+                                                </span>
+                                                <span class="flex items-center">
+                                                    <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                                    </svg>
+                                                    {{ assignment.subject.semester.year_level.year_name }}
+                                                </span>
+                                                <span class="flex items-center">
+                                                    <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    {{ assignment.subject.semester.semester_name }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <button onclick="unassignSubject({{ assignment.id }}, '{{ assignment.subject_code }}')" 
+                                                class="ml-3 p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex-shrink-0" 
+                                                title="Remove Assignment">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- No Assignments Yet -->
+                        <div class="h-full flex items-center justify-center">
+                            <div class="text-center px-4">
+                                <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Subjects Assigned</h3>
+                                <p class="text-sm text-gray-500">{{ selected_faculty.full_name }} hasn't been assigned any subjects yet</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- No Faculty Selected -->
+                        <div class="h-full flex items-center justify-center">
+                            <div class="text-center px-4">
+                                <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Faculty Selected</h3>
+                                <p class="text-sm text-gray-500">Select a faculty member to view details</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State: No Faculty Members -->
+            <!-- Left Panel: Empty List -->
+            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Faculty
+                        <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
+                    </h3>
+                    <button onclick="openAddFacultyModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Faculty
+                    </button>
+                </div>
+                
+                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-bold text-gray-800">No faculty members yet</p>
+                        <p class="text-sm text-gray-500 mt-1">Click the button above to add your first faculty member</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Getting Started -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
+                            <p class="text-sm text-gray-600">Create your first faculty member</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
+                    <div class="text-center max-w-md">
+                        <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Faculty Members Yet</h3>
+                        <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by adding your first faculty member. Faculty members can be assigned to subjects for scheduling.</p>
+                        
+                        <button onclick="openAddFacultyModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Create First Faculty Member
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Faculty Modal -->
+<div id="addFacultyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Add New Faculty</h3>
+                </div>
+                <button onclick="closeAddFacultyModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="addFacultyForm" method="POST" action="{{ url_for('faculty.add') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="space-y-3">
+                <!-- Full Name -->
+                <div>
+                    <label for="full_name" class="block text-sm font-semibold text-gray-700 mb-1">
+                        Full Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="full_name" name="full_name" required 
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Juan Santos Dela Cruz">
+                </div>
+                
+                <!-- Department -->
+                <div>
+                    <label for="department_id" class="block text-sm font-semibold text-gray-700 mb-1">
+                        Department (Optional)
+                    </label>
+                    <select id="department_id" name="department_id" 
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- No Department --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.department_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex items-center justify-end space-x-2">
+                <button type="button" onclick="closeAddFacultyModal()" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    Add Faculty
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Faculty Modal -->
+<div id="editFacultyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Edit Faculty</h3>
+                </div>
+                <button onclick="closeEditFacultyModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="editFacultyForm" method="POST" action="{{ url_for('faculty.edit') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="faculty_id_edit" name="faculty_id_edit">
+            
+            <div class="space-y-3">
+                <!-- Full Name -->
+                <div>
+                    <label for="full_name_edit" class="block text-sm font-semibold text-gray-700 mb-1">
+                        Full Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="full_name_edit" name="full_name_edit" required 
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <!-- Department -->
+                <div>
+                    <label for="department_id_edit" class="block text-sm font-semibold text-gray-700 mb-1">
+                        Department (Optional)
+                    </label>
+                    <select id="department_id_edit" name="department_id_edit" 
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- No Department --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.department_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex items-center justify-end space-x-2">
+                <button type="button" onclick="closeEditFacultyModal()" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    Update Faculty
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assign Subject Modal -->
+<div id="assignSubjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Assign Subject</h3>
+                </div>
+                <button onclick="closeAssignSubjectModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="assignSubjectForm" method="POST" action="{{ url_for('faculty.assign_subject') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="faculty_id_assign" name="faculty_id_assign">
+            
+            <div class="mb-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            <span class="font-semibold text-blue-800">Faculty:</span>
+                            <span id="faculty_name_display" class="ml-2"></span>
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-semibold text-green-700">{{ active_settings.academic_year }}</p>
+                        <p class="text-xs text-gray-600">{{ active_settings.semester }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-3">
+                <!-- Subject Selection -->
+                <div>
+                    <label for="subject_search" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Select Subject <span class="text-red-500">*</span>
+                    </label>
+                    
+                    <!-- Search Input -->
+                    <div class="relative mb-2">
+                        <input type="text" id="subject_search" 
+                               class="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Search by subject code or name..."
+                               autocomplete="off">
+                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    
+                    <!-- Hidden select for form submission -->
+                    <select id="subject_id" name="subject_id" required class="hidden">
+                        <option value="">-- Select a Subject --</option>
+                        {% for curriculum in curricula %}
+                            {% for year_level in curriculum.year_levels %}
+                                {% for semester in year_level.semesters %}
+                                    {% if semester.semester_name == active_settings.semester %}
+                                        {% for subject in semester.subjects %}
+                                        <option value="{{ subject.id }}" 
+                                                data-code="{{ subject.subject_code }}"
+                                                data-name="{{ subject.course_description }}"
+                                                data-curriculum="{{ curriculum.curriculum_code }}"
+                                                data-year="{{ year_level.year_name }}"
+                                                data-semester="{{ semester.semester_name }}"
+                                                data-units="{{ subject.total_units }}">
+                                            {{ subject.subject_code }} - {{ subject.course_description }}
+                                        </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                    
+                    <!-- Subject List Container -->
+                    <div id="subject_list_container" class="border border-gray-300 rounded-lg max-h-80 overflow-y-auto hidden">
+                        <div id="subject_list" class="divide-y divide-gray-200">
+                            <!-- Subject items will be populated by JavaScript -->
+                        </div>
+                        <div id="no_subjects_found" class="hidden p-4 text-center text-gray-500 text-sm">
+                            <svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            No subjects found matching your search
+                        </div>
+                    </div>
+                    
+                    <!-- Selected Subject Display -->
+                    <div id="selected_subject_display" class="hidden mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-green-800" id="selected_subject_text"></p>
+                                <p class="text-xs text-green-600 mt-1" id="selected_subject_details"></p>
+                            </div>
+                            <button type="button" onclick="clearSubjectSelection()" class="ml-2 text-green-600 hover:text-green-800">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeAssignSubjectModal()" 
+                        class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg shadow-md transition-all">
+                    Assign Subject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: `<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            error: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            info: `<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`
+        };
+        
+        const colors = {
+            success: 'text-green-800',
+            error: 'text-red-800',
+            info: 'text-blue-800'
+        };
+        
+        toast.innerHTML = `
+            ${icons[type] || icons.success}
+            <p class="${colors[type] || colors.success} font-medium flex-1">${message}</p>
+            <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="toast-progress" style="width: 100%; color: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'}"></div>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    
+    function removeToast(toast) {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }
+    
+    // Show flash messages as toasts on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) {
+            const messages = flashMessages.querySelectorAll('[data-message]');
+            messages.forEach((msg, index) => {
+                setTimeout(() => {
+                    showToast(msg.dataset.message, msg.dataset.category);
+                }, index * 100); // Stagger the toasts
+            });
+        }
+        
+        // Restore department filter from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const departmentId = urlParams.get('department_id');
+        if (departmentId) {
+            const filterSelect = document.getElementById('departmentFilter');
+            if (filterSelect) {
+                filterSelect.value = departmentId;
+                filterByDepartment(departmentId);
+            }
+        }
+    });
+
+    // Faculty Selection Function
+    function selectFaculty(id, name) {
+        // Preserve existing URL parameters (like department filter)
+        const url = new URL(window.location.href);
+        url.searchParams.set('faculty_id', id);
+        window.location.href = url.toString();
+    }
+
+    // Filter by Department Function
+    function filterByDepartment(departmentId) {
+        // Update URL to preserve filter across page reloads
+        const url = new URL(window.location.href);
+        if (departmentId) {
+            url.searchParams.set('department_id', departmentId);
+        } else {
+            url.searchParams.delete('department_id');
+        }
+        // Keep faculty_id if present
+        window.history.replaceState({}, '', url);
+        
+        // Apply client-side filtering
+        const facultyItems = document.querySelectorAll('.faculty-list-item');
+        const facultyList = document.getElementById('facultyList');
+        let visibleCount = 0;
+        
+        facultyItems.forEach(item => {
+            const itemDeptId = item.getAttribute('data-department-id');
+            let shouldShow = false;
+            
+            if (departmentId === '') {
+                // Show all when no filter selected
+                shouldShow = true;
+            } else if (itemDeptId === departmentId) {
+                // Match department ID
+                shouldShow = true;
+            } else if (itemDeptId === '' && departmentId === 'none') {
+                // Show faculty with no department when "none" is selected
+                shouldShow = true;
+            }
+            
+            if (shouldShow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Update count badge
+        const badge = document.getElementById('faculty-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount;
+        }
+    }
+
+    // Add Faculty Modal
+    function openAddFacultyModal() {
+        document.getElementById('addFacultyModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeAddFacultyModal() {
+        document.getElementById('addFacultyModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('addFacultyForm').reset();
+    }
+
+    // Edit Faculty Modal
+    function openEditFacultyModal() {
+        document.getElementById('editFacultyModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeEditFacultyModal() {
+        document.getElementById('editFacultyModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('editFacultyForm').reset();
+    }
+
+    function editFaculty(id, fullName, departmentId) {
+        document.getElementById('faculty_id_edit').value = id;
+        document.getElementById('full_name_edit').value = fullName;
+        document.getElementById('department_id_edit').value = departmentId || '';
+        openEditFacultyModal();
+    }
+
+    function archiveFaculty(id, name) {
+        // Get reason from user
+        const reason = prompt(`Please provide a reason for archiving faculty "${name}":\n\n(This faculty member will be moved to the Archives page and can be restored later)`, 'No longer active');
+        
+        if (reason === null) {
+            // User clicked Cancel
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to ARCHIVE faculty "${name}"?\n\nThis will:\n- Hide the faculty from the main list\n- Remove subject assignments\n- Move to the Archives page\n- Keep all data intact\n- Allow restoration later if needed`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("faculty.archive") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const facultyIdInput = document.createElement('input');
+            facultyIdInput.type = 'hidden';
+            facultyIdInput.name = 'faculty_id';
+            facultyIdInput.value = id;
+            
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'archive_reason';
+            reasonInput.value = reason || 'No reason provided';
+            
+            form.appendChild(csrfToken);
+            form.appendChild(facultyIdInput);
+            form.appendChild(reasonInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Assign Subject Modal
+    function openAssignSubjectModal(facultyId, facultyName) {
+        document.getElementById('faculty_id_assign').value = facultyId;
+        document.getElementById('faculty_name_display').textContent = facultyName;
+        document.getElementById('assignSubjectModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        
+        // Initialize subject list
+        initializeSubjectList();
+        clearSubjectSelection();
+    }
+
+    function closeAssignSubjectModal() {
+        document.getElementById('assignSubjectModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('assignSubjectForm').reset();
+        clearSubjectSelection();
+    }
+    
+    // Subject Search and Selection Functions
+    function initializeSubjectList() {
+        const subjectSelect = document.getElementById('subject_id');
+        const subjectList = document.getElementById('subject_list');
+        const searchInput = document.getElementById('subject_search');
+        
+        // Build subject list from options
+        const subjects = [];
+        for (let i = 1; i < subjectSelect.options.length; i++) {
+            const option = subjectSelect.options[i];
+            subjects.push({
+                id: option.value,
+                code: option.dataset.code,
+                name: option.dataset.name,
+                curriculum: option.dataset.curriculum,
+                year: option.dataset.year,
+                semester: option.dataset.semester,
+                units: option.dataset.units
+            });
+        }
+        
+        // Store subjects globally for filtering
+        window.allSubjects = subjects;
+        
+        // Render all subjects initially
+        renderSubjects(subjects);
+        
+        // Add search functionality
+        searchInput.addEventListener('input', function() {
+            filterSubjects(this.value);
+        });
+        
+        // Show list when search is focused
+        searchInput.addEventListener('focus', function() {
+            document.getElementById('subject_list_container').classList.remove('hidden');
+        });
+    }
+    
+    function renderSubjects(subjects) {
+        const subjectList = document.getElementById('subject_list');
+        const noResultsDiv = document.getElementById('no_subjects_found');
+        
+        if (subjects.length === 0) {
+            subjectList.innerHTML = '';
+            noResultsDiv.classList.remove('hidden');
+            return;
+        }
+        
+        noResultsDiv.classList.add('hidden');
+        
+        subjectList.innerHTML = subjects.map(subject => `
+            <div class="subject-item p-3 hover:bg-green-50 cursor-pointer transition-colors" 
+                 onclick="selectSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', '${subject.units}')">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-900 text-sm">${subject.code}</p>
+                        <p class="text-sm text-gray-600 truncate">${subject.name}</p>
+                        <div class="flex items-center gap-2 mt-1 flex-wrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                ${subject.curriculum}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                ${subject.year}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                ${subject.semester}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                ${subject.units} units
+                            </span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function filterSubjects(searchTerm) {
+        if (!window.allSubjects) return;
+        
+        const term = searchTerm.toLowerCase().trim();
+        
+        if (!term) {
+            renderSubjects(window.allSubjects);
+            return;
+        }
+        
+        const filtered = window.allSubjects.filter(subject => {
+            return subject.code.toLowerCase().includes(term) ||
+                   subject.name.toLowerCase().includes(term) ||
+                   subject.curriculum.toLowerCase().includes(term) ||
+                   subject.year.toLowerCase().includes(term) ||
+                   subject.semester.toLowerCase().includes(term);
+        });
+        
+        renderSubjects(filtered);
+    }
+    
+    function selectSubject(id, code, name, curriculum, year, semester, units) {
+        // Set the hidden select value
+        document.getElementById('subject_id').value = id;
+        
+        // Update display
+        document.getElementById('selected_subject_text').textContent = `${code} - ${name}`;
+        document.getElementById('selected_subject_details').textContent = `${curriculum} • ${year} • ${semester} • ${units} units`;
+        
+        // Show selected display, hide list
+        document.getElementById('selected_subject_display').classList.remove('hidden');
+        document.getElementById('subject_list_container').classList.add('hidden');
+        
+        // Clear search
+        document.getElementById('subject_search').value = '';
+    }
+    
+    function clearSubjectSelection() {
+        document.getElementById('subject_id').value = '';
+        document.getElementById('subject_search').value = '';
+        document.getElementById('selected_subject_display').classList.add('hidden');
+        document.getElementById('subject_list_container').classList.add('hidden');
+        
+        // Re-render all subjects
+        if (window.allSubjects) {
+            renderSubjects(window.allSubjects);
+        }
+    }
+
+    function unassignSubject(assignmentId, subjectCode) {
+        if (confirm(`Are you sure you want to remove "${subjectCode}" from this faculty member?`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("faculty.unassign_subject") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const assignmentIdInput = document.createElement('input');
+            assignmentIdInput.type = 'hidden';
+            assignmentIdInput.name = 'assignment_id';
+            assignmentIdInput.value = assignmentId;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(assignmentIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Close modals on outside click
+    document.getElementById('addFacultyModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAddFacultyModal();
+    });
+    
+    document.getElementById('editFacultyModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditFacultyModal();
+    });
+    
+    document.getElementById('assignSubjectModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAssignSubjectModal();
+    });
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAddFacultyModal();
+            closeEditFacultyModal();
+            closeAssignSubjectModal();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,819 @@
+{% extends "base.html" %}
+
+{% block title %}Buildings Management - iSchedWise{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom Scrollbar */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Building List Item Styles */
+    .building-list-item {
+        transition: all 0.2s ease;
+    }
+    
+    .building-list-item:hover {
+        background: #f8fafc;
+    }
+    
+    .building-list-item.selected {
+        background: #eff6ff;
+        border-left: 3px solid #3b82f6;
+        border-bottom: none;
+    }
+    
+    .building-list-item.selected:hover {
+        background: #dbeafe;
+    }
+    
+    .room-row {
+        transition: all 0.15s ease;
+    }
+    
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 400px;
+    }
+    
+    .toast {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: translateX(400px);
+        animation: slideIn 0.3s ease forwards;
+        min-width: 300px;
+    }
+    
+    .toast.removing {
+        animation: slideOut 0.3s ease forwards;
+    }
+    
+    @keyframes slideIn {
+        to {
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOut {
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+    
+    .toast-success {
+        border-left: 4px solid #10b981;
+    }
+    
+    .toast-error {
+        border-left: 4px solid #ef4444;
+    }
+    
+    .toast-info {
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: currentColor;
+        opacity: 0.3;
+        animation: progress 5s linear forwards;
+    }
+    
+    @keyframes progress {
+        to {
+            width: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-4">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Flash Messages (Hidden - converted to toasts) -->
+        <div id="flashMessages" class="hidden">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div data-category="{{ category }}" data-message="{{ message }}"></div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-3 flex-shrink-0 animate-slide-in">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                Buildings Management
+                                <span class="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ buildings|length }}</span>
+                            </h1>
+                            <p class="text-sm text-gray-600 mt-0.5">Manage campus buildings and rooms</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two-Panel Layout: Building List + Room Detail View -->
+        <div class="flex-1 overflow-hidden flex gap-3">
+            {% if buildings %}
+            <!-- Left Panel: Building List -->
+            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Buildings
+                        <span id="building-count-badge" class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ buildings|length }}</span>
+                    </h3>
+                    <button onclick="openAddBuildingModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-md text-sm transition-all">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Building
+                    </button>
+                </div>
+                
+                <!-- Building List -->
+                <div class="flex-1 overflow-y-auto" id="buildingList">
+                    {% for building in buildings %}
+                    <div class="building-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer {% if selected_building and building.id == selected_building.id %}selected{% endif %}" 
+                         onclick="selectBuilding({{ building.id }}, '{{ building.building_name }}')">
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-bold text-gray-900 truncate">{{ building.building_name }}</h4>
+                                    <p class="text-sm text-gray-600 truncate mt-0.5">{{ building.room_count }} {{ 'Room' if building.room_count == 1 else 'Rooms' }}</p>
+                                </div>
+                                <span class="ml-2 px-2.5 py-1 text-xs font-semibold rounded-full flex-shrink-0 {{ 'bg-green-100 text-green-700' if building.is_active else 'bg-gray-100 text-gray-600' }}">
+                                    {{ 'Active' if building.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-gray-500">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"></path>
+                                    </svg>
+                                    Campus Building
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Panel: Building Detail View -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" id="buildingDetailPanel">
+                <!-- Header: Always visible -->
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    {% if selected_building %}
+                    {% set display_building = selected_building %}
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900" id="detailBuildingName">{{ display_building.building_name }}</h3>
+                            <p class="text-sm text-gray-600" id="detailRoomCount">{{ display_building.room_count }} {{ 'Room' if display_building.room_count == 1 else 'Rooms' }}</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                            <button onclick="openAddRoomModal({{ display_building.id }}, '{{ display_building.building_name }}')" class="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Add Room">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                            <button onclick="editBuilding({{ display_building.id }}, '{{ display_building.building_name }}')" class="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Building">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="archiveBuilding({{ display_building.id }}, '{{ display_building.building_name }}')" class="p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Building">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
+                            <p class="text-sm text-gray-600">Select a building to view details</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Building Content: Rooms List -->
+                <div class="flex-1 overflow-y-auto {% if not selected_building %}p-8 bg-gray-50{% else %}p-4{% endif %}" id="buildingContent">
+                    {% if selected_building %}
+                    {% set display_building = selected_building %}
+                    {% if display_building.rooms.count() > 0 %}
+                    <div class="space-y-2">
+                        {% for room in display_building.rooms.order_by('room_number').all() %}
+                        <div class="room-row bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 transition-all">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3 flex-1">
+                                    <div class="bg-blue-100 rounded-lg p-2">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-semibold text-gray-900">{{ room.room_number }}</h4>
+                                        <p class="text-xs text-gray-600">{{ display_building.building_name }}</p>
+                                    </div>
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full {{ 'bg-green-100 text-green-700' if room.is_available else 'bg-gray-100 text-gray-600' }}">
+                                        {{ 'Available' if room.is_available else 'Unavailable' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="editRoom({{ room.id }}, '{{ room.room_number }}', {{ display_building.id }})" class="p-1.5 hover:bg-blue-100 rounded-md transition-colors" title="Edit Room">
+                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button onclick="deleteRoom({{ room.id }}, '{{ room.room_number }}', {{ display_building.id }})" class="p-1.5 hover:bg-red-100 rounded-md transition-colors" title="Delete Room">
+                                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="h-full flex items-center justify-center">
+                        <div class="text-center px-4">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Rooms Yet</h3>
+                            <p class="text-sm text-gray-500">This building doesn't have any rooms yet</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <!-- No Building Selected -->
+                    <div class="h-full flex items-center justify-center">
+                        <div class="text-center px-4">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Building Selected</h3>
+                            <p class="text-sm text-gray-500">Select a building to view rooms and details</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State: No Buildings -->
+            <!-- Left Panel: Empty List -->
+            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Buildings
+                        <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
+                    </h3>
+                </div>
+                
+                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">No buildings yet</p>
+                        <button onclick="openAddBuildingModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-xs">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Building
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Getting Started -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
+                            <p class="text-sm text-gray-600">Add your first building to begin</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
+                    <div class="text-center max-w-md px-8">
+                        <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Buildings Yet</h3>
+                        <p class="text-sm text-gray-600 mb-8 leading-relaxed">Start organizing your campus by adding buildings and their rooms.</p>
+                        <button onclick="openAddBuildingModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Create First Building
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Building Modal -->
+<div id="addBuildingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Add New Building</h3>
+                </div>
+                <button onclick="closeAddBuildingModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="addBuildingForm" method="POST" action="{{ url_for('building.add') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Building Name -->
+                <div>
+                    <label for="building_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Building Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="building_name" name="building_name" required 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                           placeholder="e.g., Main Building" autofocus>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeAddBuildingModal()" 
+                        class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-md transition-all">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Building
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Building Modal -->
+<div id="editBuildingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Edit Building</h3>
+                </div>
+                <button onclick="closeEditBuildingModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="editBuildingForm" method="POST" action="{{ url_for('building.edit') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="building_id_edit" name="building_id">
+            
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Building Name -->
+                <div>
+                    <label for="building_name_edit" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Building Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="building_name_edit" name="building_name" required 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeEditBuildingModal()" 
+                        class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-md transition-all">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Room Modal -->
+<div id="addRoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Add Room</h3>
+                </div>
+                <button onclick="closeAddRoomModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="addRoomForm" method="POST" action="{{ url_for('building.add_room') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="building_id_add_room" name="building_id">
+            
+            <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <p class="text-sm text-gray-700">
+                    <span class="font-semibold text-blue-800">Building:</span>
+                    <span id="building_name_display" class="ml-2"></span>
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Room Number -->
+                <div>
+                    <label for="room_number" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Room Number <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="room_number" name="room_number" required 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                           placeholder="e.g., 101, 201, Lab-A" autofocus>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeAddRoomModal()" 
+                        class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-lg shadow-md transition-all">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Room
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Room Modal -->
+<div id="editRoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Edit Room</h3>
+                </div>
+                <button onclick="closeEditRoomModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="editRoomForm" method="POST" action="{{ url_for('building.edit_room') }}" class="p-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="room_id_edit" name="room_id">
+            
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Room Number -->
+                <div>
+                    <label for="room_number_edit" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Room Number <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="room_number_edit" name="room_number" required 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeEditRoomModal()" 
+                        class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-lg shadow-md transition-all">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>',
+            error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>',
+            info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+        };
+        
+        const colors = {
+            success: '#10b981',
+            error: '#ef4444',
+            info: '#3b82f6'
+        };
+        
+        toast.innerHTML = `
+            <div class="mr-3">
+                <svg class="w-6 h-6" style="color: ${colors[type]}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${icons[type]}
+                </svg>
+            </div>
+            <div class="flex-1 text-sm text-gray-700">${message}</div>
+            <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="toast-progress" style="width: 100%; color: ${colors[type]}"></div>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    
+    function removeToast(toast) {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }
+    
+    // Show flash messages as toasts on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) {
+            const messages = flashMessages.querySelectorAll('[data-message]');
+            messages.forEach(msg => {
+                const category = msg.getAttribute('data-category');
+                const message = msg.getAttribute('data-message');
+                showToast(message, category);
+            });
+        }
+    });
+
+    // Building Selection Function
+    function selectBuilding(id, name) {
+        // Redirect to the same page with the building_id parameter
+        window.location.href = `{{ url_for('building.index') }}?building_id=${id}`;
+    }
+
+    // Building Modal Functions
+    function openAddBuildingModal() {
+        document.getElementById('addBuildingModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeAddBuildingModal() {
+        document.getElementById('addBuildingModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('addBuildingForm').reset();
+    }
+
+    function openEditBuildingModal() {
+        document.getElementById('editBuildingModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeEditBuildingModal() {
+        document.getElementById('editBuildingModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('editBuildingForm').reset();
+    }
+
+    function editBuilding(id, name) {
+        document.getElementById('building_id_edit').value = id;
+        document.getElementById('building_name_edit').value = name;
+        openEditBuildingModal();
+    }
+
+    function archiveBuilding(id, name) {
+        // Get reason from user
+        const reason = prompt(`Please provide a reason for archiving building "${name}":\n\n(This building will be moved to the Archives page and can be restored later)`, 'Building maintenance or renovation');
+        
+        if (reason === null) {
+            // User clicked Cancel
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to ARCHIVE building "${name}"?\n\nThis will:\n- Hide the building from the main list\n- Archive all rooms in this building\n- Move everything to the Archives page\n- Keep all data intact\n- Allow restoration later if needed`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("building.archive") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const buildingIdInput = document.createElement('input');
+            buildingIdInput.type = 'hidden';
+            buildingIdInput.name = 'building_id';
+            buildingIdInput.value = id;
+            
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'archive_reason';
+            reasonInput.value = reason || 'No reason provided';
+            
+            form.appendChild(csrfToken);
+            form.appendChild(buildingIdInput);
+            form.appendChild(reasonInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Room Modal Functions
+    function openAddRoomModal(buildingId, buildingName) {
+        document.getElementById('building_id_add_room').value = buildingId;
+        document.getElementById('building_name_display').textContent = buildingName;
+        
+        document.getElementById('addRoomModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeAddRoomModal() {
+        document.getElementById('addRoomModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('addRoomForm').reset();
+    }
+
+    function openEditRoomModal() {
+        document.getElementById('editRoomModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeEditRoomModal() {
+        document.getElementById('editRoomModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('editRoomForm').reset();
+    }
+
+    function editRoom(id, roomNumber, buildingId) {
+        document.getElementById('room_id_edit').value = id;
+        document.getElementById('room_number_edit').value = roomNumber;
+        
+        openEditRoomModal();
+    }
+
+    function deleteRoom(id, roomNumber, buildingId) {
+        if (confirm(`Are you sure you want to delete Room "${roomNumber}"?`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("building.delete_room") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const roomIdInput = document.createElement('input');
+            roomIdInput.type = 'hidden';
+            roomIdInput.name = 'room_id';
+            roomIdInput.value = id;
+            
+            const buildingIdInput = document.createElement('input');
+            buildingIdInput.type = 'hidden';
+            buildingIdInput.name = 'building_id';
+            buildingIdInput.value = buildingId;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(roomIdInput);
+            form.appendChild(buildingIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Close modals on outside click
+    document.getElementById('addBuildingModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAddBuildingModal();
+    });
+    
+    document.getElementById('editBuildingModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditBuildingModal();
+    });
+    
+    document.getElementById('addRoomModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAddRoomModal();
+    });
+    
+    document.getElementById('editRoomModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditRoomModal();
+    });
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAddBuildingModal();
+            closeEditBuildingModal();
+            closeAddRoomModal();
+            closeEditRoomModal();
+        }
+    });
+</script>
+{% endblock %}

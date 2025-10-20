@@ -1,0 +1,401 @@
+        <!-- Tab Content: Class Schedules -->
+        <div id="content-class" class="tab-content flex-1 overflow-hidden flex gap-4">
+            {% if sections %}
+            <!-- Left Panel: Section List -->
+            <div class="w-80 flex-shrink-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col card-hover">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
+                        <div class="p-1.5 rounded-lg mr-2" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        Sections
+                        <span id="section-count-badge" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200">{{ sections|length }}</span>
+                    </h3>
+                    
+                    <!-- Department Filter -->
+                    <select id="departmentFilter" onchange="filterByDepartment(this.value)" class="w-full px-3 py-2 text-sm border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if department_filter == dept.id|string %}selected{% endif %}>{{ dept.department_code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Section List -->
+                <div class="flex-1 overflow-y-auto" id="sectionList">
+                    {% for section in sections %}
+                    <div class="section-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer {% if selected_section and selected_section.id == section.id %}selected{% endif %}" 
+                         data-department-id="{{ section.department_id if section.department_id else '' }}"
+                         onclick="selectSection({{ section.id }}, '{{ section.section_name }}')">
+                        <div class="p-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-gray-900 truncate">
+                                        {% if section.department %}{{ section.department.department_code }}-{{ section.year_level }}{{ section.section_name }}{% else %}Year {{ section.year_level }} {{ section.section_name }}{% endif %}
+                                    </h4>
+                                    <p class="text-xs text-gray-500 mt-0.5">{{ section.department.department_name if section.department else 'No Department' }}</p>
+                                    <p class="text-xs text-purple-600 font-medium mt-1">{{ section_schedule_counts.get(section.id, 0) }} Schedule{{ 's' if section_schedule_counts.get(section.id, 0) != 1 else '' }}</p>
+                                </div>
+                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Panel: Schedule Details -->
+            <div class="flex-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col card-hover">
+                <!-- Header - Always Visible -->
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    {% if selected_section %}
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">
+                                {% if selected_section.department %}{{ selected_section.department.department_code }}-{% endif %}{{ selected_section.year_level }}{{ selected_section.section_name }} - Class Schedules
+                            </h3>
+                            <p class="text-gray-600 text-sm mt-1">
+                                {% if selected_section.department %}{{ selected_section.department.department_name }}{% endif %}
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <!-- View Toggle Buttons -->
+                            <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                                <button id="viewToggleTable" onclick="switchScheduleView('table')" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Table
+                                </button>
+                                <button id="viewToggleCalendar" onclick="switchScheduleView('calendar')" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:text-gray-900">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Calendar
+                                </button>
+                            </div>
+                            <a href="{{ url_for('schedule.export_class_schedule', section_id=selected_section.id) }}" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 shadow-sm transition-all text-sm border border-blue-200">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export
+                            </a>
+                            <button onclick="openAddScheduleModal({{ selected_section.id }})" class="inline-flex items-center px-4 py-2 bg-green-50 text-green-600 font-semibold rounded-lg hover:bg-green-100 shadow-sm transition-all text-sm border border-green-200">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Add Schedule
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <h3 class="text-xl font-bold text-gray-900">Select a Section</h3>
+                    {% endif %}
+                </div>
+
+                <!-- Content Area -->
+                <div class="flex-1 {% if not selected_section %}p-8 bg-gray-50 overflow-y-auto{% endif %}">
+                    {% if selected_section %}
+                        {% if schedules %}
+                        <!-- Table View -->
+                        <div id="scheduleTableView" class="table-container">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Subject</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Faculty</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Room</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Day</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Time</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Semester</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Academic Year</th>
+                                        <th scope="col" class="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white">
+                                    {% for schedule in schedules %}
+                                    <tr class="schedule-row">
+                                        <!-- Subject -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="text-sm font-semibold text-gray-900">{{ schedule.subject.subject_code }}</div>
+                                            <div class="text-xs text-gray-500">{{ schedule.subject.course_description }}</div>
+                                        </td>
+                                        <!-- Faculty -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            {% if schedule.faculty %}
+                                            <div class="text-sm text-gray-900">{{ schedule.faculty.full_name }}</div>
+                                            {% else %}
+                                            <div class="text-sm text-gray-400 italic">TBA</div>
+                                            {% endif %}
+                                        </td>
+                                        <!-- Room -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            {% if schedule.room %}
+                                            <div class="text-sm text-gray-900">{{ schedule.room.room_number }}</div>
+                                            <div class="text-xs text-gray-500">{{ schedule.room.building.building_name if schedule.room.building else '' }}</div>
+                                            {% else %}
+                                            <div class="text-sm text-gray-400 italic">TBA</div>
+                                            {% endif %}
+                                        </td>
+                                        <!-- Day of Week -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <span class="day-badge day-{{ schedule.day_of_week|lower }}">{{ schedule.day_of_week }}</span>
+                                        </td>
+                                        <!-- Time -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900">{{ schedule.start_time.strftime('%I:%M %p') }}</div>
+                                            <div class="text-xs text-gray-500">{{ schedule.end_time.strftime('%I:%M %p') }}</div>
+                                        </td>
+                                        <!-- Schedule Type -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                                {% if schedule.schedule_type == 'lecture' %}bg-blue-100 text-blue-700 border border-blue-200
+                                                {% elif schedule.schedule_type == 'lab' %}bg-green-100 text-green-700 border border-green-200
+                                                {% else %}bg-purple-100 text-purple-700 border border-purple-200{% endif %}">
+                                                {{ schedule.schedule_type|title }}
+                                            </span>
+                                        </td>
+                                        <!-- Semester -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900">{{ schedule.semester if schedule.semester else '-' }}</div>
+                                        </td>
+                                        <!-- Academic Year -->
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900">{{ schedule.academic_year if schedule.academic_year else '-' }}</div>
+                                        </td>
+                                        <!-- Actions -->
+                                        <td class="px-4 py-3 whitespace-nowrap text-right">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <button onclick='editSchedule({{ schedule.id }}, {{ schedule.to_dict()|tojson|safe }})' class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Edit">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button onclick="deleteSchedule({{ schedule.id }}, '{{ schedule.subject.subject_code }}')" class="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Delete">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Calendar View -->
+                        <div id="scheduleCalendarView" class="hidden h-full overflow-y-auto p-2">
+                            <div class="calendar-grid">
+                                <!-- Calendar Header -->
+                                <div class="grid grid-cols-8 gap-1 mb-2 sticky top-0 bg-white z-20">
+                                    <div class="calendar-day-header font-bold text-gray-500 uppercase tracking-wider">Time</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-blue-50 rounded border border-blue-100">Mon</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-pink-50 rounded border border-pink-100">Tue</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-green-50 rounded border border-green-100">Wed</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-yellow-50 rounded border border-yellow-100">Thu</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-indigo-50 rounded border border-indigo-100">Fri</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-purple-50 rounded border border-purple-100">Sat</div>
+                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-red-50 rounded border border-red-100">Sun</div>
+                                </div>
+                                
+                                <!-- Calendar Body -->
+                                <div class="space-y-0.5">
+                                    {# Always show 7 AM - 7 PM by default #}
+                                    {% set ns = namespace(min_hour=7, max_hour=19) %}
+                                    
+                                    {# Calculate dynamic time range based on actual schedules (optional expansion) #}
+                                    {% for schedule in schedules %}
+                                        {% set start_hour = schedule.start_time.strftime('%H')|int %}
+                                        {% set end_hour = schedule.end_time.strftime('%H')|int %}
+                                        {% if start_hour < ns.min_hour %}
+                                            {% set ns.min_hour = start_hour %}
+                                        {% endif %}
+                                        {% if end_hour > ns.max_hour %}
+                                            {% set ns.max_hour = end_hour %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {# Generate time slots dynamically #}
+                                    {% set time_slots = [] %}
+                                    {% for hour in range(ns.min_hour, ns.max_hour) %}
+                                        {% set start_24h = '%02d:00'|format(hour) %}
+                                        {% set end_24h = '%02d:00'|format(hour + 1) %}
+                                        {% set display_12h = '%d:00 %s'|format(
+                                            (hour % 12) if (hour % 12) != 0 else 12,
+                                            'AM' if hour < 12 else 'PM'
+                                        ) %}
+                                        {% set _ = time_slots.append((start_24h, end_24h, display_12h)) %}
+                                    {% endfor %}
+                                    
+                                    {% for start_time, end_time, display_time in time_slots %}
+                                    <div class="grid grid-cols-8 gap-1">
+                                        <!-- Time Column -->
+                                        <div class="calendar-time-cell font-semibold text-gray-600 flex items-center">
+                                            {{ display_time }}
+                                        </div>
+                                        
+                                        <!-- Days Columns -->
+                                        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                        <div class="calendar-cell bg-gray-50 rounded border border-gray-200 p-1 relative hover:bg-gray-100 transition-colors">
+                                            {% for schedule in schedules %}
+                                                {% if schedule.day_of_week == day %}
+                                                    {% set sched_start = schedule.start_time.strftime('%H:%M') %}
+                                                    {% set sched_end = schedule.end_time.strftime('%H:%M') %}
+                                                    {% if sched_start <= start_time and sched_end > start_time %}
+                                                    <div class="calendar-schedule-card absolute inset-0.5 rounded p-1 overflow-hidden shadow-sm border-l-2 cursor-pointer hover:shadow-md transition-shadow
+                                                        {% if schedule.schedule_type == 'lecture' %}bg-blue-100 border-blue-500 hover:bg-blue-200
+                                                        {% elif schedule.schedule_type == 'lab' %}bg-green-100 border-green-500 hover:bg-green-200
+                                                        {% else %}bg-purple-100 border-purple-500 hover:bg-purple-200{% endif %}"
+                                                        onclick='editSchedule({{ schedule.id }}, {{ schedule.to_dict()|tojson|safe }})'
+                                                        title="{{ schedule.subject.subject_code }} - {{ schedule.subject.course_description }}&#10;{{ schedule.faculty.full_name if schedule.faculty else 'TBA' }}&#10;{{ schedule.room.room_number if schedule.room else 'TBA' }}&#10;{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}">
+                                                        <div class="font-bold text-gray-900 truncate leading-tight">{{ schedule.subject.subject_code }}</div>
+                                                        <div class="text-gray-700 truncate mt-0.5 leading-tight">{{ schedule.subject.course_description[:15] }}{% if schedule.subject.course_description|length > 15 %}...{% endif %}</div>
+                                                        <div class="text-gray-600 mt-0.5 truncate leading-tight">
+                                                            <span class="inline-flex items-center gap-0.5">
+                                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                                </svg>
+                                                                <span class="truncate">{{ schedule.faculty.full_name[:12] if schedule.faculty else 'TBA' }}{% if schedule.faculty and schedule.faculty.full_name|length > 12 %}...{% endif %}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div class="text-gray-600 truncate leading-tight">
+                                                            <span class="inline-flex items-center gap-0.5">
+                                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                                </svg>
+                                                                <span class="truncate">{{ schedule.room.room_number if schedule.room else 'TBA' }}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div class="text-gray-900 font-medium mt-0.5 leading-tight">
+                                                            {{ schedule.start_time.strftime('%I:%M %p') }}
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Empty state for no schedules -->
+                        <div class="text-center py-12 empty-state">
+                            <div class="mx-auto h-16 w-16 rounded-xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                <svg class="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">No Schedules Found</h3>
+                            <p class="mt-3 text-sm text-gray-600">Get started by creating the first schedule for this section.</p>
+                            <div class="mt-6">
+                                <button onclick="openAddScheduleModal({{ selected_section.id }})" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                    Add First Schedule
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                    <!-- No section selected state -->
+                    <div class="text-center empty-state">
+                        <div class="mx-auto h-20 w-20 rounded-xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="h-12 w-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <h3 class="mt-6 text-2xl font-semibold text-gray-900">Select a Section</h3>
+                        <p class="mt-3 text-sm text-gray-600">Choose a section from the list to view and manage its schedules.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State: No Sections -->
+            <!-- Left Panel: Empty List -->
+            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
+                        <div class="p-1.5 rounded-lg mr-2" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        Sections
+                    </h3>
+                </div>
+                
+                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
+                    <div class="text-center">
+                        <div class="mx-auto h-12 w-12 rounded-lg flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <h3 class="mt-4 text-sm font-medium text-gray-900">No sections available</h3>
+                        <p class="mt-2 text-xs text-gray-500">Create sections in Department Management first</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Getting Started -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-900">Getting Started</h3>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
+                    <div class="text-center max-w-md">
+                        <div class="mx-auto h-16 w-16 rounded-xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="mt-6 text-xl font-semibold text-gray-900">Welcome to Schedule Management</h3>
+                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">
+                            Before creating schedules, make sure you have:
+                        </p>
+                        <ul class="mt-4 text-left text-sm text-gray-600 space-y-2">
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Created departments and sections</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Added curriculum and subjects</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Registered faculty members</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Set up buildings and rooms</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        

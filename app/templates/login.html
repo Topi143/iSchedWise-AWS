@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Login - iSchedWise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Login Page Styles */
+        .bg-building {
+            background-image: url("{{ url_for('static', filename='images/newbuilding.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        .logo-shadow {
+            filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.04)) drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .gradient-overlay {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.4) 100%);
+            animation: gradientShift 8s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+
+        .left-panel {
+            min-height: 100vh;
+        }
+
+        /* Fallback background color if image doesn't load */
+        .bg-fallback {
+            background-color: #1e40af;
+        }
+
+        /* Animated particles */
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.3;
+            }
+            50% { 
+                transform: translateY(-20px) translateX(10px);
+                opacity: 0.6;
+            }
+        }
+
+        /* Form animations */
+        .form-field {
+            transition: all 0.3s ease;
+        }
+
+        .form-field:focus-within {
+            transform: translateY(-2px);
+        }
+
+        /* Button ripple effect */
+        .btn-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-ripple:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Loading animation */
+        .loading-spinner {
+            display: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading .loading-spinner {
+            display: inline-block;
+        }
+
+        .loading .btn-text {
+            display: none;
+        }
+
+        /* Welcome text animation */
+        .welcome-text {
+            animation: fadeInUp 1s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Input focus glow */
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Card entrance animation */
+        .login-card {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Shake animation for errors */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        /* Password strength indicator */
+        .password-strength {
+            height: 3px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .strength-weak { 
+            width: 33%;
+            background: #ef4444;
+        }
+
+        .strength-medium { 
+            width: 66%;
+            background: #f59e0b;
+        }
+
+        .strength-strong { 
+            width: 100%;
+            background: #10b981;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Left Side - Building Background with Overlay -->
+    <div class="hidden lg:flex lg:w-1/2 relative bg-building bg-fallback left-panel">
+        <!-- Gradient Overlay -->
+        <div class="absolute inset-0 gradient-overlay"></div>
+        
+        <!-- Content on the left side -->
+        <div class="relative z-10 flex flex-col justify-center items-center p-8 xl:p-12 text-white w-full">
+            <!-- Logo -->
+            <div class="mb-6">
+                <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" 
+                     alt="Norzagaray College Logo" 
+                     class="w-24 h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 logo-shadow mx-auto"
+                     onerror="this.style.display='none'">
+            </div>
+            
+            <!-- Welcome Text -->
+            <div class="text-center mb-8 max-w-lg welcome-text">
+                <h1 class="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3">Welcome to</h1>
+                <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold mb-4">iSchedWise</h2>
+                <div class="w-20 h-0.5 bg-white bg-opacity-80 mx-auto mb-6"></div>
+                <p class="text-base lg:text-lg xl:text-xl opacity-90 leading-relaxed">
+                    Intelligent Scheduling System for Norzagaray College
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Side - Login Form -->
+    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center bg-gray-50 p-8 lg:p-12">
+        <!-- Mobile Logo (visible on small screens) -->
+        <div class="lg:hidden mb-8">
+            <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" 
+                 alt="Norzagaray College Logo" 
+                 class="w-20 h-20 mx-auto logo-shadow">
+            <h2 class="text-2xl font-bold text-gray-800 text-center mt-4">iSchedWise</h2>
+        </div>
+
+        <!-- Login Card -->
+        <div class="w-full max-w-md login-card">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h2 class="hidden lg:block text-3xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+                <p class="text-gray-600">Sign in to your account to continue</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6">
+                        {% for category, message in messages %}
+                            <div class="{% if category == 'error' %}bg-red-50 border-l-4 border-red-400{% else %}bg-green-50 border-l-4 border-green-400{% endif %} p-4 rounded-md">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-400{% else %}fa-check-circle text-green-400{% endif %}"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm {% if category == 'error' %}text-red-700{% else %}text-green-700{% endif %}">{{ message }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Login Form -->
+            <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
+                {{ form.hidden_tag() }}
+                
+                <!-- Username/Email Field -->
+                <div class="form-field">
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                        Username or Email
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               required
+                               class="input-glow w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                               placeholder="Enter your username or email"
+                               autocomplete="username">
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-field">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Password
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" 
+                               id="password" 
+                               name="password" 
+                               required
+                               class="input-glow w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                               placeholder="Enter your password"
+                               autocomplete="current-password">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <button type="button" 
+                                    id="togglePassword" 
+                                    class="text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                                    tabindex="-1">
+                                <i class="fas fa-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="remember" 
+                               name="remember" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="remember" class="ml-2 block text-sm text-gray-700">
+                            Remember me
+                        </label>
+                    </div>
+                    <div class="text-sm">
+                        <a href="{{ url_for('auth.forgot_password') }}" class="text-blue-600 hover:text-blue-500 transition-colors duration-200">
+                            Forgot password?
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Login Button -->
+                <div>
+                    <button type="submit" 
+                            class="btn-ripple w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                        <span class="btn-text flex items-center">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            Sign In
+                        </span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Footer -->
+            <div class="mt-8 text-center text-xs text-gray-500">
+                <p>&copy; 2025 Norzagaray College. All rights reserved.</p>
+                <p class="mt-1">iSchedWise - Intelligent Scheduling System</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle Password Visibility
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle eye icon
+            if (type === 'password') {
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            } else {
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            }
+        });
+
+        // Form submission with loading state
+        const loginForm = document.querySelector('form');
+        const submitButton = loginForm.querySelector('button[type="submit"]');
+        const btnText = submitButton.querySelector('span');
+        
+        loginForm.addEventListener('submit', function(e) {
+            // Add loading state
+            submitButton.classList.add('loading');
+            submitButton.disabled = true;
+            
+            // Create and append spinner
+            const spinner = document.createElement('div');
+            spinner.className = 'loading-spinner';
+            submitButton.insertBefore(spinner, btnText);
+        });
+
+        // Input field animations
+        const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.parentElement.classList.add('form-field');
+            });
+            
+            input.addEventListener('blur', function() {
+                if (!this.value) {
+                    this.parentElement.parentElement.classList.remove('form-field');
+                }
+            });
+
+            // Add input animation
+            input.addEventListener('input', function() {
+                this.classList.remove('shake');
+            });
+        });
+
+        // Error shake animation
+        const flashMessages = document.querySelectorAll('.bg-red-50');
+        if (flashMessages.length > 0) {
+            loginForm.classList.add('shake');
+            inputs.forEach(input => input.classList.add('shake'));
+            
+            // Remove shake class after animation
+            setTimeout(() => {
+                loginForm.classList.remove('shake');
+                inputs.forEach(input => input.classList.remove('shake'));
+            }, 500);
+        }
+
+        // Create animated particles on left panel
+        function createParticles() {
+            const leftPanel = document.querySelector('.left-panel');
+            if (!leftPanel) return;
+
+            const particleCount = 15;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Random size between 4px and 12px
+                const size = Math.random() * 8 + 4;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Random animation delay and duration
+                particle.style.animationDelay = `${Math.random() * 6}s`;
+                particle.style.animationDuration = `${Math.random() * 4 + 4}s`;
+                
+                leftPanel.appendChild(particle);
+            }
+        }
+
+        // Auto-focus username field
+        window.addEventListener('load', function() {
+            const usernameInput = document.getElementById('username');
+            if (usernameInput && !usernameInput.value) {
+                setTimeout(() => usernameInput.focus(), 100);
+            }
+            
+            // Create particles
+            createParticles();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter to submit form
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        });
+
+        // Add smooth hover effect to login button
+        submitButton.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 10px 20px rgba(37, 99, 235, 0.3)';
+        });
+
+        submitButton.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '';
+        });
+
+        // Prevent double submission
+        let isSubmitting = false;
+        loginForm.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+        });
+
+        // Add ripple effect to login button
+        submitButton.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.className = 'absolute rounded-full bg-white opacity-50 animate-ping';
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => ripple.remove(), 600);
+        });
+
+        // Flash message auto-dismiss
+        const flashMessageContainers = document.querySelectorAll('.bg-red-50, .bg-green-50');
+        flashMessageContainers.forEach(container => {
+            // Add close button
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.className = 'ml-auto text-gray-400 hover:text-gray-600 transition-colors';
+            closeBtn.onclick = function() {
+                container.style.opacity = '0';
+                container.style.transform = 'translateX(20px)';
+                setTimeout(() => container.remove(), 300);
+            };
+            
+            const flexDiv = container.querySelector('.flex');
+            if (flexDiv) {
+                flexDiv.appendChild(closeBtn);
+            }
+            
+            // Auto-dismiss success messages after 5 seconds
+            if (container.classList.contains('bg-green-50')) {
+                setTimeout(() => {
+                    container.style.opacity = '0';
+                    container.style.transform = 'translateX(20px)';
+                    setTimeout(() => container.remove(), 300);
+                }, 5000);
+            }
+        });
+
+        // Add transition to flash messages
+        flashMessageContainers.forEach(container => {
+            container.style.transition = 'all 0.3s ease';
+        });
+
+        // Welcome text typing effect (optional - can be commented out if too much)
+        const welcomeText = document.querySelector('.left-panel h1');
+        if (welcomeText) {
+            welcomeText.style.opacity = '0';
+            setTimeout(() => {
+                welcomeText.style.transition = 'opacity 1s ease';
+                welcomeText.style.opacity = '1';
+            }, 200);
+        }
+
+        // Remember me persistence
+        const rememberCheckbox = document.getElementById('remember');
+        const usernameInput = document.getElementById('username');
+        
+        // Load remembered username on page load
+        if (localStorage.getItem('rememberedUsername')) {
+            usernameInput.value = localStorage.getItem('rememberedUsername');
+            rememberCheckbox.checked = true;
+        }
+        
+        // Save username when remember is checked
+        loginForm.addEventListener('submit', function() {
+            if (rememberCheckbox.checked) {
+                localStorage.setItem('rememberedUsername', usernameInput.value);
+            } else {
+                localStorage.removeItem('rememberedUsername');
+            }
+        });
+
+        // Input validation feedback
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.value.trim() === '') {
+                    this.style.borderColor = '#fca5a5';
+                    setTimeout(() => {
+                        this.style.borderColor = '';
+                    }, 2000);
+                }
+            });
+
+            input.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.style.borderColor = '#86efac';
+                    setTimeout(() => {
+                        this.style.borderColor = '';
+                    }, 1000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Management - iSchedWise{% endblock %}
+
+{% block extra_css %}
+    {% include 'schedule/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-4">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Flash Messages (Hidden - converted to toasts) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flashMessages" style="display: none;">
+                    {% for category, message in messages %}
+                        <div data-category="{{ category }}" data-message="{{ message }}"></div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="mb-3 flex-shrink-0 animate-slide-in">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl shadow-lg flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            Schedule Management
+                            {% if current_settings %}
+                            <span class="text-base font-normal bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200">{{ current_settings.academic_year }} • {{ current_settings.semester }}</span>
+                            {% endif %}
+                        </h1>
+                        <p class="text-sm text-gray-600 mt-0.5">Manage class, faculty, room, and exam schedules</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="mb-4 flex-shrink-0">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-1.5 flex gap-1.5 card-hover">
+                <button onclick="switchTab('class')" id="tab-class" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Class Schedules
+                </button>
+                <button onclick="switchTab('faculty')" id="tab-faculty" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Faculty Schedules
+                </button>
+                <button onclick="switchTab('room')" id="tab-room" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    Room Schedules
+                </button>
+                <button onclick="switchTab('exam')" id="tab-exam" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Exam Schedules
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Contents -->
+        {% include 'schedule/_class_tab.html' %}
+        {% include 'schedule/_faculty_tab.html' %}
+        {% include 'schedule/_room_tab.html' %}
+        {% include 'schedule/_exam_tab.html' %}
+    </div>
+</div>
+
+<!-- Modals -->
+{% include 'schedule/_modals.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Load modular JavaScript files -->
+<script src="{{ url_for('static', filename='js/schedule/main.js') }}"></script>
+<script src="{{ url_for('static', filename='tabs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/calendar.js') }}"></script>
+
+<!-- Automatic Conflict Detection System -->
+<script src="{{ url_for('static', filename='js/schedule/auto_conflict_check.js') }}"></script>
+
+<!-- Full schedule JavaScript (includes modals, filters, forms, AI) -->
+<!-- TODO: Further split schedule_full.js into modular files (modals.js, filters.js, forms.js, ai.js) -->
+<script src="{{ url_for('static', filename='js/schedule/schedule_full.js') }}"></script>
+{% endblock %}
