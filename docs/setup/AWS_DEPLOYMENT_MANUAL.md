@@ -394,51 +394,130 @@ cd /var/www/ischedwise
 ```
 
 ### Step 3: Create Environment Configuration
+
+**IMPORTANT:** This step creates the `.env` file that stores your sensitive configuration. You'll need:
+- Your RDS database endpoint (from Database Setup Step 3)
+- Your RDS master password (from Database Setup Step 2)
+- (Optional) Email settings for password reset feature
+
+#### Step 3a: Generate Secret Key First
+```bash
+# Generate a secure random key
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+**Copy the output** (looks like: `a1b2c3d4e5f6...` - 64 characters). You'll paste this as SECRET_KEY below.
+
+#### Step 3b: Prepare Your Database Connection String
+Format: `mysql+pymysql://USERNAME:PASSWORD@ENDPOINT/DATABASE_NAME`
+
+Example with your values:
+- Username: `admin`
+- Password: (your RDS password from Database Setup)
+- Endpoint: `ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com` (from RDS console)
+- Database: `ischedwise_db`
+
+Final string looks like:
+```
+mysql+pymysql://admin:ISchedWise2025!SecureDB@ischedwise-db.c9a8b7c6d5e4.us-east-1.rds.amazonaws.com/ischedwise_db
+```
+
+#### Step 3c: Create and Edit .env File
 ```bash
 cd /var/www/ischedwise
 
-# Create .env file
+# Option 1: Copy from example template
+cp .env.example .env
+
+# Option 2: Create new file
 nano .env
 ```
 
-Add this content (replace with your actual values):
+When nano opens, **type or paste** this content:
 ```env
 # Flask Configuration
 FLASK_APP=run.py
 FLASK_ENV=production
-SECRET_KEY=your-super-secret-key-change-this-to-random-string
+SECRET_KEY=PASTE_YOUR_GENERATED_SECRET_KEY_HERE
 
 # Database Configuration
-DATABASE_URI=mysql+pymysql://admin:YOUR_DB_PASSWORD@ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com/ischedwise_db
+DATABASE_URL=mysql+pymysql://admin:YOUR_RDS_PASSWORD@YOUR_RDS_ENDPOINT/ischedwise_db
 
-# Email Configuration (for password reset)
+# Email Configuration (Optional - for password reset feature)
 MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USE_TLS=True
 MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
+MAIL_PASSWORD=your-gmail-app-password
 MAIL_DEFAULT_SENDER=your-email@gmail.com
 
-# AI Configuration (optional)
-GEMINI_API_KEY=your-gemini-api-key-if-using-ai
+# AI Configuration (Optional - for AI schedule suggestions)
+GEMINI_API_KEY=your-gemini-api-key-if-using
 
 # Other Configuration
 MAX_CONTENT_LENGTH=16777216
 ```
 
-**Generate secure SECRET_KEY:**
-```bash
-python3 -c "import secrets; print(secrets.token_hex(32))"
+#### Step 3d: Replace Placeholders with Your Actual Values
+
+**Required replacements:**
+1. `PASTE_YOUR_GENERATED_SECRET_KEY_HERE` → Your generated secret key from Step 3a
+2. `YOUR_RDS_PASSWORD` → Your RDS master password (e.g., `ISchedWise2025!SecureDB`)
+3. `YOUR_RDS_ENDPOINT` → Your RDS endpoint (e.g., `ischedwise-db.c9a8b7c6d5e4.us-east-1.rds.amazonaws.com`)
+
+**Optional replacements (can skip for now):**
+- Email settings: Configure later if you want password reset feature
+- AI settings: Configure later if you want AI suggestions
+
+**Example of completed .env file:**
+```env
+# Flask Configuration
+FLASK_APP=run.py
+FLASK_ENV=production
+SECRET_KEY=a1b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef0123456789
+
+# Database Configuration
+DATABASE_URL=mysql+pymysql://admin:ISchedWise2025!SecureDB@ischedwise-db.c9a8b7c6d5e4.us-east-1.rds.amazonaws.com/ischedwise_db
+
+# Email Configuration (Optional)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_DEFAULT_SENDER=
+
+# AI Configuration (Optional)
+GEMINI_API_KEY=
+
+# Other Configuration
+MAX_CONTENT_LENGTH=16777216
 ```
 
-Save file: `Ctrl+O`, `Enter`, `Ctrl+X`
+#### Step 3e: Save and Exit Nano
+1. Press **`Ctrl + O`** (letter O) to save
+2. Press **`Enter`** to confirm filename
+3. Press **`Ctrl + X`** to exit nano
+
+#### Step 3f: Verify .env File
+```bash
+# Check if file was created
+ls -la .env
+
+# View file contents (be careful - contains secrets!)
+cat .env
+
+# Set proper permissions (readable only by owner)
+chmod 600 .env
+```
+
+**Security Note:** Never commit `.env` file to Git! It's already in `.gitignore`.
 
 ### Step 4: Install Python Dependencies
 ```bash
 cd /var/www/ischedwise
 
-# Create virtual environment
-python3.11 -m venv venv
+# Create virtual environment (Ubuntu 24.04 uses Python 3.12)
+python3 -m venv venv
 
 # Activate virtual environment
 source venv/bin/activate

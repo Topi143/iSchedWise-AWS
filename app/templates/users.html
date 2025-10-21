@@ -919,16 +919,7 @@
         }
     }
     
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        const userModal = document.getElementById('userModal');
-        const deleteModal = document.getElementById('deleteModal');
-        if (event.target === userModal) {
-            closeModal();
-        }
-        if (event.target === deleteModal) {
-            closeDeleteModal();
-        }
-    }
+    // Modals will only close when clicking the X button
+    // Outside click closing has been disabled for better user experience
 </script>
 {% endblock %}

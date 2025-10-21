@@ -210,27 +210,30 @@ class AISchedulerAssistant:
             # Default to 1.5 hours if subject not found
             required_minutes = 90
         
-        # Generate time slots based on required duration
-        # Start times from 8:00 AM to 5:00 PM
-        start_hour = 8
-        end_hour = 17
+        # Generate time slots based on 30-minute intervals from 7:00 AM to 8:00 PM
+        # This matches the dropdown options in the UI
         time_slots = []
         
-        current_time = time(start_hour, 0)
-        while current_time.hour < end_hour:
+        # Start from 7:00 AM (07:00) and go up to 8:00 PM (20:00)
+        start_hour = 7
+        start_minute = 0
+        
+        # Generate all possible 30-minute interval start times
+        current_datetime = datetime.combine(datetime.today(), time(start_hour, start_minute))
+        end_limit = datetime.combine(datetime.today(), time(20, 0))  # 8:00 PM
+        
+        while current_datetime <= end_limit:
+            current_time = current_datetime.time()
+            
             # Calculate end time based on required duration
-            start_datetime = datetime.combine(datetime.today(), current_time)
-            end_datetime = start_datetime + timedelta(minutes=required_minutes)
+            end_datetime = current_datetime + timedelta(minutes=required_minutes)
             
-            # Skip if end time goes beyond 5:00 PM or into next day
-            if end_datetime.time() > time(17, 0):
-                break
+            # Only include if end time is within 8:00 PM and on same day
+            if end_datetime.time() <= time(20, 0) and end_datetime.date() == current_datetime.date():
+                time_slots.append((current_time, end_datetime.time()))
             
-            time_slots.append((current_time, end_datetime.time()))
-            
-            # Move to next possible start time (30-minute increments)
-            start_datetime = start_datetime + timedelta(minutes=30)
-            current_time = start_datetime.time()
+            # Increment by 30 minutes
+            current_datetime = current_datetime + timedelta(minutes=30)
         
         section_id = schedule_data.get('section_id')
         faculty_id = schedule_data.get('faculty_id')
@@ -427,18 +430,22 @@ class AISchedulerAssistant:
         return sorted(alternatives, key=lambda x: x['current_workload'])[:5]
     
     def _calculate_time_slot_score(self, start: time, end: time) -> int:
-        """Calculate preference score for a time slot (prefer morning)"""
+        """Calculate preference score for a time slot (prefer morning, extended hours 7 AM - 8 PM)"""
         hour = start.hour
         
-        if 8 <= hour < 10:  # Morning prime time
+        if hour == 7:  # Early morning (7:00-7:30 AM)
+            return 85
+        elif 8 <= hour < 10:  # Morning prime time (8:00-10:00 AM)
             return 100
-        elif 10 <= hour < 12:  # Late morning
+        elif 10 <= hour < 12:  # Late morning (10:00 AM-12:00 PM)
             return 90
-        elif 13 <= hour < 15:  # Early afternoon
+        elif 13 <= hour < 15:  # Early afternoon (1:00-3:00 PM)
             return 80
-        elif 15 <= hour < 17:  # Late afternoon
+        elif 15 <= hour < 17:  # Late afternoon (3:00-5:00 PM)
             return 70
-        else:
+        elif 17 <= hour < 19:  # Evening (5:00-7:00 PM)
+            return 60
+        else:  # Late evening (7:00-8:00 PM)
             return 50
     
     def _calculate_day_score(self, day: str) -> int:
@@ -566,17 +573,20 @@ Keep your response ultra-concise and actionable."""
     def _find_free_time_slots_for_day(self, day: str, section: Section, 
                                       faculty: Optional[Faculty], 
                                       existing_schedules: List) -> List[Dict]:
-        """Find free time slots for a specific day"""
+        """Find free time slots for a specific day (7:00 AM - 8:00 PM with 30-min intervals)"""
         free_slots = []
         
-        # Standard time slots
+        # Standard time slots with 30-minute intervals (matching UI dropdown)
         time_slots = [
-            (time(8, 0), time(9, 30)),
-            (time(9, 30), time(11, 0)),
-            (time(11, 0), time(12, 30)),
-            (time(13, 0), time(14, 30)),
-            (time(14, 30), time(16, 0)),
-            (time(16, 0), time(17, 30)),
+            (time(7, 0), time(8, 30)),   # 7:00-8:30 AM
+            (time(8, 0), time(9, 30)),   # 8:00-9:30 AM
+            (time(9, 30), time(11, 0)),  # 9:30-11:00 AM
+            (time(11, 0), time(12, 30)), # 11:00-12:30 PM
+            (time(13, 0), time(14, 30)), # 1:00-2:30 PM
+            (time(14, 30), time(16, 0)), # 2:30-4:00 PM
+            (time(16, 0), time(17, 30)), # 4:00-5:30 PM
+            (time(17, 30), time(19, 0)), # 5:30-7:00 PM
+            (time(19, 0), time(20, 0)),  # 7:00-8:00 PM
         ]
         
         for start, end in time_slots:

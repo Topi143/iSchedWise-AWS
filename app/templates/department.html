@@ -947,31 +947,7 @@
         }
     }
 
-    // Close modals on outside click
-    document.getElementById('addDepartmentModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeAddDepartmentModal();
-    });
-
-    document.getElementById('editDepartmentModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeEditDepartmentModal();
-    });
-
-    document.getElementById('addSectionModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeAddSectionModal();
-    });
-
-    document.getElementById('editSectionModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeEditSectionModal();
-    });
-
-    // Close modals on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAddDepartmentModal();
-            closeEditDepartmentModal();
-            closeAddSectionModal();
-            closeEditSectionModal();
-        }
-    });
+    // Modals will only close when clicking the X button
+    // Outside click and Escape key closing has been disabled for better user experience
 </script>
 {% endblock %}

@@ -6,6 +6,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from app.extensions import db, mail
 from app.models import User
+from app.models.activity_log import UserActivityLog
 from app.forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
 
 auth_bp = Blueprint('auth', __name__)
@@ -40,6 +41,19 @@ def login():
         
         # Update last login time
         user.last_login = db.func.current_timestamp()
+        
+        # Log the login action
+        UserActivityLog.log_action(
+            user_id=user.id,
+            action='login',
+            entity_type='user',
+            entity_id=user.id,
+            entity_name=user.full_name,
+            details=f'User logged in from {request.remote_addr}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        
         db.session.commit()
         
         # Redirect to next page or dashboard
@@ -60,6 +74,19 @@ def login():
 @login_required
 def logout():
     """Handle user logout"""
+    # Log the logout action before logging out
+    UserActivityLog.log_action(
+        user_id=current_user.id,
+        action='logout',
+        entity_type='user',
+        entity_id=current_user.id,
+        entity_name=current_user.full_name,
+        details=f'User logged out from {request.remote_addr}',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+    db.session.commit()
+    
     logout_user()
     return redirect(url_for('auth.login'))
 

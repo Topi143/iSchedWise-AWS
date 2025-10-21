@@ -83,6 +83,12 @@
                                 </svg>
                                 Export
                             </a>
+                            <a href="{{ url_for('schedule.export_exam_schedule_for_posting', section_id=selected_exam_section.id) }}" class="inline-flex items-center px-4 py-2 bg-purple-50 text-purple-600 font-semibold rounded-lg hover:bg-purple-100 shadow-sm transition-all text-sm border border-purple-200">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Batch Export
+                            </a>
                             <button onclick="openAddExamScheduleModal({{ selected_exam_section.id }})" class="inline-flex items-center px-4 py-2 bg-green-50 text-green-600 font-semibold rounded-lg hover:bg-green-100 shadow-sm transition-all text-sm border border-green-200">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -331,11 +337,11 @@
             </div>
             {% else %}
             <!-- Empty State: No Sections -->
-            <div class="flex-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex items-center justify-center empty-state">
+            <div class="flex-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex items-center justify-center card-hover">
                 <div class="text-center p-8">
                     <div class="mx-auto h-20 w-20 rounded-xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                         <svg class="h-12 w-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                     </div>
                     <h3 class="mt-6 text-2xl font-semibold text-gray-900">No Sections Available</h3>

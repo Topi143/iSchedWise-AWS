@@ -12,6 +12,7 @@ from app.models.settings import AcademicSettings
 from app.models.curriculum import Curriculum
 from app.models.department import Department
 from app.models.building import Building
+from app.utils.activity_logger import log_unarchive
 from datetime import datetime
 from sqlalchemy import or_, and_
 
@@ -678,6 +679,9 @@ def unarchive_curriculum(curriculum_id):
         # Unarchive curriculum using helper method
         curriculum.unarchive()
         
+        # Log activity
+        log_unarchive('curriculum', curriculum.id, curriculum.curriculum_code)
+        
         db.session.commit()
         
         flash(f'Curriculum "{curriculum.curriculum_code}" has been restored successfully', 'success')
@@ -817,6 +821,9 @@ def unarchive_department(department_id):
         # Unarchive department using helper method
         department.unarchive()
         
+        # Log activity
+        log_unarchive('department', department.id, department.department_code)
+        
         db.session.commit()
         
         flash(f'Department "{department.department_code}" has been restored successfully', 'success')
@@ -924,6 +931,9 @@ def unarchive_faculty(faculty_id):
         
         # Unarchive faculty using helper method
         faculty.unarchive()
+        
+        # Log activity
+        log_unarchive('faculty', faculty.id, faculty_name)
         
         db.session.commit()
         
@@ -1043,12 +1053,11 @@ def get_archived_buildings():
                 from app.models.user import User
                 user = User.query.get(building.archived_by)
                 if user:
-                    archived_by_name = user.get_full_name()
+                    archived_by_name = user.full_name
             
             buildings_data.append({
                 'id': building.id,
                 'building_name': building.building_name,
-                'building_code': building.building_code,
                 'archived_at': building.archived_at.strftime('%Y-%m-%d %H:%M') if building.archived_at else '',
                 'archived_by': archived_by_name,
                 'archive_reason': building.archive_reason or 'No reason provided'
@@ -1082,6 +1091,10 @@ def unarchive_building(building_id):
         
         # Unarchive the building
         building.unarchive()
+        
+        # Log activity
+        log_unarchive('building', building.id, building.building_name)
+        
         db.session.commit()
         
         return jsonify({

@@ -177,7 +177,7 @@
             </div>
         </div>
 
-        <!-- Two-Panel Layout: Curricula List + Detail View -->
+        <!-- Two-Panel Layout: Curriculum List + Detail View -->
         <div class="flex-1 overflow-hidden flex gap-3">
             {% if curricula %}
             <!-- Left Panel: Curriculum List -->
@@ -412,7 +412,7 @@
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        Curricula
+                        Curriculum
                     </h3>
                     <button onclick="openAddCurriculumModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-sm">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -430,7 +430,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </div>
-                        <p class="text-sm font-bold text-gray-800">No curricula yet</p>
+                        <p class="text-sm font-bold text-gray-800">No curriculum yet</p>
                         <p class="text-sm text-gray-500 mt-1">Click the button above to add your first curriculum</p>
                     </div>
                 </div>
@@ -454,7 +454,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Curricula Yet</h3>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Curriculum Yet</h3>
                         <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by creating your first curriculum. A curriculum organizes degree programs by year levels, semesters, and subjects.</p>
                         
                         <button onclick="openAddCurriculumModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-sm">
@@ -1509,32 +1509,8 @@
         return null;
     }
 
-    // Close modal on outside click
-    window.addEventListener('click', function(e) {
-        // Check if click is on modal backdrop (not modal content)
-        if (e.target.id === 'addCurriculumModal') closeAddCurriculumModal();
-        if (e.target.id === 'editCurriculumModal') closeEditCurriculumModal();
-        if (e.target.id === 'addSemesterModal') closeAddSemesterModal();
-        if (e.target.id === 'editYearLevelModal') closeEditYearLevelModal();
-        if (e.target.id === 'editSemesterModal') closeEditSemesterModal();
-        if (e.target.id === 'editSubjectModal') closeEditSubjectModal();
-        if (e.target.id === 'addSubjectModal') closeAddSubjectModal();
-        if (e.target.id === 'bulkImportModal') closeBulkImportModal();
-    });
-
-    // Close modal on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAddCurriculumModal();
-            closeEditCurriculumModal();
-            closeAddSemesterModal();
-            closeEditYearLevelModal();
-            closeEditSemesterModal();
-            closeEditSubjectModal();
-            closeAddSubjectModal();
-            closeBulkImportModal();
-        }
-    });
+    // Modals will only close when clicking the X button
+    // Outside click and Escape key closing has been disabled for better user experience
 
     function openAddSemesterModal(yearLevelId) {
         currentOpenCurriculumId = getCurrentOpenCurriculumId();

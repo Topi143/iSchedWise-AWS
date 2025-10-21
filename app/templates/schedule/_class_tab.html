@@ -84,6 +84,12 @@
                                 </svg>
                                 Export
                             </a>
+                            <a href="{{ url_for('schedule.export_class_schedule_for_posting', section_id=selected_section.id) }}" class="inline-flex items-center px-4 py-2 bg-purple-50 text-purple-600 font-semibold rounded-lg hover:bg-purple-100 shadow-sm transition-all text-sm border border-purple-200">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export for Posting
+                            </a>
                             <button onclick="openAddScheduleModal({{ selected_section.id }})" class="inline-flex items-center px-4 py-2 bg-green-50 text-green-600 font-semibold rounded-lg hover:bg-green-100 shadow-sm transition-all text-sm border border-green-200">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -322,78 +328,15 @@
             </div>
             {% else %}
             <!-- Empty State: No Sections -->
-            <!-- Left Panel: Empty List -->
-            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
-                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
-                        <div class="p-1.5 rounded-lg mr-2" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                        </div>
-                        Sections
-                    </h3>
-                </div>
-                
-                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center">
-                        <div class="mx-auto h-12 w-12 rounded-lg flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                        </div>
-                        <h3 class="mt-4 text-sm font-medium text-gray-900">No sections available</h3>
-                        <p class="mt-2 text-xs text-gray-500">Create sections in Department Management first</p>
+            <div class="flex-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex items-center justify-center card-hover">
+                <div class="text-center p-8">
+                    <div class="mx-auto h-20 w-20 rounded-xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="h-12 w-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
                     </div>
-                </div>
-            </div>
-
-            <!-- Right Panel: Getting Started -->
-            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xl font-bold text-gray-900">Getting Started</h3>
-                    </div>
-                </div>
-                
-                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center max-w-md">
-                        <div class="mx-auto h-16 w-16 rounded-xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <h3 class="mt-6 text-xl font-semibold text-gray-900">Welcome to Schedule Management</h3>
-                        <p class="mt-3 text-sm text-gray-600 leading-relaxed">
-                            Before creating schedules, make sure you have:
-                        </p>
-                        <ul class="mt-4 text-left text-sm text-gray-600 space-y-2">
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Created departments and sections</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Added curriculum and subjects</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Registered faculty members</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Set up buildings and rooms</span>
-                            </li>
-                        </ul>
-                    </div>
+                    <h3 class="mt-6 text-2xl font-semibold text-gray-900">No Sections Available</h3>
+                    <p class="mt-3 text-sm text-gray-600">Create sections in the Departments module to get started with class scheduling.</p>
                 </div>
             </div>
             {% endif %}

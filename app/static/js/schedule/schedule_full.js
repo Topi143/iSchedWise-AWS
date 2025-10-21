@@ -190,29 +190,10 @@
         setTimeout(() => toast.remove(), 5000);
     }
     
-    // Show flash messages as toasts on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const flashMessages = document.getElementById('flashMessages');
-        if (flashMessages) {
-            const messages = flashMessages.querySelectorAll('[data-message]');
-            messages.forEach((msg, index) => {
-                setTimeout(() => {
-                    showToast(msg.dataset.message, msg.dataset.category);
-                }, index * 100);
-            });
-        }
-        
-        // Restore department filter from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const departmentId = urlParams.get('department_id');
-        if (departmentId) {
-            const filterSelect = document.getElementById('departmentFilter');
-            if (filterSelect) {
-                filterSelect.value = departmentId;
-                filterByDepartment(departmentId);
-            }
-        }
-    });
+    // NOTE: Flash message toast initialization is handled in schedule.html
+    // Do not duplicate DOMContentLoaded listener here to avoid showing toasts multiple times
+    // NOTE: Flash message toast initialization is handled in schedule.html
+    // Do not duplicate DOMContentLoaded listener here to avoid showing toasts multiple times
 
     // Section Selection Function
     function selectSection(id, name) {
@@ -591,12 +572,16 @@
         if (confirm(`Are you sure you want to delete the schedule for "${subjectCode}"?\n\nThis action cannot be undone.`)) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '{{ url_for("schedule.delete") }}';
+            form.action = '/schedule/delete';  // Fixed: Use direct URL instead of Jinja2 template
             
+            // Get CSRF token from meta tag or form in page
             const csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
             csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
+            // Get CSRF token from page meta or hidden input
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const tokenInput = document.querySelector('input[name="csrf_token"]');
+            csrfToken.value = tokenMeta ? tokenMeta.content : (tokenInput ? tokenInput.value : '');
             
             const scheduleIdInput = document.createElement('input');
             scheduleIdInput.type = 'hidden';
@@ -784,8 +769,40 @@
         // Format end time
         const endHours = String(startDate.getHours()).padStart(2, '0');
         const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
+        const calculatedEndTime = `${endHours}:${endMinutes}`;
         
-        endTimeInput.value = `${endHours}:${endMinutes}`;
+        // Set the value for the dropdown/select element
+        endTimeInput.value = calculatedEndTime;
+        
+        // If the calculated time doesn't exist in dropdown options, find nearest match
+        if (endTimeInput.tagName === 'SELECT') {
+            const options = Array.from(endTimeInput.options);
+            const exactMatch = options.find(opt => opt.value === calculatedEndTime);
+            
+            if (!exactMatch) {
+                // Find the closest time option that's >= calculated time
+                const calculatedMinutes = hours * 60 + minutes + durationMinutes;
+                let closestOption = null;
+                let minDiff = Infinity;
+                
+                options.forEach(opt => {
+                    if (opt.value) {
+                        const [optHours, optMinutes] = opt.value.split(':').map(Number);
+                        const optTotalMinutes = optHours * 60 + optMinutes;
+                        const diff = Math.abs(optTotalMinutes - calculatedMinutes);
+                        
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestOption = opt;
+                        }
+                    }
+                });
+                
+                if (closestOption) {
+                    endTimeInput.value = closestOption.value;
+                }
+            }
+        }
         
         // Flash green to indicate auto-calculation
         endTimeInput.classList.add('ring-2', 'ring-green-500');
@@ -800,22 +817,8 @@
         }
     }
 
-    // Close modals on outside click
-    document.getElementById('addScheduleModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeAddScheduleModal();
-    });
-    
-    document.getElementById('editScheduleModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeEditScheduleModal();
-    });
-
-    // Close modals on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAddScheduleModal();
-            closeEditScheduleModal();
-        }
-    });
+    // Modals will only close when clicking the X button
+    // Outside click and Escape key closing has been disabled for better user experience
 
     // Faculty Tab Functions
     function selectFaculty(id, name) {
@@ -1227,14 +1230,8 @@
             });
     }
 
-    // Close exam modals on outside click
-    document.getElementById('addExamScheduleModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeAddExamScheduleModal();
-    });
-    
-    document.getElementById('editExamScheduleModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeEditExamScheduleModal();
-    });
+    // Modals will only close when clicking the X button (exam modals)
+    // Outside click closing has been disabled for better user experience
 
     // ============================================================================
     // AI Decision Support System

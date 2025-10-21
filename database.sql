@@ -439,6 +439,30 @@ CREATE TABLE `academic_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
+-- Table: user_activity_logs
+-- Description: Tracks user actions and activities for audit purposes
+-- ============================================================================
+
+CREATE TABLE `user_activity_logs` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `user_id` INT(11) NOT NULL,
+  `action` VARCHAR(100) NOT NULL COMMENT 'Action performed (e.g., created_schedule, edited_faculty, deleted_building)',
+  `entity_type` VARCHAR(50) NOT NULL COMMENT 'Type of entity (e.g., schedule, faculty, building, curriculum)',
+  `entity_id` INT(11) DEFAULT NULL COMMENT 'ID of the affected entity',
+  `entity_name` VARCHAR(255) DEFAULT NULL COMMENT 'Name/description of the entity',
+  `details` TEXT DEFAULT NULL COMMENT 'Additional details about the action',
+  `ip_address` VARCHAR(45) DEFAULT NULL COMMENT 'IP address of the user',
+  `user_agent` VARCHAR(255) DEFAULT NULL COMMENT 'Browser/client information',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `idx_action` (`action`),
+  KEY `idx_entity_type` (`entity_type`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `user_activity_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- Default Data: Admin User and Academic Settings
 -- ============================================================================
 -- 

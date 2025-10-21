@@ -144,12 +144,47 @@
         background: white;
         border-radius: 0.5rem;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: translateX(400px);
+        animation: slideIn 0.3s ease forwards;
         min-width: 300px;
+    }
+    
+    .toast.removing {
+        animation: slideOut 0.3s ease forwards;
+    }
+    
+    @keyframes slideIn {
+        to {
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOut {
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
     }
     
     .toast-success { border-left: 4px solid #10b981; }
     .toast-error { border-left: 4px solid #ef4444; }
     .toast-info { border-left: 4px solid #3b82f6; }
+    
+    .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: currentColor;
+        opacity: 0.3;
+        animation: progress 5s linear forwards;
+    }
+    
+    @keyframes progress {
+        to {
+            width: 0;
+        }
+    }
     
     /* Day of week badges */
     .day-badge {

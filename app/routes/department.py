@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Department, Section
+from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
 department_bp = Blueprint('department', __name__, url_prefix='/department')
 
@@ -68,6 +69,11 @@ def add():
         )
         
         db.session.add(new_department)
+        db.session.flush()
+        
+        # Log activity
+        log_create('department', new_department.id, department_code, {'name': department_name})
+        
         db.session.commit()
         
         flash('Department has been successfully added!', 'success')
@@ -104,6 +110,9 @@ def edit():
         
         department.department_code = department_code
         department.department_name = department_name
+        
+        # Log activity
+        log_edit('department', department.id, department_code, {'name': department_name})
         
         db.session.commit()
         
@@ -180,6 +189,12 @@ def archive():
         # Archive department using helper method
         department.archive(user_id=current_user.id, reason=archive_reason)
         
+        # Log activity
+        log_archive('department', department.id, department_code, {
+            'reason': archive_reason,
+            'curricula_archived': archived_curricula_count
+        })
+        
         db.session.commit()
         
         # Success message includes curriculum count if any were archived
@@ -221,6 +236,10 @@ def delete():
             return redirect(url_for('archive.index'))
         
         department_code = department.department_code
+        department_name = department.department_name
+        
+        # Log activity before deletion
+        log_delete('department', department.id, department_code, {'name': department_name})
         
         db.session.delete(department)
         db.session.commit()
@@ -272,6 +291,14 @@ def add_section():
         )
         
         db.session.add(new_section)
+        db.session.flush()
+        
+        # Log activity
+        log_create('section', new_section.id, section_name, {
+            'department': department.department_code,
+            'year_level': year_level
+        })
+        
         db.session.commit()
         
         flash('Section has been successfully added!', 'success')
@@ -329,6 +356,9 @@ def edit_section():
         section.section_name = section_name
         section.year_level = year_level
         
+        # Log activity
+        log_edit('section', section.id, section_name, {'year_level': year_level})
+        
         db.session.commit()
         
         flash('Section has been successfully updated!', 'success')
@@ -362,6 +392,11 @@ def delete_section():
             return redirect(url_for('department.index'))
         
         department_id = section.department_id
+        section_name = section.section_name
+        
+        # Log activity before deletion
+        log_delete('section', section.id, section_name, {'department': section.department.department_code})
+        
         db.session.delete(section)
         db.session.commit()
         

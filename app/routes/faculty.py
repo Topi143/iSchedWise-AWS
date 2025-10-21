@@ -8,6 +8,7 @@ from app.extensions import db
 from app.models import Faculty, FacultySubjectAssignment, Department, Subject, Curriculum, YearLevel, Semester
 from app.models.schedule import Schedule
 from app.models.settings import AcademicSettings
+from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
 faculty_bp = Blueprint('faculty', __name__, url_prefix='/faculty')
 
@@ -161,6 +162,11 @@ def add():
         )
         
         db.session.add(new_faculty)
+        db.session.flush()
+        
+        # Log activity
+        log_create('faculty', new_faculty.id, new_faculty.full_name)
+        
         db.session.commit()
         
         flash(f'Faculty member {new_faculty.full_name} has been successfully added!', 'success')
@@ -207,6 +213,9 @@ def edit():
         faculty.full_name = full_name
         faculty.department_id = dept_id
         
+        # Log activity
+        log_edit('faculty', faculty.id, faculty.full_name)
+        
         db.session.commit()
         
         flash(f'Faculty member {faculty.full_name} has been successfully updated!', 'success')
@@ -240,6 +249,9 @@ def archive():
         
         # Archive faculty using helper method
         faculty.archive(user_id=current_user.id, reason=archive_reason)
+        
+        # Log activity
+        log_archive('faculty', faculty.id, faculty_name, {'reason': archive_reason})
         
         db.session.commit()
         
@@ -275,6 +287,9 @@ def delete():
         
         faculty_name = faculty.full_name
         
+        # Log activity before deletion
+        log_delete('faculty', faculty.id, faculty_name)
+        
         db.session.delete(faculty)
         db.session.commit()
         
@@ -287,10 +302,101 @@ def delete():
         return redirect(url_for('archive.index'))
 
 
+@faculty_bp.route('/assign-subjects', methods=['POST'])
+@login_required
+def assign_subjects():
+    """Assign multiple subjects to a faculty member at once"""
+    try:
+        # Get current academic settings
+        active_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        if not active_settings:
+            flash('No active academic settings found. Please configure settings first.', 'error')
+            return redirect(url_for('faculty.index'))
+        
+        faculty_id = request.form.get('faculty_id_assign', '').strip()
+        subject_ids = request.form.getlist('subject_ids[]')
+        
+        if not faculty_id:
+            flash('Faculty member is required.', 'error')
+            return redirect(url_for('faculty.index'))
+        
+        if not subject_ids or len(subject_ids) == 0:
+            flash('Please select at least one subject.', 'error')
+            return redirect(url_for('faculty.index'))
+        
+        faculty = Faculty.query.get(int(faculty_id))
+        if not faculty:
+            flash('Faculty member not found.', 'error')
+            return redirect(url_for('faculty.index'))
+        
+        # Track results
+        assigned_count = 0
+        skipped_count = 0
+        skipped_subjects = []
+        
+        for subject_id in subject_ids:
+            subject = Subject.query.get(int(subject_id))
+            if not subject:
+                skipped_count += 1
+                continue
+            
+            # Check if already assigned for current academic period (excluding archived)
+            existing = FacultySubjectAssignment.query.filter_by(
+                faculty_id=int(faculty_id),
+                subject_id=int(subject_id),
+                academic_year=active_settings.academic_year,
+                semester=active_settings.semester,
+                is_archived=False
+            ).first()
+            
+            if existing:
+                skipped_count += 1
+                skipped_subjects.append(subject.subject_code)
+                continue
+            
+            # Create subject assignment with academic context
+            assignment = FacultySubjectAssignment(
+                faculty_id=int(faculty_id),
+                subject_id=int(subject_id),
+                academic_year=active_settings.academic_year,
+                semester=active_settings.semester
+            )
+            
+            db.session.add(assignment)
+            assigned_count += 1
+        
+        db.session.commit()
+        
+        # Build success message
+        if assigned_count > 0:
+            plural = "subjects" if assigned_count > 1 else "subject"
+            message = f'Successfully assigned {assigned_count} {plural} to {faculty.full_name} for {active_settings.academic_year} - {active_settings.semester}!'
+            
+            if skipped_count > 0:
+                skipped_list = ', '.join(skipped_subjects[:3])
+                if len(skipped_subjects) > 3:
+                    skipped_list += f' and {len(skipped_subjects) - 3} more'
+                message += f' ({skipped_count} already assigned: {skipped_list})'
+            
+            flash(message, 'success')
+        elif skipped_count > 0:
+            flash(f'All selected subjects ({skipped_count}) were already assigned to {faculty.full_name}.', 'error')
+        else:
+            flash('No subjects were assigned.', 'error')
+        
+        params = build_redirect_params(faculty_id=faculty.id)
+        return redirect(url_for('faculty.index', **params))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'An error occurred while assigning subjects: {str(e)}', 'error')
+        return redirect(url_for('faculty.index'))
+
+
 @faculty_bp.route('/assign-subject', methods=['POST'])
 @login_required
 def assign_subject():
-    """Assign a subject to a faculty member"""
+    """Assign a single subject to a faculty member (kept for backwards compatibility)"""
     try:
         # Get current academic settings
         active_settings = AcademicSettings.query.filter_by(is_active=True).first()

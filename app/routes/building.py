@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Building, Room
+from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
 building_bp = Blueprint('building', __name__, url_prefix='/buildings')
 
@@ -54,6 +55,11 @@ def add():
         )
         
         db.session.add(new_building)
+        db.session.flush()
+        
+        # Log activity
+        log_create('building', new_building.id, new_building.building_name)
+        
         db.session.commit()
         
         flash(f'Building "{new_building.building_name}" has been successfully added!', 'success')
@@ -95,6 +101,9 @@ def edit():
         # Update building
         building.building_name = building_name
         
+        # Log activity
+        log_edit('building', building.id, building.building_name)
+        
         db.session.commit()
         
         flash(f'Building has been successfully updated!', 'success')
@@ -128,6 +137,9 @@ def archive():
         
         # Archive building using helper method
         building.archive(user_id=current_user.id, reason=archive_reason)
+        
+        # Log activity
+        log_archive('building', building.id, building_name, {'reason': archive_reason, 'room_count': room_count})
         
         db.session.commit()
         
@@ -166,6 +178,9 @@ def delete():
         
         building_name = building.building_name
         room_count = building.room_count
+        
+        # Log activity before deletion
+        log_delete('building', building.id, building_name, {'room_count': room_count})
         
         # Delete the building (cascade will delete all rooms)
         db.session.delete(building)
@@ -224,6 +239,11 @@ def add_room():
         )
         
         db.session.add(new_room)
+        db.session.flush()
+        
+        # Log activity
+        log_create('room', new_room.id, room_number, {'building': building.building_name})
+        
         db.session.commit()
         
         flash(f'Room "{room_number}" has been successfully added to {building.building_name}!', 'success')
@@ -268,6 +288,9 @@ def edit_room():
         # Update room
         room.room_number = room_number
         
+        # Log activity
+        log_edit('room', room.id, room_number, {'building': room.building.building_name})
+        
         db.session.commit()
         
         flash(f'Room has been successfully updated!', 'success')
@@ -301,6 +324,10 @@ def delete_room():
             building_id = room.building_id
         
         room_number = room.room_number
+        building_name = room.building.building_name
+        
+        # Log activity before deletion
+        log_delete('room', room.id, room_number, {'building': building_name})
         
         # Delete the room
         db.session.delete(room)

@@ -99,4 +99,72 @@
 <!-- Full schedule JavaScript (includes modals, filters, forms, AI) -->
 <!-- TODO: Further split schedule_full.js into modular files (modals.js, filters.js, forms.js, ai.js) -->
 <script src="{{ url_for('static', filename='js/schedule/schedule_full.js') }}"></script>
+
+<script>
+    // Toast Notification System (matches department.html)
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: `<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            error: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            danger: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            info: `<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`
+        };
+        
+        const colors = {
+            success: 'text-green-800',
+            error: 'text-red-800',
+            danger: 'text-red-800',
+            info: 'text-blue-800'
+        };
+        
+        toast.innerHTML = `
+            ${icons[type] || icons.success}
+            <p class="${colors[type] || colors.success} font-medium flex-1">${message}</p>
+            <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="toast-progress" style="width: 100%; color: ${type === 'success' ? '#10b981' : (type === 'error' || type === 'danger') ? '#ef4444' : '#3b82f6'}"></div>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    
+    function removeToast(toast) {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }
+    
+    // Show flash messages as toasts on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) {
+            const messages = flashMessages.querySelectorAll('[data-message]');
+            messages.forEach((msg, index) => {
+                setTimeout(() => {
+                    let category = msg.dataset.category;
+                    // Map Flask flash categories to toast types
+                    if (category === 'danger') category = 'error';
+                    showToast(msg.dataset.message, category);
+                }, index * 100); // Stagger the toasts
+            });
+        }
+    });
+</script>
 {% endblock %}

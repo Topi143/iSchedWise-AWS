@@ -119,6 +119,52 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
+    
+    /* Subject Item Styles */
+    .subject-item {
+        position: relative;
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .subject-item:not(.disabled):hover {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+        border-left-color: #10b981;
+        transform: translateX(2px);
+    }
+    
+    .subject-item.selected {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.06) 100%);
+        border-left-color: #10b981;
+    }
+    
+    .subject-item.disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+    
+    .subject-checkbox {
+        transition: all 0.2s ease;
+    }
+    
+    .subject-checkbox:not(.disabled):hover {
+        transform: scale(1.1);
+    }
+    
+    .selected-subject-card {
+        animation: slideInLeft 0.2s ease;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
 </style>
 {% endblock %}
 
@@ -239,31 +285,31 @@
             <!-- Right Panel: Faculty Details -->
             <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
                 <!-- Header - Always Visible -->
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+                <div class="bg-white px-3 py-2.5 flex-shrink-0 border-b border-gray-200">
                     {% if selected_faculty %}
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900">{{ selected_faculty.full_name }}</h3>
+                            <h3 class="text-base font-bold text-gray-900">{{ selected_faculty.full_name }}</h3>
                             {% if selected_faculty.department %}
-                            <p class="text-sm text-gray-600">{{ selected_faculty.department.department_name }}</p>
+                            <p class="text-xs text-gray-600">{{ selected_faculty.department.department_name }}</p>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                        <div class="flex items-center gap-1.5 flex-shrink-0 ml-3">
                             <button onclick="openAssignSubjectModal({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" 
-                                    class="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
                             </button>
                             <button onclick="editFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}', {{ selected_faculty.department_id or 'null' }})" 
-                                    class="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Faculty">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Faculty">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
                             <button onclick="archiveFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" 
-                                    class="p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Faculty">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="p-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Faculty">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                 </svg>
                             </button>
@@ -272,39 +318,39 @@
                     {% else %}
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900">Faculty Details</h3>
-                            <p class="text-sm text-gray-600">Select a faculty member to view details</p>
+                            <h3 class="text-base font-bold text-gray-900">Faculty Details</h3>
+                            <p class="text-xs text-gray-600">Select a faculty member to view details</p>
                         </div>
                     </div>
                     {% endif %}
                 </div>
 
                 <!-- Content Area -->
-                <div class="flex-1 overflow-y-auto {% if not selected_faculty %}p-8 bg-gray-50{% else %}p-4{% endif %}">
+                <div class="flex-1 overflow-y-auto {% if not selected_faculty %}p-6 bg-gray-50{% else %}p-3{% endif %}">
                     {% if selected_faculty %}
                         <!-- Workload Summary Card -->
                         {% if selected_faculty.id in faculty_workloads %}
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 mb-6 shadow-sm">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                                    <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3 shadow-sm">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <h3 class="text-sm font-bold text-gray-800 flex items-center">
+                                    <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                     </svg>
                                     Teaching Workload
                                 </h3>
-                                <span class="px-4 py-2 text-lg font-bold rounded-full {% if faculty_workloads[selected_faculty.id].total_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                <span class="px-2.5 py-1 text-sm font-bold rounded-full {% if faculty_workloads[selected_faculty.id].total_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
                                     {{ faculty_workloads[selected_faculty.id].total_units }} Units
                                 </span>
                             </div>
                             
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-white rounded-lg p-4 shadow-sm">
-                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Total Classes</p>
-                                    <p class="text-2xl font-bold text-blue-600">{{ faculty_workloads[selected_faculty.id].class_count }}</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="bg-white rounded-lg p-2 shadow-sm">
+                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-0.5">Total Classes</p>
+                                    <p class="text-lg font-bold text-blue-600">{{ faculty_workloads[selected_faculty.id].class_count }}</p>
                                 </div>
-                                <div class="bg-white rounded-lg p-4 shadow-sm">
-                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Assigned Units</p>
-                                    <p class="text-2xl font-bold text-indigo-600">{{ faculty_workloads[selected_faculty.id].assigned_units }}</p>
+                                <div class="bg-white rounded-lg p-2 shadow-sm">
+                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-0.5">Assigned Units</p>
+                                    <p class="text-lg font-bold text-indigo-600">{{ faculty_workloads[selected_faculty.id].assigned_units }}</p>
                                 </div>
                             </div>
                         </div>
@@ -313,15 +359,15 @@
                         <!-- Subject Assignments -->
                         {% if selected_faculty_assignments|length > 0 %}
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <h3 class="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+                                <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                                 Assigned Subjects
-                                <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-sm rounded-full">{{ selected_faculty_assignments|length }}</span>
+                                <span class="ml-1.5 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">{{ selected_faculty_assignments|length }}</span>
                             </h3>
                             
-                            <div class="space-y-3">
+                            <div class="space-y-2">
                                 {% for assignment in selected_faculty_assignments %}
                                 <div class="subject-row bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                     <div class="flex justify-between items-start">
@@ -335,27 +381,27 @@
                                             <p class="text-sm text-gray-800 mb-2 font-medium">{{ assignment.course_description }}</p>
                                             <div class="flex flex-wrap gap-3 text-xs text-gray-600">
                                                 {% if assignment.assignment_type == 'template' %}
-                                                <span class="flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
-                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <span class="flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+                                                    <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
                                                     </svg>
-                                                    Template Assignment (All Instances)
+                                                    Template
                                                 </span>
                                                 {% elif assignment.subject %}
                                                 <span class="flex items-center">
-                                                    <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="w-3 h-3 mr-0.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                                     </svg>
                                                     {{ assignment.subject.semester.year_level.curriculum.curriculum_code }}
                                                 </span>
                                                 <span class="flex items-center">
-                                                    <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="w-3 h-3 mr-0.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                                     </svg>
                                                     {{ assignment.subject.semester.year_level.year_name }}
                                                 </span>
                                                 <span class="flex items-center">
-                                                    <svg class="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="w-3 h-3 mr-0.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                                     </svg>
                                                     {{ assignment.subject.semester.semester_name }}
@@ -364,9 +410,9 @@
                                             </div>
                                         </div>
                                         <button onclick="unassignSubject({{ assignment.id }}, '{{ assignment.subject_code }}')" 
-                                                class="ml-3 p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex-shrink-0" 
+                                                class="ml-2 p-1.5 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex-shrink-0" 
                                                 title="Remove Assignment">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                             </svg>
                                         </button>
@@ -603,125 +649,131 @@
 
 <!-- Assign Subject Modal -->
 <div id="assignSubjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-        <div class="bg-white p-4 rounded-t-2xl border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900">Assign Subject</h3>
-                </div>
-                <button onclick="closeAssignSubjectModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col">
+        <!-- Compact Header -->
+        <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
-                </button>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Assign Subjects to Faculty</h3>
+                    <p class="text-xs text-blue-100">Click subjects to select, then assign</p>
+                </div>
             </div>
+            <button onclick="closeAssignSubjectModal()" class="text-white hover:bg-white hover:bg-opacity-10 p-2 rounded-lg transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
         
-        <form id="assignSubjectForm" method="POST" action="{{ url_for('faculty.assign_subject') }}" class="p-4">
+        <form id="assignSubjectForm" method="POST" action="{{ url_for('faculty.assign_subjects') }}" class="flex-1 flex overflow-hidden">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="faculty_id_assign" name="faculty_id_assign">
             
-            <div class="mb-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">
-                            <span class="font-semibold text-blue-800">Faculty:</span>
-                            <span id="faculty_name_display" class="ml-2"></span>
-                        </p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-semibold text-green-700">{{ active_settings.academic_year }}</p>
-                        <p class="text-xs text-gray-600">{{ active_settings.semester }}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="space-y-3">
-                <!-- Subject Selection -->
-                <div>
-                    <label for="subject_search" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Select Subject <span class="text-red-500">*</span>
-                    </label>
-                    
-                    <!-- Search Input -->
-                    <div class="relative mb-2">
-                        <input type="text" id="subject_search" 
-                               class="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                               placeholder="Search by subject code or name..."
-                               autocomplete="off">
-                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
+            <!-- Main Content: Two-Panel Layout -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Left Panel: Faculty Info & Subject List -->
+                <div class="flex-1 flex flex-col bg-gray-50 overflow-hidden">
+                    <!-- Faculty Info -->
+                    <div class="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between flex-shrink-0">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Assigning to</p>
+                                <p class="font-bold text-gray-900 text-sm" id="faculty_name_display"></p>
+                            </div>
+                        </div>
+                        <div class="text-right bg-gradient-to-br from-purple-50 to-blue-50 px-2.5 py-1 rounded-lg border border-purple-200">
+                            <p class="text-xs font-bold text-purple-700">{{ active_settings.academic_year }}</p>
+                            <p class="text-xs text-gray-600">{{ active_settings.semester }}</p>
+                        </div>
                     </div>
                     
-                    <!-- Hidden select for form submission -->
-                    <select id="subject_id" name="subject_id" required class="hidden">
-                        <option value="">-- Select a Subject --</option>
-                        {% for curriculum in curricula %}
-                            {% for year_level in curriculum.year_levels %}
-                                {% for semester in year_level.semesters %}
-                                    {% if semester.semester_name == active_settings.semester %}
-                                        {% for subject in semester.subjects %}
-                                        <option value="{{ subject.id }}" 
-                                                data-code="{{ subject.subject_code }}"
-                                                data-name="{{ subject.course_description }}"
-                                                data-curriculum="{{ curriculum.curriculum_code }}"
-                                                data-year="{{ year_level.year_name }}"
-                                                data-semester="{{ semester.semester_name }}"
-                                                data-units="{{ subject.total_units }}">
-                                            {{ subject.subject_code }} - {{ subject.course_description }}
-                                        </option>
-                                        {% endfor %}
-                                    {% endif %}
-                                {% endfor %}
-                            {% endfor %}
-                        {% endfor %}
-                    </select>
+                    <!-- Search Bar -->
+                    <div class="px-3 py-2 bg-white border-b border-gray-200 flex-shrink-0">
+                        <div class="relative">
+                            <input type="text" id="subject_search" 
+                                   class="w-full px-3 py-2 pl-9 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                                   placeholder="Search subjects..."
+                                   autocomplete="off">
+                            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
                     
-                    <!-- Subject List Container -->
-                    <div id="subject_list_container" class="border border-gray-300 rounded-lg max-h-80 overflow-y-auto hidden">
-                        <div id="subject_list" class="divide-y divide-gray-200">
+                    <!-- Subject List -->
+                    <div id="subject_list_container" class="flex-1 overflow-y-auto p-2">
+                        <div id="subject_list" class="space-y-1.5">
                             <!-- Subject items will be populated by JavaScript -->
                         </div>
-                        <div id="no_subjects_found" class="hidden p-4 text-center text-gray-500 text-sm">
-                            <svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div id="no_subjects_found" class="hidden flex flex-col items-center justify-center py-12">
+                            <svg class="w-16 h-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            No subjects found matching your search
+                            <p class="text-gray-500 text-xs font-semibold mb-1">No subjects found</p>
+                            <p class="text-gray-400 text-xs">Try a different search term</p>
                         </div>
                     </div>
                     
-                    <!-- Selected Subject Display -->
-                    <div id="selected_subject_display" class="hidden mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-sm font-semibold text-green-800" id="selected_subject_text"></p>
-                                <p class="text-xs text-green-600 mt-1" id="selected_subject_details"></p>
+                    <!-- Hidden subject data for submission -->
+                    <div id="selected_subjects_data"></div>
+                </div>
+                
+                <!-- Right Panel: Selected Subjects Sidebar -->
+                <div id="selected_subjects_section" class="w-72 bg-gradient-to-b from-green-50 to-emerald-50 border-l-2 border-green-300 flex flex-col hidden">
+                    <!-- Sidebar Header -->
+                    <div class="bg-gradient-to-br from-green-500 to-emerald-600 px-3 py-2 flex-shrink-0">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-7 h-7 bg-white bg-opacity-25 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-white">Selected</p>
+                                    <p class="text-xs text-green-50"><span id="selected_count">0</span> subjects</p>
+                                </div>
                             </div>
-                            <button type="button" onclick="clearSubjectSelection()" class="ml-2 text-green-600 hover:text-green-800">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            <button type="button" onclick="clearAllSubjects()" 
+                                    class="text-white hover:bg-white hover:bg-opacity-20 p-1.5 rounded-lg transition-all">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
                             </button>
                         </div>
+                        <!-- Total Units -->
+                        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-2 py-1.5 flex items-center justify-between">
+                            <span class="text-xs font-medium text-white">Total Units:</span>
+                            <span id="selected_units_total" class="text-base font-bold text-white">0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Selected List -->
+                    <div id="selected_subjects_list" class="flex-1 overflow-y-auto p-2 space-y-1.5">
+                        <!-- Selected subjects will appear here -->
+                    </div>
+                    
+                    <!-- Sidebar Footer -->
+                    <div class="bg-white border-t-2 border-green-300 p-2 flex-shrink-0">
+                        <button type="submit" id="assignSubjectsBtn" disabled
+                                class="w-full py-2 px-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 text-sm">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Assign <span id="assign_btn_count">0</span> Subject(s)</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="mt-6 flex justify-end gap-3">
-                <button type="button" onclick="closeAssignSubjectModal()" 
-                        class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg shadow-md transition-all">
-                    Assign Subject
-                </button>
             </div>
         </form>
     </div>
@@ -925,44 +977,66 @@
     }
 
     // Assign Subject Modal
+    let selectedSubjects = new Set(); // Track selected subject IDs
+    
     function openAssignSubjectModal(facultyId, facultyName) {
         document.getElementById('faculty_id_assign').value = facultyId;
         document.getElementById('faculty_name_display').textContent = facultyName;
         document.getElementById('assignSubjectModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
         
+        // Reset selection
+        selectedSubjects.clear();
+        updateSelectedSubjectsDisplay();
+        
         // Initialize subject list
         initializeSubjectList();
-        clearSubjectSelection();
     }
 
     function closeAssignSubjectModal() {
         document.getElementById('assignSubjectModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         document.getElementById('assignSubjectForm').reset();
-        clearSubjectSelection();
+        selectedSubjects.clear();
+        updateSelectedSubjectsDisplay();
     }
     
     // Subject Search and Selection Functions
     function initializeSubjectList() {
-        const subjectSelect = document.getElementById('subject_id');
         const subjectList = document.getElementById('subject_list');
         const searchInput = document.getElementById('subject_search');
         
-        // Build subject list from options
-        const subjects = [];
-        for (let i = 1; i < subjectSelect.options.length; i++) {
-            const option = subjectSelect.options[i];
-            subjects.push({
-                id: option.value,
-                code: option.dataset.code,
-                name: option.dataset.name,
-                curriculum: option.dataset.curriculum,
-                year: option.dataset.year,
-                semester: option.dataset.semester,
-                units: option.dataset.units
-            });
-        }
+        // Get existing subject IDs from already assigned subjects
+        const alreadyAssignedIds = new Set();
+        {% if selected_faculty and selected_faculty_assignments %}
+        {% for assignment in selected_faculty_assignments %}
+        alreadyAssignedIds.add('{{ assignment.subject_id }}');
+        {% endfor %}
+        {% endif %}
+        
+        // Build subject list from template data
+        const subjects = [
+            {% for curriculum in curricula %}
+                {% for year_level in curriculum.year_levels %}
+                    {% for semester in year_level.semesters %}
+                        {% if semester.semester_name == active_settings.semester %}
+                            {% for subject in semester.subjects %}
+                            {
+                                id: '{{ subject.id }}',
+                                code: '{{ subject.subject_code }}',
+                                name: '{{ subject.course_description }}',
+                                curriculum: '{{ curriculum.curriculum_code }}',
+                                year: '{{ year_level.year_name }}',
+                                semester: '{{ semester.semester_name }}',
+                                units: {{ subject.total_units }},
+                                isAssigned: alreadyAssignedIds.has('{{ subject.id }}')
+                            },
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            {% endfor %}
+        ];
         
         // Store subjects globally for filtering
         window.allSubjects = subjects;
@@ -973,11 +1047,6 @@
         // Add search functionality
         searchInput.addEventListener('input', function() {
             filterSubjects(this.value);
-        });
-        
-        // Show list when search is focused
-        searchInput.addEventListener('focus', function() {
-            document.getElementById('subject_list_container').classList.remove('hidden');
         });
     }
     
@@ -993,34 +1062,73 @@
         
         noResultsDiv.classList.add('hidden');
         
-        subjectList.innerHTML = subjects.map(subject => `
-            <div class="subject-item p-3 hover:bg-green-50 cursor-pointer transition-colors" 
-                 onclick="selectSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', '${subject.units}')">
-                <div class="flex items-start justify-between">
+        subjectList.innerHTML = subjects.map(subject => {
+            const isSelected = selectedSubjects.has(subject.id);
+            const isAssigned = subject.isAssigned;
+            const isDisabled = isAssigned;
+            
+            return `
+            <div class="subject-item p-2 rounded-lg bg-white border border-gray-200 ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}" 
+                 onclick="${isDisabled ? '' : `toggleSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', ${subject.units})`}"
+                 style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'}">
+                <div class="flex items-center gap-2">
+                    <!-- Checkbox/Status Icon -->
+                    <div class="flex-shrink-0 subject-checkbox ${isDisabled ? 'disabled' : ''}">
+                        ${isAssigned ? `
+                            <div class="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        ` : isSelected ? `
+                            <div class="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        ` : `
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-green-500 transition-colors"></div>
+                        `}
+                    </div>
+                    
+                    <!-- Subject Info -->
                     <div class="flex-1 min-w-0">
-                        <p class="font-semibold text-gray-900 text-sm">${subject.code}</p>
-                        <p class="text-sm text-gray-600 truncate">${subject.name}</p>
-                        <div class="flex items-center gap-2 mt-1 flex-wrap">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                ${subject.curriculum}
-                            </span>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                ${subject.year}
-                            </span>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                                ${subject.semester}
-                            </span>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                ${subject.units} units
-                            </span>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <h4 class="font-bold text-gray-900 text-sm">${subject.code}</h4>
+                                    ${isAssigned ? `
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                            Assigned
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                <p class="text-xs text-gray-700 mb-1 leading-tight truncate">${subject.name}</p>
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700">
+                                        ${subject.curriculum}
+                                    </span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-purple-50 text-purple-700">
+                                        ${subject.year}
+                                    </span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-orange-50 text-orange-700">
+                                        ${subject.semester}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Units Display -->
+                            <div class="flex-shrink-0">
+                                <div class="flex flex-col items-center px-2 py-1 bg-gradient-to-br from-green-50 to-emerald-50 rounded border border-green-200">
+                                    <span class="text-base font-bold text-green-700 leading-none">${subject.units}</span>
+                                    <span class="text-xs text-green-600">units</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
     
     function filterSubjects(searchTerm) {
@@ -1044,32 +1152,95 @@
         renderSubjects(filtered);
     }
     
-    function selectSubject(id, code, name, curriculum, year, semester, units) {
-        // Set the hidden select value
-        document.getElementById('subject_id').value = id;
+    function toggleSubject(id, code, name, curriculum, year, semester, units) {
+        if (selectedSubjects.has(id)) {
+            selectedSubjects.delete(id);
+        } else {
+            selectedSubjects.add(id);
+            // Store full subject info
+            if (!window.subjectData) window.subjectData = {};
+            window.subjectData[id] = { id, code, name, curriculum, year, semester, units };
+        }
         
-        // Update display
-        document.getElementById('selected_subject_text').textContent = `${code} - ${name}`;
-        document.getElementById('selected_subject_details').textContent = `${curriculum} • ${year} • ${semester} • ${units} units`;
+        // Re-render subjects to update checkmarks
+        filterSubjects(document.getElementById('subject_search').value);
         
-        // Show selected display, hide list
-        document.getElementById('selected_subject_display').classList.remove('hidden');
-        document.getElementById('subject_list_container').classList.add('hidden');
-        
-        // Clear search
-        document.getElementById('subject_search').value = '';
+        // Update selected subjects display
+        updateSelectedSubjectsDisplay();
     }
     
-    function clearSubjectSelection() {
-        document.getElementById('subject_id').value = '';
-        document.getElementById('subject_search').value = '';
-        document.getElementById('selected_subject_display').classList.add('hidden');
-        document.getElementById('subject_list_container').classList.add('hidden');
+    function updateSelectedSubjectsDisplay() {
+        const section = document.getElementById('selected_subjects_section');
+        const list = document.getElementById('selected_subjects_list');
+        const count = document.getElementById('selected_count');
+        const btnCount = document.getElementById('assign_btn_count');
+        const assignBtn = document.getElementById('assignSubjectsBtn');
+        const dataContainer = document.getElementById('selected_subjects_data');
+        const unitsTotal = document.getElementById('selected_units_total');
         
-        // Re-render all subjects
-        if (window.allSubjects) {
-            renderSubjects(window.allSubjects);
+        if (selectedSubjects.size === 0) {
+            section.classList.add('hidden');
+            assignBtn.disabled = true;
+            count.textContent = '0';
+            btnCount.textContent = '0';
+            unitsTotal.textContent = '0';
+            dataContainer.innerHTML = '';
+            return;
         }
+        
+        section.classList.remove('hidden');
+        assignBtn.disabled = false;
+        count.textContent = selectedSubjects.size;
+        btnCount.textContent = selectedSubjects.size;
+        
+        // Calculate total units
+        let totalUnits = 0;
+        const selectedArray = Array.from(selectedSubjects).map(id => {
+            const subject = window.subjectData[id];
+            totalUnits += subject.units;
+            return subject;
+        });
+        
+        unitsTotal.textContent = totalUnits;
+        
+        // Render selected subjects
+        list.innerHTML = selectedArray.map(subject => `
+            <div class="selected-subject-card group flex items-center gap-2 p-2 bg-white rounded-lg border border-green-300 hover:border-green-400 hover:shadow-sm transition-all">
+                <div class="flex-shrink-0">
+                    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-bold text-xs text-gray-900">${subject.code}</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-700">
+                            ${subject.units}
+                        </span>
+                    </div>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); toggleSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', ${subject.units})" 
+                        class="flex-shrink-0 w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove ${subject.code}">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+        
+        // Create hidden inputs for form submission
+        dataContainer.innerHTML = selectedArray.map(subject => 
+            `<input type="hidden" name="subject_ids[]" value="${subject.id}">`
+        ).join('');
+    }
+    
+    function clearAllSubjects() {
+        selectedSubjects.clear();
+        updateSelectedSubjectsDisplay();
+        filterSubjects(document.getElementById('subject_search').value);
     }
 
     function unassignSubject(assignmentId, subjectCode) {
@@ -1095,26 +1266,7 @@
         }
     }
 
-    // Close modals on outside click
-    document.getElementById('addFacultyModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeAddFacultyModal();
-    });
-    
-    document.getElementById('editFacultyModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeEditFacultyModal();
-    });
-    
-    document.getElementById('assignSubjectModal')?.addEventListener('click', function(e) {
-        if (e.target === this) closeAssignSubjectModal();
-    });
-
-    // Close modals on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAddFacultyModal();
-            closeEditFacultyModal();
-            closeAssignSubjectModal();
-        }
-    });
+    // Modals will only close when clicking the X button
+    // Outside click and Escape key closing has been disabled for better user experience
 </script>
 {% endblock %}

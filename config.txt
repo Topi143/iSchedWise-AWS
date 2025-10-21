@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 # Get the base directory (project root)
 basedir = Path(__file__).resolve().parent.parent
-
 # Load environment variables from .env file in project root
 env_path = basedir / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -23,10 +22,10 @@ else:
 
 class Config:
     """Base configuration class"""
-    
+
     # Secret key for session management
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-here-change-in-production'
-    
+
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'mysql+pymysql://root:@localhost/ischedwise_db'
@@ -35,19 +34,19 @@ class Config:
         'pool_recycle': 280,
         'pool_pre_ping': True,
     }
-    
+
     # Flask-Login configuration
     LOGIN_VIEW = 'auth.login'
     LOGIN_MESSAGE = 'Please log in to access this page.'
     LOGIN_MESSAGE_CATEGORY = 'info'
-    
+
     # WTForms configuration
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None  # No time limit for CSRF tokens
-    
+
     # AI Configuration - Gemini API
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or None
-    
+
     # Email Configuration
     MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.gmail.com'
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
@@ -55,7 +54,7 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'noreply@ischedwise.com'
-    
+
     # Password Reset Configuration
     PASSWORD_RESET_TOKEN_EXPIRY = 3600  # 1 hour in seconds
 
@@ -71,15 +70,13 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
 
-    # Remove the @property decorator - SECRET_KEY must be a class attribute
-    # Override the parent class SECRET_KEY
-    def __init__(self):
-        super().__init__()
+    # In production, ensure SECRET_KEY is set in environment
+    @property
+    def SECRET_KEY(self):
         secret_key = os.environ.get('SECRET_KEY')
         if not secret_key:
             raise ValueError("SECRET_KEY must be set in production environment")
-        self.SECRET_KEY = secret_key
-
+        return secret_key
 
 
 class TestingConfig(Config):

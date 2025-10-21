@@ -32,18 +32,11 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 5000);
 }
 
-// Show flash messages as toasts on page load
+// NOTE: Flash message toast initialization is handled in schedule.html
+// Do not duplicate DOMContentLoaded listener here to avoid showing toasts multiple times
+
+// Restore department filter on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const flashMessages = document.getElementById('flashMessages');
-    if (flashMessages) {
-        const messages = flashMessages.querySelectorAll('[data-category][data-message]');
-        messages.forEach((msg, index) => {
-            setTimeout(() => {
-                showToast(msg.dataset.message, msg.dataset.category || 'info');
-            }, index * 100);
-        });
-    }
-    
     // Restore department filter from URL
     const urlParams = new URLSearchParams(window.location.search);
     const departmentId = urlParams.get('department_id');

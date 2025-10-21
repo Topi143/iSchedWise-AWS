@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Department, Curriculum, YearLevel, Semester, Subject
+from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 import pandas as pd
 import io
 from werkzeug.utils import secure_filename
@@ -175,6 +176,13 @@ def add():
         
         db.session.add(new_curriculum)
         db.session.flush()
+        
+        # Log activity
+        log_create('curriculum', new_curriculum.id, new_curriculum.curriculum_code, {
+            'name': curriculum_name,
+            'department': department.department_code,
+            'year_levels': year_levels_count
+        })
         
         # Auto-create year levels with semesters
         year_names = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 
@@ -359,6 +367,12 @@ def edit():
                                 db.session.delete(semester)
                 except ValueError:
                     continue
+        
+        # Log activity
+        log_edit('curriculum', curriculum.id, curriculum.curriculum_code, {
+            'name': curriculum.curriculum_name,
+            'department': curriculum.department.department_code
+        })
         
         db.session.commit()
         
@@ -634,6 +648,14 @@ def add_subject():
         )
         
         db.session.add(new_subject)
+        db.session.flush()
+        
+        # Log activity
+        log_create('subject', new_subject.id, subject_code, {
+            'description': course_description,
+            'semester': semester.semester_name
+        })
+        
         db.session.commit()
         
         flash(f'Subject "{subject_code}" added successfully!', 'success')
@@ -691,6 +713,9 @@ def edit_subject():
         subject.lab_units = lab_units
         subject.prerequisite = prerequisite if prerequisite else None
         
+        # Log activity
+        log_edit('subject', subject.id, subject_code, {'description': course_description})
+        
         db.session.commit()
         
         flash('Subject has been successfully updated!', 'success')
@@ -728,6 +753,11 @@ def delete_subject():
         curriculum_id = subject.semester.year_level.curriculum_id
         year_level_id = subject.semester.year_level.id
         semester_id = subject.semester.id
+        subject_code = subject.subject_code
+        
+        # Log activity before deletion
+        log_delete('subject', subject.id, subject_code, {'description': subject.course_description})
+        
         db.session.delete(subject)
         db.session.commit()
         
@@ -767,6 +797,12 @@ def archive():
         # Archive curriculum using helper method
         curriculum.archive(user_id=current_user.id, reason=archive_reason)
         
+        # Log activity
+        log_archive('curriculum', curriculum.id, curriculum_code, {
+            'name': curriculum.curriculum_name,
+            'reason': archive_reason
+        })
+        
         db.session.commit()
         
         flash(f'Curriculum "{curriculum_code}" has been archived successfully!', 'success')
@@ -799,6 +835,10 @@ def delete():
             return redirect(url_for('curriculum.index'))
         
         curriculum_code = curriculum.curriculum_code
+        curriculum_name = curriculum.curriculum_name
+        
+        # Log activity before deletion
+        log_delete('curriculum', curriculum.id, curriculum_code, {'name': curriculum_name})
         
         # Delete curriculum (cascade will delete year levels, semesters, and subjects)
         db.session.delete(curriculum)

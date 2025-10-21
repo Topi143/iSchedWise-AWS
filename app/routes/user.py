@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.user import User
 from app.models.department import Department
+from app.utils.activity_logger import log_create, log_edit, log_delete
 from functools import wraps
 from datetime import datetime
 
@@ -127,6 +128,13 @@ def create_user():
         db.session.add(user)
         db.session.flush()  # Get user ID before adding departments
         
+        # Log activity
+        log_create('user', user.id, user.username, {
+            'email': user.email,
+            'role': user.role,
+            'full_name': user.full_name
+        })
+        
         # Handle department assignments
         if data['role'] == 'dean' and data.get('department_ids'):
             department_ids = data['department_ids']
@@ -216,6 +224,13 @@ def update_user(user_id):
                     if department:
                         user.departments.append(department)
         
+        # Log activity
+        log_edit('user', user.id, user.username, {
+            'email': user.email,
+            'role': user.role,
+            'full_name': user.full_name
+        })
+        
         db.session.commit()
         
         return jsonify({
@@ -253,6 +268,11 @@ def delete_user(user_id):
             admin_count = User.query.filter_by(role='admin', is_active=True).count()
             if admin_count <= 1:
                 return jsonify({'success': False, 'message': 'Cannot delete the last active admin account'}), 400
+        
+        username = user.username
+        
+        # Log activity before deletion
+        log_delete('user', user.id, username, {'role': user.role, 'email': user.email})
         
         db.session.delete(user)
         db.session.commit()

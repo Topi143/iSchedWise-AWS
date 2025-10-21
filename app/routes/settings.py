@@ -9,6 +9,7 @@ from app.models.exam_schedule import ExamSchedule
 from app.models.archive import Archive
 from app.models.faculty import FacultySubjectAssignment
 from app.extensions import db
+from app.utils.activity_logger import log_settings_change
 from datetime import datetime
 
 settings_bp = Blueprint('settings', __name__)
@@ -464,6 +465,18 @@ def update():
         )
         
         db.session.add(new_settings)
+        db.session.flush()
+        
+        # Log activity
+        log_settings_change(f'Updated academic settings to {academic_year} - {semester} - {exam_period}', {
+            'academic_year': academic_year,
+            'semester': semester,
+            'exam_period': exam_period,
+            'archived_schedules': archived_count,
+            'archived_exam_schedules': archived_exam_count,
+            'archived_faculty_assignments': archived_faculty_count
+        })
+        
         db.session.commit()
         
         # Try to restore archived schedules for the new academic year/semester

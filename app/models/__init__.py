@@ -10,6 +10,7 @@ from app.models.schedule import Schedule
 from app.models.exam_schedule import ExamSchedule
 from app.models.settings import AcademicSettings
 from app.models.archive import Archive
+from app.models.activity_log import UserActivityLog
 
 __all__ = [
     'User',
@@ -27,6 +28,7 @@ __all__ = [
     'ExamSchedule',
     'AcademicSettings',
     'Archive',
+    'UserActivityLog',
     # FacultySubjectAssignmentArchive removed - using flag-based archiving on faculty_subject_assignments
 ]
 

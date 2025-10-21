@@ -14,6 +14,8 @@ from app.models.curriculum import Subject
 from app.models.building import Room, Building
 from app.models.department import Department, Section
 from app.models.settings import AcademicSettings
+from app.models.activity_log import UserActivityLog
+from app.models.user import User
 from app.decorators import role_required
 from app.ai_scheduler import ai_scheduler
 import io
@@ -1033,3 +1035,126 @@ def export_faculty_workload():
         from flask import flash, redirect, url_for
         flash(f'Error exporting faculty workload: {str(e)}', 'error')
         return redirect(url_for('reports.index'))
+
+
+@reports_bp.route('/api/user-activity')
+@login_required
+@role_required('admin')
+def get_user_activity():
+    """Get user activity logs (admin only)"""
+    try:
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        
+        # Get filter parameters
+        filter_user = request.args.get('user_id', type=int)
+        filter_action = request.args.get('action', type=str)
+        filter_entity = request.args.get('entity_type', type=str)
+        
+        # Build query
+        query = UserActivityLog.query
+        
+        # Apply filters
+        if filter_user:
+            query = query.filter_by(user_id=filter_user)
+        if filter_action:
+            query = query.filter_by(action=filter_action)
+        if filter_entity:
+            query = query.filter_by(entity_type=filter_entity)
+        
+        # Order by most recent first
+        query = query.order_by(UserActivityLog.created_at.desc())
+        
+        # Paginate
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        # Convert to dict
+        logs = [log.to_dict() for log in pagination.items]
+        
+        # Get unique users, actions, and entity types for filters
+        all_users = User.query.order_by(User.full_name).all()
+        all_actions = db.session.query(UserActivityLog.action).distinct().all()
+        all_entities = db.session.query(UserActivityLog.entity_type).distinct().all()
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'pagination': {
+                'page': pagination.page,
+                'per_page': pagination.per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_prev': pagination.has_prev,
+                'has_next': pagination.has_next
+            },
+            'filters': {
+                'users': [{'id': u.id, 'name': u.full_name, 'role': u.role} for u in all_users],
+                'actions': [a[0] for a in all_actions],
+                'entities': [e[0] for e in all_entities]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching user activity: {str(e)}'
+        }), 500
+
+
+@reports_bp.route('/api/user-activity/stats')
+@login_required
+@role_required('admin')
+def get_user_activity_stats():
+    """Get user activity statistics (admin only)"""
+    try:
+        # Total actions
+        total_actions = UserActivityLog.query.count()
+        
+        # Actions by type
+        actions_by_type = db.session.query(
+            UserActivityLog.action,
+            func.count(UserActivityLog.id)
+        ).group_by(UserActivityLog.action).all()
+        
+        # Actions by entity type
+        actions_by_entity = db.session.query(
+            UserActivityLog.entity_type,
+            func.count(UserActivityLog.id)
+        ).group_by(UserActivityLog.entity_type).all()
+        
+        # Most active users (top 10)
+        most_active_users = db.session.query(
+            User.full_name,
+            User.role,
+            func.count(UserActivityLog.id).label('action_count')
+        ).join(UserActivityLog, UserActivityLog.user_id == User.id)\
+         .group_by(User.id)\
+         .order_by(func.count(UserActivityLog.id).desc())\
+         .limit(10).all()
+        
+        # Recent activity (last 24 hours)
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        recent_actions = UserActivityLog.query.filter(
+            UserActivityLog.created_at >= yesterday
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_actions': total_actions,
+                'recent_actions_24h': recent_actions,
+                'actions_by_type': [{'action': a[0], 'count': a[1]} for a in actions_by_type],
+                'actions_by_entity': [{'entity': e[0], 'count': e[1]} for e in actions_by_entity],
+                'most_active_users': [
+                    {'name': u[0], 'role': u[1], 'actions': u[2]} 
+                    for u in most_active_users
+                ]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching activity stats: {str(e)}'
+        }), 500

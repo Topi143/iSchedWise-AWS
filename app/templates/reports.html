@@ -317,6 +317,16 @@
                             Weekly Distribution
                         </div>
                     </button>
+                    {% if current_user.role == 'admin' %}
+                    <button onclick="switchTab('activity')" class="tab-button py-3 px-1 text-center border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            User Activity
+                        </div>
+                    </button>
+                    {% endif %}
                 </nav>
             </div>
         </div>
@@ -628,6 +638,105 @@
                 </div>
             </div>
         </div>
+
+        <!-- User Activity Tab (Admin Only) -->
+        {% if current_user.role == 'admin' %}
+        <div id="activity-tab" class="tab-content">
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-4 border border-gray-200">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        User Activity Logs
+                    </h3>
+                    <button onclick="loadActivityLogs()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
+                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+
+                <!-- Activity Stats -->
+                <div id="activity-stats" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                        <p class="text-sm font-semibold text-blue-700 mb-1">Total Actions</p>
+                        <p class="text-3xl font-bold text-blue-900" id="stat-total-actions">-</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                        <p class="text-sm font-semibold text-green-700 mb-1">Last 24 Hours</p>
+                        <p class="text-3xl font-bold text-green-900" id="stat-recent-actions">-</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                        <p class="text-sm font-semibold text-purple-700 mb-1">Unique Actions</p>
+                        <p class="text-3xl font-bold text-purple-900" id="stat-unique-actions">-</p>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
+                        <select id="filter-activity-user" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Action Type</label>
+                        <select id="filter-activity-action" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Actions</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Entity Type</label>
+                        <select id="filter-activity-entity" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Entities</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Activity Logs Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Entity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-logs-tbody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                    <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Loading activity logs...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div id="activity-pagination" class="mt-6 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        Showing <span id="activity-showing">0</span> of <span id="activity-total">0</span> logs
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="loadActivityLogs(currentActivityPage - 1)" id="activity-prev-btn" disabled class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <button onclick="loadActivityLogs(currentActivityPage + 1)" id="activity-next-btn" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Faculty and Room Tables -->
         </div>
@@ -1169,6 +1278,13 @@ function switchTab(tabName, skipSave) {
     if (!skipSave) {
         saveActiveTab(tabName);
     }
+    
+    // Load activity logs when switching to activity tab (admin only)
+    {% if current_user.role == 'admin' %}
+    if (tabName === 'activity') {
+        loadActivityLogs();
+    }
+    {% endif %}
 }
 
 function applyFilters() {
@@ -1394,20 +1510,8 @@ function closeAIModal() {
     }, 300);
 }
 
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('ai-modal');
-    if (event.target === modal) {
-        closeAIModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeAIModal();
-    }
-});
+// Modals will only close when clicking the X button
+// Outside click and Escape key closing has been disabled for better user experience
 
 // AI Summary Generation
 function generateAISummary() {
@@ -1506,5 +1610,212 @@ function generateAISummary() {
                 'An unexpected error occurred while generating the AI summary.';
         });
 }
+
+// User Activity Log Functions (Admin Only)
+let currentActivityPage = 1;
+let activityFilters = {};
+
+function loadActivityLogs(page = 1) {
+    currentActivityPage = page;
+    
+    // Get filter values
+    const userFilter = document.getElementById('filter-activity-user')?.value;
+    const actionFilter = document.getElementById('filter-activity-action')?.value;
+    const entityFilter = document.getElementById('filter-activity-entity')?.value;
+    
+    // Build query params
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('per_page', 50);
+    if (userFilter) params.append('user_id', userFilter);
+    if (actionFilter) params.append('action', actionFilter);
+    if (entityFilter) params.append('entity_type', entityFilter);
+    
+    // Fetch activity logs
+    console.log('Loading activity logs, page:', page);
+    fetch('/reports/api/user-activity?' + params.toString())
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Activity logs data:', data);
+            if (data.success) {
+                console.log('Found', data.logs.length, 'activity logs');
+                // Update table
+                updateActivityTable(data.logs);
+                
+                // Update pagination
+                updateActivityPagination(data.pagination);
+                
+                // Update filters (only on first load)
+                if (page === 1 && data.filters) {
+                    updateActivityFilters(data.filters);
+                }
+            } else {
+                console.error('Error loading activity logs:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching activity logs:', error);
+        });
+    
+    // Load stats
+    loadActivityStats();
+}
+
+function loadActivityStats() {
+    fetch('/reports/api/user-activity/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.stats;
+                
+                // Update stat cards
+                document.getElementById('stat-total-actions').textContent = stats.total_actions;
+                document.getElementById('stat-recent-actions').textContent = stats.recent_actions_24h;
+                document.getElementById('stat-unique-actions').textContent = stats.actions_by_type.length;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching activity stats:', error);
+        });
+}
+
+function updateActivityTable(logs) {
+    const tbody = document.getElementById('activity-logs-tbody');
+    tbody.innerHTML = '';
+    
+    if (logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    No activity logs found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    logs.forEach(log => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 transition-colors';
+        
+        // Format timestamp
+        const timestamp = new Date(log.created_at);
+        const timeStr = timestamp.toLocaleString();
+        
+        // Action badge color
+        const actionColor = getActionColor(log.action);
+        
+        row.innerHTML = `
+            <td class="px-4 py-3 text-sm text-gray-600">${timeStr}</td>
+            <td class="px-4 py-3 text-sm">
+                <div class="font-semibold text-gray-900">${log.user_name}</div>
+                <div class="text-xs text-gray-500">${log.user_role}</div>
+            </td>
+            <td class="px-4 py-3 text-sm">
+                <span class="px-2 py-1 rounded-full text-xs font-semibold ${actionColor}">
+                    ${log.action}
+                </span>
+            </td>
+            <td class="px-4 py-3 text-sm">
+                <div class="font-medium text-gray-900">${log.entity_type}</div>
+                ${log.entity_name ? `<div class="text-xs text-gray-500">${log.entity_name}</div>` : ''}
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function getActionColor(action) {
+    if (action.includes('created') || action.includes('add')) {
+        return 'bg-green-100 text-green-800';
+    } else if (action.includes('edited') || action.includes('updated')) {
+        return 'bg-blue-100 text-blue-800';
+    } else if (action.includes('deleted') || action.includes('removed')) {
+        return 'bg-red-100 text-red-800';
+    } else if (action.includes('archived')) {
+        return 'bg-orange-100 text-orange-800';
+    } else if (action.includes('unarchived') || action.includes('restored')) {
+        return 'bg-purple-100 text-purple-800';
+    } else {
+        return 'bg-gray-100 text-gray-800';
+    }
+}
+
+function updateActivityPagination(pagination) {
+    document.getElementById('activity-showing').textContent = 
+        pagination.total > 0 ? `${(pagination.page - 1) * pagination.per_page + 1}-${Math.min(pagination.page * pagination.per_page, pagination.total)}` : '0';
+    document.getElementById('activity-total').textContent = pagination.total;
+    
+    // Update buttons
+    const prevBtn = document.getElementById('activity-prev-btn');
+    const nextBtn = document.getElementById('activity-next-btn');
+    
+    prevBtn.disabled = !pagination.has_prev;
+    nextBtn.disabled = !pagination.has_next;
+}
+
+function updateActivityFilters(filters) {
+    // Update user filter
+    const userSelect = document.getElementById('filter-activity-user');
+    if (userSelect && filters.users) {
+        userSelect.innerHTML = '<option value="">All Users</option>';
+        filters.users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.name} (${user.role})`;
+            userSelect.appendChild(option);
+        });
+    }
+    
+    // Update action filter
+    const actionSelect = document.getElementById('filter-activity-action');
+    if (actionSelect && filters.actions) {
+        actionSelect.innerHTML = '<option value="">All Actions</option>';
+        filters.actions.forEach(action => {
+            const option = document.createElement('option');
+            option.value = action;
+            option.textContent = action;
+            actionSelect.appendChild(option);
+        });
+    }
+    
+    // Update entity filter
+    const entitySelect = document.getElementById('filter-activity-entity');
+    if (entitySelect && filters.entities) {
+        entitySelect.innerHTML = '<option value="">All Entities</option>';
+        filters.entities.forEach(entity => {
+            const option = document.createElement('option');
+            option.value = entity;
+            option.textContent = entity;
+            entitySelect.appendChild(option);
+        });
+    }
+}
+
+// Load activity logs when activity tab is opened
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on activity tab (admin only)
+    {% if current_user.role == 'admin' %}
+    const activityTab = document.getElementById('activity-tab');
+    if (activityTab) {
+        // Load when tab becomes active
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.target.classList.contains('active')) {
+                    loadActivityLogs();
+                }
+            });
+        });
+        observer.observe(activityTab, { attributes: true, attributeFilter: ['class'] });
+    }
+    {% endif %}
+});
 </script>
 {% endblock %}
