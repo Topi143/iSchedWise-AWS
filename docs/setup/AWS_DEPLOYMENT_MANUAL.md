@@ -713,45 +713,153 @@ If you have a domain name (e.g., from Namecheap, GoDaddy):
 ### Step 2: Install SSL Certificate (HTTPS)
 **Using Let's Encrypt (Free SSL):**
 
+#### Step 2a: Update Nginx Configuration with Your Domain First
 ```bash
 # SSH into EC2
 ssh -i "ischedwise-keypair.pem" ubuntu@YOUR_ELASTIC_IP
 
+# Edit Nginx configuration
+sudo nano /etc/nginx/sites-available/ischedwise
+```
+
+Change `server_name` from `YOUR_ELASTIC_IP` to your actual domain:
+```nginx
+server {
+    listen 80;
+    server_name ischedwise.online www.ischedwise.online;  # Update this line!
+
+    # Increase client body size for file uploads
+    client_max_body_size 16M;
+
+    location / {
+        proxy_pass http://unix:/var/www/ischedwise/ischedwise.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+
+    location /static {
+        alias /var/www/ischedwise/app/static;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+```
+
+Test and restart Nginx:
+```bash
+# Test configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+
+# Verify it's working
+curl -I http://ischedwise.online
+```
+
+**IMPORTANT**: Wait 1-2 minutes and verify your domain works via HTTP first:
+- Open browser: `http://ischedwise.online`
+- You should see iSchedWise login page
+- If not working, check DNS propagation: https://dnschecker.org/
+
+#### Step 2b: Install Certbot and Obtain SSL Certificate
+```bash
 # Install Certbot
 sudo apt install -y certbot python3-certbot-nginx
 
-# Obtain SSL certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+# Obtain SSL certificate (only after domain works via HTTP!)
+sudo certbot --nginx -d ischedwise.online -d www.ischedwise.online
 
 # Follow prompts:
-# - Enter email address
-# - Agree to terms
-# - Choose: Redirect HTTP to HTTPS (recommended)
+# - Enter email address (for renewal notifications)
+# - Agree to terms of service (Y)
+# - Share email with EFF (optional - N is fine)
+# - Choose: Redirect HTTP to HTTPS - Select option 2 (recommended)
 
 # Certificate auto-renewal is set up automatically
 # Test renewal:
 sudo certbot renew --dry-run
 ```
 
-Update Nginx configuration:
-```bash
-sudo nano /etc/nginx/sites-available/ischedwise
-```
+**What Certbot does automatically:**
+- Adds SSL certificate configuration to Nginx
+- Creates HTTPS server block (port 443)
+- Sets up automatic HTTP to HTTPS redirect
+- Configures SSL security headers
+- Sets up auto-renewal cron job
 
-Change `server_name` to your domain:
-```nginx
-server {
-    server_name yourdomain.com www.yourdomain.com;
-    # ... rest of configuration
-}
-```
-
-Restart Nginx:
+#### Step 2c: Verify SSL Installation
 ```bash
+# Check Nginx configuration
+sudo nginx -t
+
+# Restart Nginx (if needed)
 sudo systemctl restart nginx
+
+# Check certificate status
+sudo certbot certificates
 ```
 
-Visit: `https://yourdomain.com` (Should show SSL padlock!)
+Visit: `https://ischedwise.online` (Should show SSL padlock! 🔒)
+
+#### Troubleshooting SSL Issues
+
+**If Certbot fails with "Connection refused":**
+```bash
+# 1. Verify Nginx is running and serving HTTP
+sudo systemctl status nginx
+curl -I http://ischedwise.online
+
+# 2. Check firewall allows port 80
+sudo ufw status
+
+# 3. Verify DNS points to correct IP
+dig ischedwise.online
+nslookup ischedwise.online
+
+# 4. Check Nginx error logs
+sudo tail -f /var/log/nginx/error.log
+
+# 5. Try obtaining certificate with verbose output
+sudo certbot --nginx -d ischedwise.online -d www.ischedwise.online -v
+```
+
+**If Certbot fails with "Domain not pointing to server":**
+- DNS records not propagated yet - wait 5-60 minutes
+- Check DNS: https://dnschecker.org/
+- Verify A records point to your Elastic IP
+
+**If you need to retry:**
+```bash
+# Delete failed attempt
+sudo certbot delete --cert-name ischedwise.online
+
+# Try again with just main domain first
+sudo certbot --nginx -d ischedwise.online
+
+# Then add www subdomain later
+sudo certbot --nginx -d ischedwise.online -d www.ischedwise.online --expand
+```
+
+**Certificate Renewal (automatic):**
+```bash
+# Certbot installs a cron job to auto-renew certificates
+# Certificates are valid for 90 days and auto-renew at 60 days
+
+# Manually check renewal
+sudo certbot renew --dry-run
+
+# Force renew (if needed)
+sudo certbot renew --force-renewal
+```
 
 ---
 

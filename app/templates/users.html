@@ -18,6 +18,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 1rem;
     }
     
     /* Custom Scrollbar */
@@ -52,51 +53,98 @@
         background-color: white;
         border-bottom-color: #2563eb;
     }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 1024px) {
+        .two-column-layout {
+            flex-direction: column;
+        }
+        .left-column {
+            width: 100% !important;
+            max-height: none;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .mobile-compact {
+            padding: 0.75rem !important;
+        }
+        .mobile-p-2 {
+            padding: 0.5rem !important;
+        }
+        .mobile-gap-2 {
+            gap: 0.5rem !important;
+        }
+        .mobile-text-sm {
+            font-size: 0.75rem !important;
+        }
+        .stat-card {
+            padding: 0.5rem !important;
+        }
+        .stat-card p {
+            font-size: 1.25rem !important;
+        }
+    }
+    
+    @media (max-width: 640px) {
+        .modal .bg-white {
+            margin: 0.5rem;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .user-card {
+            padding: 0.75rem !important;
+        }
+        .user-card:hover {
+            transform: none;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         
         <!-- Page Header -->
-        <div class="mb-3 flex-shrink-0">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4 mobile-p-2">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                             </svg>
                         </div>
                         <div>
-                            <h1 class="text-xl font-bold text-gray-900">User Management</h1>
-                            <p class="text-sm text-gray-600">Manage system users and access controls</p>
+                            <h1 class="text-lg sm:text-xl font-bold text-gray-900">User Management</h1>
+                            <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Manage system users and access controls</p>
                         </div>
                     </div>
-                    <button onclick="openAddModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white text-sm rounded-lg hover:from-blue-700 hover:to-blue-900 font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="openAddModal()" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs sm:text-sm rounded-lg hover:from-blue-700 hover:to-blue-900 font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[44px]">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
-                        Add New User
+                        <span class="hidden sm:inline">Add New User</span>
+                        <span class="sm:hidden">Add User</span>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Main Content: Two Column Layout -->
-        <div class="flex-1 flex gap-3 overflow-hidden">
+        <div class="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 overflow-hidden two-column-layout">
             
             <!-- LEFT COLUMN: Statistics Overview -->
-            <div class="w-80 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
-                <div class="p-4 space-y-4 overflow-y-auto">
+            <div class="w-full lg:w-80 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden left-column">
+                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto mobile-compact">
                     
                     <!-- Statistics Card -->
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-md p-4 text-white">
-                        <div class="flex items-center justify-between mb-3">
-                            <h2 class="text-sm font-bold flex items-center">
-                                <div class="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center mr-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-md p-3 sm:p-4 text-white mobile-p-2 stat-card">
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <h2 class="text-xs sm:text-sm font-bold flex items-center">
+                                <div class="w-6 h-6 sm:w-7 sm:h-7 bg-white/20 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                     </svg>
                                 </div>
@@ -104,73 +152,73 @@
                             </h2>
                         </div>
 
-                        <div class="space-y-2">
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2.5 border border-white/20">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
                                 <p class="text-xs text-blue-100 font-semibold mb-0.5">Total Users</p>
-                                <p class="text-2xl font-bold" id="totalUsers">0</p>
+                                <p class="text-xl sm:text-2xl font-bold" id="totalUsers">0</p>
                             </div>
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2.5 border border-white/20">
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
                                 <p class="text-xs text-blue-100 font-semibold mb-0.5">Active Users</p>
-                                <p class="text-2xl font-bold" id="activeCount">0</p>
+                                <p class="text-xl sm:text-2xl font-bold" id="activeCount">0</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Role Breakdown -->
-                    <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                        <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
-                            <div class="w-7 h-7 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mr-2">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2">
+                        <h3 class="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 flex items-center">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
                             </div>
                             Role Distribution
                         </h3>
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-200">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-purple-50 rounded-lg border border-purple-200">
+                                <div class="flex items-center gap-1.5 sm:gap-2">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.040A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                                         </svg>
                                     </div>
                                     <span class="text-xs text-purple-700 font-medium">Administrators</span>
                                 </div>
-                                <span class="text-base font-bold text-purple-800" id="adminCount">0</span>
+                                <span class="text-sm sm:text-base font-bold text-purple-800" id="adminCount">0</span>
                             </div>
-                            <div class="flex items-center justify-between p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-indigo-50 rounded-lg border border-indigo-200">
+                                <div class="flex items-center gap-1.5 sm:gap-2">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                         </svg>
                                     </div>
                                     <span class="text-xs text-indigo-700 font-medium">Deans</span>
                                 </div>
-                                <span class="text-base font-bold text-indigo-800" id="deanCount">0</span>
+                                <span class="text-sm sm:text-base font-bold text-indigo-800" id="deanCount">0</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Actions -->
-                    <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                        <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
-                            <div class="w-7 h-7 bg-gradient-to-br from-green-600 to-green-800 rounded-lg flex items-center justify-center mr-2">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2 hidden lg:block">
+                        <h3 class="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 flex items-center">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-green-600 to-green-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
                             </div>
                             Quick Actions
                         </h3>
-                        <div class="space-y-2">
-                            <button onclick="openAddModal()" class="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <button onclick="openAddModal()" class="w-full px-2 sm:px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[44px]">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
                                 Add New User
                             </button>
-                            <button onclick="loadUsers()" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="loadUsers()" class="w-full px-2 sm:px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[44px]">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
                                 Refresh List
@@ -186,56 +234,59 @@
                 <div class="border-b border-gray-200 bg-gray-50">
                     <div class="flex">
                         <button onclick="switchTab('active')" id="activeTab" 
-                                class="tab-button flex-1 px-4 py-3 text-sm font-semibold text-gray-700 hover:text-blue-600 hover:bg-white transition-colors border-b-2 border-transparent">
-                            <div class="flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="tab-button flex-1 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 hover:text-blue-600 hover:bg-white transition-colors border-b-2 border-transparent">
+                            <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                Active Users
-                                <span id="activeTabCount" class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-bold">0</span>
+                                <span class="hidden sm:inline">Active Users</span>
+                                <span class="sm:hidden">Active</span>
+                                <span id="activeTabCount" class="px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-bold">0</span>
                             </div>
                         </button>
                         <button onclick="switchTab('inactive')" id="inactiveTab" 
-                                class="tab-button flex-1 px-4 py-3 text-sm font-semibold text-gray-700 hover:text-blue-600 hover:bg-white transition-colors border-b-2 border-transparent">
-                            <div class="flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="tab-button flex-1 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 hover:text-blue-600 hover:bg-white transition-colors border-b-2 border-transparent">
+                            <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                                 </svg>
-                                Inactive Users
-                                <span id="inactiveTabCount" class="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full font-bold">0</span>
+                                <span class="hidden sm:inline">Inactive Users</span>
+                                <span class="sm:hidden">Inactive</span>
+                                <span id="inactiveTabCount" class="px-1.5 sm:px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full font-bold">0</span>
                             </div>
                         </button>
                     </div>
                 </div>
 
-                <div class="p-4 space-y-4 overflow-y-auto">
+                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto mobile-compact">
                     
                     <!-- Search and Filter -->
-                    <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                        <div class="flex items-center gap-3">
+                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                             <div class="flex-1">
                                 <div class="relative">
-                                    <input type="text" id="searchUsers" placeholder="Search by name, email, or username..." 
-                                           class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    <input type="text" id="searchUsers" placeholder="Search users..." 
+                                           class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]"
+                                           style="font-size: 16px;"
                                            onkeyup="filterUsers()">
-                                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-2.5 sm:left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                 </div>
                             </div>
-                            <select id="filterRole" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onchange="filterUsers()">
+                            <select id="filterRole" class="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]" style="font-size: 16px;" onchange="filterUsers()">
                                 <option value="">All Roles</option>
                                 <option value="admin">Admin</option>
                                 <option value="dean">Dean</option>
                             </select>
-                            <button onclick="clearFilters()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg font-medium transition-colors">
+                            <button onclick="clearFilters()" class="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm rounded-lg font-medium transition-colors min-h-[44px] whitespace-nowrap">
                                 Clear
                             </button>
                         </div>
                     </div>
 
                     <!-- Users Grid -->
-                    <div id="usersContainer" class="grid grid-cols-1 gap-3">
+                    <div id="usersContainer" class="grid grid-cols-1 gap-2 sm:gap-3">
                         <!-- Users loaded via JavaScript -->
                     </div>
                 </div>
@@ -246,42 +297,42 @@
 
 <!-- Add/Edit User Modal -->
 <div id="userModal" class="modal">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-        <div class="bg-blue-600 px-6 py-4 rounded-t-lg">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-blue-600 px-4 sm:px-6 py-3 sm:py-4 rounded-t-lg sticky top-0 z-10">
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-white" id="modalTitle">Add New User</h2>
-                <button onclick="closeModal()" class="text-white hover:text-gray-200">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <h2 class="text-lg sm:text-xl font-bold text-white" id="modalTitle">Add New User</h2>
+                <button onclick="closeModal()" class="text-white hover:text-gray-200 p-1">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
         </div>
         
-        <form id="userForm" class="p-6">
+        <form id="userForm" class="p-4 sm:p-6">
             <input type="hidden" id="userId">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Full Name *</label>
-                    <input type="text" id="fullName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="John Doe">
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Full Name *</label>
+                    <input type="text" id="fullName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm min-h-[44px]" style="font-size: 16px;" placeholder="John Doe">
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Username *</label>
-                    <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="johndoe">
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Username *</label>
+                    <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm min-h-[44px]" style="font-size: 16px;" placeholder="johndoe">
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email *</label>
-                    <input type="email" id="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="john@example.com">
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Email *</label>
+                    <input type="email" id="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm min-h-[44px]" style="font-size: 16px;" placeholder="john@example.com">
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Role *</label>
-                    <select id="role" required onchange="toggleDepartmentField()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Role *</label>
+                    <select id="role" required onchange="toggleDepartmentField()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm min-h-[44px]" style="font-size: 16px;">
                         <option value="">Select Role</option>
                         <option value="admin">Admin</option>
                         <option value="dean">Dean</option>
@@ -289,36 +340,36 @@
                 </div>
             </div>
             
-            <div id="departmentField" class="mb-4" style="display:none;">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Departments *</label>
-                <div class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-white">
+            <div id="departmentField" class="mb-3 sm:mb-4" style="display:none;">
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Departments *</label>
+                <div class="border border-gray-300 rounded-lg p-2 sm:p-3 max-h-40 sm:max-h-48 overflow-y-auto bg-white">
                     {% for dept in departments %}
-                    <label class="flex items-center py-1.5 cursor-pointer hover:bg-gray-50 px-2 rounded">
-                        <input type="checkbox" class="department-checkbox rounded text-blue-600 focus:ring-2 focus:ring-blue-500" value="{{ dept.id }}">
-                        <span class="ml-2 text-sm text-gray-700">{{ dept.department_name }}</span>
+                    <label class="flex items-center py-1.5 cursor-pointer hover:bg-gray-50 px-1.5 sm:px-2 rounded">
+                        <input type="checkbox" class="department-checkbox rounded text-blue-600 focus:ring-2 focus:ring-blue-500 w-4 h-4" value="{{ dept.id }}">
+                        <span class="ml-2 text-xs sm:text-sm text-gray-700">{{ dept.department_name }}</span>
                     </label>
                     {% endfor %}
                 </div>
                 <p class="text-xs text-gray-500 mt-1">Select one or more departments for this dean</p>
             </div>
             
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Password <span id="passwordOptional" class="font-normal text-gray-500" style="display:none;">(leave blank to keep current)</span></label>
-                <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="••••••••">
+            <div class="mb-3 sm:mb-4">
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Password <span id="passwordOptional" class="font-normal text-gray-500" style="display:none;">(leave blank to keep current)</span></label>
+                <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm min-h-[44px]" style="font-size: 16px;" placeholder="••••••••">
                 <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
             </div>
             
-            <div class="mb-6">
+            <div class="mb-4 sm:mb-6">
                 <label class="flex items-center cursor-pointer">
-                    <input type="checkbox" id="isActive" checked class="rounded text-blue-600 focus:ring-2 focus:ring-blue-500">
-                    <span class="ml-2 text-sm font-medium text-gray-700">Active</span>
+                    <input type="checkbox" id="isActive" checked class="rounded text-blue-600 focus:ring-2 focus:ring-blue-500 w-4 h-4">
+                    <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700">Active</span>
                 </label>
             </div>
             
-            <div class="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold text-sm transition-colors">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold text-xs sm:text-sm transition-colors min-h-[44px]">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs sm:text-sm transition-colors min-h-[44px]">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                     Save User
@@ -330,17 +381,17 @@
 
 <!-- Delete Confirmation Modal -->
 <div id="deleteModal" class="modal">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div class="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4">
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-4 sm:p-6 m-4">
+        <div class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-full mx-auto mb-3 sm:mb-4">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
             </svg>
         </div>
-        <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Delete User</h3>
-        <p class="text-gray-600 text-center mb-6">Are you sure you want to delete this user? This action cannot be undone.</p>
-        <div class="flex justify-center gap-3">
-            <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold text-sm transition-colors">Cancel</button>
-            <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm transition-colors">Delete</button>
+        <h3 class="text-base sm:text-lg font-bold text-gray-900 text-center mb-2">Delete User</h3>
+        <p class="text-xs sm:text-sm text-gray-600 text-center mb-4 sm:mb-6">Are you sure you want to delete this user? This action cannot be undone.</p>
+        <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+            <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold text-xs sm:text-sm transition-colors min-h-[44px]">Cancel</button>
+            <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs sm:text-sm transition-colors min-h-[44px]">Delete</button>
         </div>
     </div>
 </div>

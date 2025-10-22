@@ -10,7 +10,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-4">
+<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-2 sm:p-3 md:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -24,53 +24,55 @@
         {% endwith %}
 
         <!-- Page Header -->
-        <div class="mb-3 flex-shrink-0 animate-slide-in">
-            <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl shadow-lg flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-200 p-2.5 sm:p-3 md:p-4">
+                <div class="flex items-center gap-2.5 md:gap-3">
+                    <div class="w-10 h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl shadow-md flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">
                             Schedule Management
-                            {% if current_settings %}
-                            <span class="text-base font-normal bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200">{{ current_settings.academic_year }} • {{ current_settings.semester }}</span>
-                            {% endif %}
                         </h1>
-                        <p class="text-sm text-gray-600 mt-0.5">Manage class, faculty, room, and exam schedules</p>
+                        {% if current_settings %}
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <span class="text-xs sm:text-xs md:text-sm font-medium bg-blue-100 text-blue-700 px-2 py-0.5 sm:px-2 sm:py-1 rounded-full border border-blue-200">{{ current_settings.academic_year }} • {{ current_settings.semester }}</span>
+                        </div>
+                        {% endif %}
+                        <p class="text-xs sm:text-xs md:text-sm text-gray-600 leading-snug">Manage class, faculty, room, and exam schedules</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Tab Navigation -->
-        <div class="mb-4 flex-shrink-0">
-            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-1.5 flex gap-1.5 card-hover">
-                <button onclick="switchTab('class')" id="tab-class" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-2 sm:mb-3 md:mb-4 flex-shrink-0">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-1 md:p-1.5 grid grid-cols-4 gap-1 card-hover">
+                <button onclick="switchTab('class')" id="tab-class" class="tab-button px-1.5 py-1.5 sm:px-2 sm:py-2 md:px-4 md:py-2.5 rounded-lg font-semibold text-[10px] sm:text-xs md:text-sm transition-all flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 md:gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                     </svg>
-                    Class Schedules
+                    <span class="leading-tight">Class</span>
                 </button>
-                <button onclick="switchTab('faculty')" id="tab-faculty" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="switchTab('faculty')" id="tab-faculty" class="tab-button px-1.5 py-1.5 sm:px-2 sm:py-2 md:px-4 md:py-2.5 rounded-lg font-semibold text-[10px] sm:text-xs md:text-sm transition-all flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 md:gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
-                    Faculty Schedules
+                    <span class="leading-tight">Faculty</span>
                 </button>
-                <button onclick="switchTab('room')" id="tab-room" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="switchTab('room')" id="tab-room" class="tab-button px-1.5 py-1.5 sm:px-2 sm:py-2 md:px-4 md:py-2.5 rounded-lg font-semibold text-[10px] sm:text-xs md:text-sm transition-all flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 md:gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
-                    Room Schedules
+                    <span class="leading-tight">Room</span>
                 </button>
-                <button onclick="switchTab('exam')" id="tab-exam" class="tab-button flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="switchTab('exam')" id="tab-exam" class="tab-button px-1.5 py-1.5 sm:px-2 sm:py-2 md:px-4 md:py-2.5 rounded-lg font-semibold text-[10px] sm:text-xs md:text-sm transition-all flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 md:gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    Exam Schedules
+                    <span class="leading-tight">Exam</span>
                 </button>
             </div>
         </div>
@@ -89,6 +91,7 @@
 
 {% block extra_js %}
 <!-- Load modular JavaScript files -->
+<script src="{{ url_for('static', filename='js/schedule/curriculum_selector.js') }}"></script>
 <script src="{{ url_for('static', filename='js/schedule/main.js') }}"></script>
 <script src="{{ url_for('static', filename='tabs.js') }}"></script>
 <script src="{{ url_for('static', filename='js/schedule/calendar.js') }}"></script>

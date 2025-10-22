@@ -47,3 +47,121 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Master-Detail Mobile Navigation Functions
+
+/**
+ * Class Tab - Show master (section list) view on mobile
+ */
+function showClassMaster() {
+    const master = document.getElementById('class-master');
+    const detail = document.getElementById('class-detail');
+    
+    if (master && detail) {
+        master.classList.remove('hide-on-mobile');
+        detail.classList.add('hidden');
+        detail.classList.remove('flex');
+    }
+}
+
+/**
+ * Class Tab - Show detail (schedule) view on mobile
+ * Called when a section is selected
+ */
+function showClassDetail() {
+    const master = document.getElementById('class-master');
+    const detail = document.getElementById('class-detail');
+    
+    if (master && detail && window.innerWidth <= 768) {
+        master.classList.add('hide-on-mobile');
+        detail.classList.remove('hidden');
+        detail.classList.add('flex');
+    }
+}
+
+/**
+ * Faculty Tab - Show master (faculty list) view on mobile
+ */
+function showFacultyMaster() {
+    const master = document.getElementById('faculty-master');
+    const detail = document.getElementById('faculty-detail');
+    
+    if (master && detail) {
+        master.classList.remove('hide-on-mobile');
+        detail.classList.add('hidden');
+        detail.classList.remove('flex');
+    }
+}
+
+/**
+ * Faculty Tab - Show detail (schedule) view on mobile
+ * Called when a faculty is selected
+ */
+function showFacultyDetail() {
+    const master = document.getElementById('faculty-master');
+    const detail = document.getElementById('faculty-detail');
+    
+    if (master && detail && window.innerWidth <= 768) {
+        master.classList.add('hide-on-mobile');
+        detail.classList.remove('hidden');
+        detail.classList.add('flex');
+    }
+}
+
+/**
+ * Room Tab - Show master (room list) view on mobile
+ */
+function showRoomMaster() {
+    const master = document.getElementById('room-master');
+    const detail = document.getElementById('room-detail');
+    
+    if (master && detail) {
+        master.classList.remove('hide-on-mobile');
+        detail.classList.add('hidden');
+        detail.classList.remove('flex');
+    }
+}
+
+/**
+ * Room Tab - Show detail (schedule) view on mobile
+ * Called when a room is selected
+ */
+function showRoomDetail() {
+    const master = document.getElementById('room-master');
+    const detail = document.getElementById('room-detail');
+    
+    if (master && detail && window.innerWidth <= 768) {
+        master.classList.add('hide-on-mobile');
+        detail.classList.remove('hidden');
+        detail.classList.add('flex');
+    }
+}
+
+/**
+ * Exam Tab - Show master (section list) view on mobile
+ */
+function showExamMaster() {
+    const master = document.getElementById('exam-master');
+    const detail = document.getElementById('exam-detail');
+    
+    if (master && detail) {
+        master.classList.remove('hide-on-mobile');
+        detail.classList.add('hidden');
+        detail.classList.remove('flex');
+    }
+}
+
+/**
+ * Exam Tab - Show detail (schedule) view on mobile
+ * Called when an exam section is selected
+ */
+function showExamDetail() {
+    const master = document.getElementById('exam-master');
+    const detail = document.getElementById('exam-detail');
+    
+    if (master && detail && window.innerWidth <= 768) {
+        master.classList.add('hide-on-mobile');
+        detail.classList.remove('hidden');
+        detail.classList.add('flex');
+    }
+}

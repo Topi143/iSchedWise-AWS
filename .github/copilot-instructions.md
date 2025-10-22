@@ -12,6 +12,143 @@
 - ❌ No lengthy introductions or summaries
 - ❌ Don't assume context - always verify file paths and existing code
 
+## 🔍 CRITICAL: Context Gathering Before Code Generation
+
+**MANDATORY: Always scan files for complete context BEFORE generating any code!**
+
+### Context Scanning Workflow
+
+When asked to modify, add, or fix code, you MUST follow this workflow:
+
+#### Step 1: Identify Target Files
+- Determine which file(s) need to be modified
+- List all related files that interact with the target file
+
+#### Step 2: Read Complete File Context
+**ALWAYS read the ENTIRE target file first:**
+```
+✅ DO: Read the full file to understand structure, imports, existing functions
+❌ DON'T: Generate code based on assumptions or partial context
+```
+
+**Example:**
+- Modifying a route → Read the entire route file
+- Updating a model → Read the entire model file
+- Changing a template → Read the entire template file
+
+#### Step 3: Read Connected Files
+**Read ALL related files that interact with the target:**
+
+**For Route Changes:**
+1. Read the route file (app/routes/X.py)
+2. Read the model file (app/models/X.py)
+3. Read the template file (app/templates/X.html)
+4. Read forms.py if forms are involved
+5. Read related JavaScript files (app/static/js/)
+6. Check database.sql for table structure
+
+**For Model Changes:**
+1. Read the model file (app/models/X.py)
+2. Read database.sql for table definition
+3. Read all routes that use this model (grep search)
+4. Read related models with foreign keys
+5. Check sample_data.sql for test data structure
+
+**For Template Changes:**
+1. Read the template file (app/templates/X.html)
+2. Read base.html if extending it
+3. Read the route that renders this template
+4. Read related JavaScript files
+5. Read related partial templates (_partials)
+
+**For JavaScript Changes:**
+1. Read the JavaScript file
+2. Read the template that includes it
+3. Read the route that handles AJAX calls
+4. Read related JavaScript modules
+
+#### Step 4: Search for Dependencies
+**Use grep_search or semantic_search to find:**
+- Where this function/class is called
+- What other files import this module
+- What templates use this route
+- What JavaScript calls this endpoint
+
+#### Step 5: Verify Database Schema
+**For any database-related changes:**
+1. Read database.sql for table structure
+2. Read sample_data.sql for data examples
+3. Verify model matches SQL schema
+4. Check for foreign key relationships
+
+### Context Gathering Examples
+
+#### Example 1: Adding a Feature to Schedule Management
+```
+1. Read app/routes/schedule.py (full file)
+2. Read app/models/schedule.py (full file)
+3. Read app/templates/schedule.html (full file)
+4. Read app/static/js/schedule/main.js (full file)
+5. Search for schedule-related database tables in database.sql
+6. Read app/forms.py for schedule forms
+7. Grep search for 'Schedule' to find all usages
+```
+
+#### Example 2: Fixing a Bug in Faculty Assignment
+```
+1. Read app/routes/faculty.py (full file)
+2. Read app/models/faculty.py (full file)
+3. Read app/templates/faculty.html (full file)
+4. Search database.sql for faculty table structure
+5. Grep search for faculty-related queries in other routes
+6. Read related models (schedule.py if faculty is assigned to schedules)
+```
+
+#### Example 3: Updating Archive Functionality
+```
+1. Read the target model file (e.g., app/models/curriculum.py)
+2. Read database.sql for archive column definitions
+3. Read the route file (e.g., app/routes/curriculum.py)
+4. Read the template file (e.g., app/templates/curriculum.html)
+5. Grep search for archive method usage across routes
+6. Read app/routes/archive.py for archive patterns
+```
+
+### Why This Matters
+
+**Without complete context, you risk:**
+- ❌ Breaking existing functionality
+- ❌ Duplicating existing code
+- ❌ Missing important relationships
+- ❌ Creating inconsistent patterns
+- ❌ Introducing bugs in related features
+- ❌ Violating database constraints
+
+**With complete context, you ensure:**
+- ✅ Code fits existing patterns
+- ✅ All dependencies are handled
+- ✅ No breaking changes
+- ✅ Consistent style and structure
+- ✅ Proper error handling
+- ✅ Database integrity maintained
+
+### Quick Context Checklist
+
+Before generating ANY code, ask yourself:
+
+- [ ] Have I read the ENTIRE target file?
+- [ ] Have I read ALL related model files?
+- [ ] Have I read ALL related route files?
+- [ ] Have I read ALL related template files?
+- [ ] Have I checked database.sql for table structure?
+- [ ] Have I searched for where this code is used?
+- [ ] Have I verified import statements?
+- [ ] Have I checked for existing similar functionality?
+- [ ] Have I read related JavaScript files?
+- [ ] Have I verified foreign key relationships?
+
+**If you answered NO to any of these, STOP and gather more context!**
+
 ## 🎯 Quick Reference
 
 ### When User Asks To...

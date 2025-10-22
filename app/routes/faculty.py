@@ -142,17 +142,19 @@ def add():
             flash('Please enter the faculty full name.', 'error')
             return redirect(url_for('faculty.index'))
         
-        # Validate department if provided
-        dept_id = None
-        if department_id:
-            try:
-                dept_id = int(department_id)
-                if not Department.query.get(dept_id):
-                    flash('Selected department not found.', 'error')
-                    return redirect(url_for('faculty.index'))
-            except ValueError:
-                flash('Invalid department selected.', 'error')
+        if not department_id:
+            flash('Please select a department.', 'error')
+            return redirect(url_for('faculty.index'))
+        
+        # Validate department
+        try:
+            dept_id = int(department_id)
+            if not Department.query.get(dept_id):
+                flash('Selected department not found.', 'error')
                 return redirect(url_for('faculty.index'))
+        except ValueError:
+            flash('Invalid department selected.', 'error')
+            return redirect(url_for('faculty.index'))
         
         # Create new faculty
         new_faculty = Faculty(

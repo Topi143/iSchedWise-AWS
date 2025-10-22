@@ -1,65 +1,135 @@
 <!-- Add Schedule Modal -->
-<div id="addScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
-        <div class="bg-white p-6 rounded-t-3xl border-b border-gray-200">
+<div id="addScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-1 sm:p-4">
+    <div class="bg-white rounded-xl sm:rounded-3xl shadow-2xl w-full max-w-[98vw] sm:max-w-6xl max-h-[98vh] sm:max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
+        <div class="bg-white p-2 sm:p-4 md:p-6 rounded-t-xl sm:rounded-t-3xl border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center space-x-1.5 sm:space-x-3">
+                    <div class="p-1 sm:p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                        <svg class="w-4 h-4 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900">Add New Schedule</h3>
+                    <h3 class="text-sm sm:text-lg md:text-xl font-bold text-gray-900">Add New Schedule</h3>
                 </div>
-                <button onclick="closeAddScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="closeAddScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-0.5 sm:p-1">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
         </div>
         
-        <div class="flex h-[calc(90vh-120px)]">
+        <div class="flex flex-col md:flex-row h-[calc(98vh-60px)] sm:h-[calc(90vh-120px)]">
             <!-- Left Side: Form -->
-            <div class="w-1/2 overflow-y-auto border-r border-gray-200 bg-white">
-                <form id="addScheduleForm" method="POST" action="{{ url_for('schedule.add') }}" class="p-8">
+            <div class="w-full md:w-1/2 overflow-y-auto md:border-r border-gray-200 bg-white">
+                <form id="addScheduleForm" method="POST" action="{{ url_for('schedule.add') }}" class="p-3 sm:p-6 md:p-8">
+                    <!-- Mobile AI Panel (Above Form) -->
+                    <div class="md:hidden mb-4 pb-4 border-b border-gray-200">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <div class="p-1.5 rounded-lg bg-purple-100">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-900">AI Conflict Check</h4>
+                                <p class="text-[10px] text-gray-500">Real-time detection</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Auto-Check Status Display (Mobile) -->
+                        <div id="autoCheckStatusAddMobile" class="text-xs">
+                            <!-- Status messages will be inserted here -->
+                        </div>
+                        
+                        <!-- AI Panel Content (Mobile) -->
+                        <div id="aiAssistantAddMobile" class="hidden">
+                            <div class="mb-2">
+                                <p id="aiExplanationAddMobile" class="text-xs text-gray-600"></p>
+                            </div>
+                            
+                            <!-- Conflicts Section (Mobile) -->
+                            <div id="aiConflictsAddMobile" class="hidden mb-3">
+                                <div class="flex items-center space-x-1.5 mb-2">
+                                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <h5 class="text-xs font-bold text-red-700">Conflicts</h5>
+                                </div>
+                                <div id="aiConflictsListAddMobile" class="space-y-2"></div>
+                            </div>
+                            
+                            <!-- Recommendations Section (Mobile) -->
+                            <div id="aiRecommendationsAddMobile" class="hidden">
+                                <div class="flex items-center space-x-1.5 mb-2">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <h5 class="text-xs font-bold text-green-700">Suggestions</h5>
+                                </div>
+                                <div id="aiRecommendationsListAddMobile" class="space-y-2"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Empty State (Mobile) -->
+                        <div id="aiEmptyStateAddMobile" class="flex flex-col items-center justify-center py-4 text-center">
+                            <svg class="w-10 h-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <p class="text-[10px] text-gray-400 max-w-xs">Fill in details to check conflicts</p>
+                        </div>
+                    </div>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" id="section_id_add" name="section_id">
                     
-                    <div class="space-y-6">
+                    <div class="space-y-3 sm:space-y-5 md:space-y-6">
                         <!-- Section Header -->
-                        <div class="flex items-center space-x-2 pb-3 border-b border-gray-200">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center space-x-1.5 sm:space-x-2 pb-2 sm:pb-3 border-b border-gray-200">
+                            <svg class="w-3.5 h-3.5 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
-                            <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Schedule Details</h4>
+                            <h4 class="text-[11px] sm:text-sm font-bold text-gray-700 uppercase tracking-wide">Schedule Details</h4>
+                        </div>
+                        
+                        <!-- Curriculum Selection -->
+                        <div>
+                            <label for="curriculum_id_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                                Curriculum <span class="text-red-500">*</span>
+                            </label>
+                            <select id="curriculum_id_add" name="curriculum_id" required onchange="loadSubjectsForCurriculum('add')" class="w-full px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
+                                <option value="">Select a curriculum...</option>
+                            </select>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Choose curriculum to filter available subjects</p>
                         </div>
                         
                         <!-- Subject -->
                         <div>
-                            <label for="subject_id_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="subject_id_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                                 Subject <span class="text-red-500">*</span>
                             </label>
-                            <select id="subject_id_add" name="subject_id" required onchange="handleSubjectChange('add')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
-                                <option value="">Select a subject...</option>
+                            <select id="subject_id_add" name="subject_id" required onchange="handleSubjectChange('add')" class="w-full px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                                <option value="">Select curriculum first...</option>
                             </select>
-                            <p class="text-xs text-gray-500 mt-1.5">Filtered by section's department, year level, and semester</p>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Filtered by selected curriculum, year level, and semester</p>
                         </div>
                         
                         <!-- Schedule Type Selection -->
                         <div id="scheduleTypeContainer_add">
-                            <label for="schedule_type_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="schedule_type_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                 </svg>
                                 Schedule Type <span class="text-red-500">*</span>
                             </label>
                             <select id="schedule_type_add" name="schedule_type" required 
                                     onchange="handleScheduleTypeChange('add')"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all">
+                                    class="w-full px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all">
                                 <option value="">Select schedule type...</option>
                                 <option value="lecture" id="lectureOption_add">Lecture (0 units)</option>
                                 <option value="lab" id="labOption_add">Lab (0 units)</option>
@@ -69,13 +139,13 @@
                         
                         <!-- Faculty -->
                         <div>
-                            <label for="faculty_id_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="faculty_id_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Faculty
                             </label>
-                            <select id="faculty_id_add" name="faculty_id" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
+                            <select id="faculty_id_add" name="faculty_id" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
                                 <option value="">TBA (To Be Assigned)</option>
                                 {% for faculty in faculties %}
                                 <option value="{{ faculty.id }}">{{ faculty.full_name }}{% if faculty.department %} - {{ faculty.department.department_code }}{% endif %}</option>
@@ -85,13 +155,13 @@
                         
                         <!-- Day of Week -->
                         <div>
-                            <label for="day_of_week_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="day_of_week_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                                 Day <span class="text-red-500">*</span>
                             </label>
-                            <select id="day_of_week_add" name="day_of_week" required class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
+                            <select id="day_of_week_add" name="day_of_week" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
                                 <option value="">Select Day</option>
                                 <option value="Monday">Monday</option>
                                 <option value="Tuesday">Tuesday</option>
@@ -105,13 +175,13 @@
                         
                         <!-- Room -->
                         <div>
-                            <label for="room_id_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="room_id_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 Room
                             </label>
-                            <select id="room_id_add" name="room_id" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
+                            <select id="room_id_add" name="room_id" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
                                 <option value="">TBA (To Be Assigned)</option>
                                 {% for room in rooms %}
                                 <option value="{{ room.id }}">{{ room.building.building_name }} - {{ room.room_number }}</option>
@@ -120,16 +190,18 @@
                         </div>
                         
                         <!-- Time Fields Row -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-2 sm:gap-4">
                             <!-- Start Time -->
                             <div>
-                                <label for="start_time_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                    <svg class="w-4 h-4 mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <label for="start_time_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    Start Time <span class="text-red-500">*</span>
+                                    <span class="hidden sm:inline">Start Time</span>
+                                    <span class="sm:hidden">Start</span>
+                                    <span class="text-red-500">*</span>
                                 </label>
-                                <select id="start_time_add" name="start_time" required onchange="calculateEndTime('add')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
+                                <select id="start_time_add" name="start_time" required onchange="calculateEndTime('add')" class="w-full px-1.5 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
                                     <option value="">Select time...</option>
                                     <option value="07:00">7:00 AM</option>
                                     <option value="07:30">7:30 AM</option>
@@ -163,14 +235,16 @@
                             
                             <!-- End Time -->
                             <div>
-                                <label for="end_time_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                    <svg class="w-4 h-4 mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <label for="end_time_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    End Time <span class="text-red-500">*</span>
-                                    <span id="autoCalcBadge_add" class="hidden ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Auto</span>
+                                    <span class="hidden sm:inline">End Time</span>
+                                    <span class="sm:hidden">End</span>
+                                    <span class="text-red-500">*</span>
+                                    <span id="autoCalcBadge_add" class="hidden ml-1 sm:ml-2 text-[9px] sm:text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 rounded-full font-medium">Auto</span>
                                 </label>
-                                <select id="end_time_add" name="end_time" required class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
+                                <select id="end_time_add" name="end_time" required class="w-full px-1.5 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
                                     <option value="">Select time...</option>
                                     <option value="07:00">7:00 AM</option>
                                     <option value="07:30">7:30 AM</option>
@@ -204,15 +278,15 @@
                         </div>
                         
                         <!-- Form Actions -->
-                        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                            <button type="button" onclick="closeAddScheduleModal()" class="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all flex items-center">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex justify-end gap-1.5 sm:gap-3 pt-2 sm:pt-4 border-t border-gray-200">
+                            <button type="button" onclick="closeAddScheduleModal()" class="px-2 py-1.5 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-[11px] sm:text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all flex items-center">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                                 Cancel
                             </button>
-                            <button type="submit" id="submitScheduleAdd" disabled class="px-6 py-3 text-sm font-semibold text-white bg-gray-400 rounded-lg cursor-not-allowed transition-all flex items-center">
-                                <span id="submitScheduleAddText" class="flex items-center">Fill in Required Fields</span>
+                            <button type="submit" id="submitScheduleAdd" disabled class="px-2 py-1.5 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-[11px] sm:text-sm font-semibold text-white bg-gray-400 rounded-lg cursor-not-allowed transition-all flex items-center">
+                                <span id="submitScheduleAddText" class="flex items-center text-center leading-tight">Fill Required</span>
                             </button>
                         </div>
                     </div>
@@ -220,61 +294,61 @@
             </div>
             
             <!-- Right Side: AI Conflict Detection -->
-            <div class="w-1/2 bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-y-auto">
-                <div class="p-8">
-                    <div class="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200">
-                        <div class="p-2 rounded-lg bg-purple-100">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="hidden md:block w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-y-auto">
+                <div class="p-3 sm:p-6 md:p-8">
+                    <div class="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4 md:mb-6 pb-2 sm:pb-3 md:pb-4 border-b border-gray-200">
+                        <div class="p-1 sm:p-2 rounded-lg bg-purple-100">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                             </svg>
                         </div>
                         <div>
-                            <h4 class="text-lg font-bold text-gray-900">AI Schedule Assistant</h4>
-                            <p class="text-sm text-gray-500">Real-time conflict detection</p>
+                            <h4 class="text-xs sm:text-sm md:text-base lg:text-lg font-bold text-gray-900">AI Assistant</h4>
+                            <p class="text-[10px] sm:text-xs md:text-sm text-gray-500">Conflict detection</p>
                         </div>
                     </div>
                     
                     <!-- Auto-Check Status Display -->
-                    <div id="autoCheckStatusAdd" class="mb-6">
+                    <div id="autoCheckStatusAdd" class="mb-4 sm:mb-6">
                         <!-- Status messages will be inserted here -->
                     </div>
                     
                     <!-- AI Decision Support Panel -->
                     <div id="aiAssistantAdd" class="hidden">
-                        <div class="mb-4">
-                            <p id="aiExplanationAdd" class="text-sm text-gray-600"></p>
+                        <div class="mb-3 sm:mb-4">
+                            <p id="aiExplanationAdd" class="text-xs sm:text-sm text-gray-600"></p>
                         </div>
                         
                         <!-- Conflicts Section -->
-                        <div id="aiConflictsAdd" class="hidden mb-6">
-                            <div class="flex items-center space-x-2 mb-3">
-                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div id="aiConflictsAdd" class="hidden mb-4 sm:mb-6">
+                            <div class="flex items-center space-x-1.5 sm:space-x-2 mb-2 sm:mb-3">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                 </svg>
-                                <h5 class="text-base font-bold text-red-700">Conflicts Detected</h5>
+                                <h5 class="text-xs sm:text-sm md:text-base font-bold text-red-700">Conflicts Detected</h5>
                             </div>
-                            <div id="aiConflictsListAdd" class="space-y-3"></div>
+                            <div id="aiConflictsListAdd" class="space-y-2 sm:space-y-3"></div>
                         </div>
                         
                         <!-- Recommendations Section -->
                         <div id="aiRecommendationsAdd" class="hidden">
-                            <div class="flex items-center space-x-2 mb-3">
-                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center space-x-1.5 sm:space-x-2 mb-2 sm:mb-3">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <h5 class="text-base font-bold text-green-700">AI Recommendations</h5>
+                                <h5 class="text-xs sm:text-sm md:text-base font-bold text-green-700">AI Recommendations</h5>
                             </div>
-                            <div id="aiRecommendationsListAdd" class="space-y-4"></div>
+                            <div id="aiRecommendationsListAdd" class="space-y-3 sm:space-y-4"></div>
                         </div>
                     </div>
                     
                     <!-- Empty State -->
-                    <div id="aiEmptyStateAdd" class="flex flex-col items-center justify-center py-12 text-center">
-                        <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div id="aiEmptyStateAdd" class="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+                        <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                         </svg>
-                        <h5 class="text-sm font-semibold text-gray-500 mb-2">Fill in schedule details</h5>
-                        <p class="text-xs text-gray-400 max-w-xs">AI will automatically check for conflicts as you enter information</p>
+                        <h5 class="text-xs sm:text-sm font-semibold text-gray-500 mb-1.5 sm:mb-2">Fill in schedule details</h5>
+                        <p class="text-[10px] sm:text-xs text-gray-400 max-w-xs px-4">AI will automatically check for conflicts as you enter information</p>
                     </div>
                 </div>
             </div>
@@ -283,66 +357,136 @@
 </div>
 
 <!-- Edit Schedule Modal -->
-<div id="editScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
-        <div class="bg-white p-6 rounded-t-3xl border-b border-gray-200">
+<div id="editScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-1 sm:p-4">
+    <div class="bg-white rounded-xl sm:rounded-3xl shadow-2xl w-full max-w-[98vw] sm:max-w-6xl max-h-[98vh] sm:max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
+        <div class="bg-white p-2 sm:p-4 md:p-6 rounded-t-xl sm:rounded-t-3xl border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center space-x-1.5 sm:space-x-3">
+                    <div class="p-1 sm:p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900">Edit Schedule</h3>
+                    <h3 class="text-sm sm:text-lg md:text-xl font-bold text-gray-900">Edit Schedule</h3>
                 </div>
-                <button onclick="closeEditScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="closeEditScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-0.5 sm:p-1">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
         </div>
         
-        <div class="flex h-[calc(90vh-120px)]">
+        <div class="flex flex-col md:flex-row h-[calc(98vh-60px)] sm:h-[calc(90vh-120px)]">
             <!-- Left Side: Form -->
-            <div class="w-1/2 overflow-y-auto border-r border-gray-200 bg-white">
-                <form id="editScheduleForm" method="POST" action="{{ url_for('schedule.edit') }}" class="p-8">
+            <div class="w-full md:w-1/2 overflow-y-auto md:border-r border-gray-200 bg-white">
+                <form id="editScheduleForm" method="POST" action="{{ url_for('schedule.edit') }}" class="p-3 sm:p-6 md:p-8">
+                    <!-- Mobile AI Panel (Above Form) -->
+                    <div class="md:hidden mb-4 pb-4 border-b border-gray-200">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <div class="p-1.5 rounded-lg bg-purple-100">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-900">AI Conflict Check</h4>
+                                <p class="text-[10px] text-gray-500">Real-time detection</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Auto-Check Status Display (Mobile) -->
+                        <div id="autoCheckStatusEditMobile" class="text-xs">
+                            <!-- Status messages will be inserted here -->
+                        </div>
+                        
+                        <!-- AI Panel Content (Mobile) -->
+                        <div id="aiAssistantEditMobile" class="hidden">
+                            <div class="mb-2">
+                                <p id="aiExplanationEditMobile" class="text-xs text-gray-600"></p>
+                            </div>
+                            
+                            <!-- Conflicts Section (Mobile) -->
+                            <div id="aiConflictsEditMobile" class="hidden mb-3">
+                                <div class="flex items-center space-x-1.5 mb-2">
+                                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <h5 class="text-xs font-bold text-red-700">Conflicts</h5>
+                                </div>
+                                <div id="aiConflictsListEditMobile" class="space-y-2"></div>
+                            </div>
+                            
+                            <!-- Recommendations Section (Mobile) -->
+                            <div id="aiRecommendationsEditMobile" class="hidden">
+                                <div class="flex items-center space-x-1.5 mb-2">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <h5 class="text-xs font-bold text-green-700">Suggestions</h5>
+                                </div>
+                                <div id="aiRecommendationsListEditMobile" class="space-y-2"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Empty State (Mobile) -->
+                        <div id="aiEmptyStateEditMobile" class="flex flex-col items-center justify-center py-4 text-center">
+                            <svg class="w-10 h-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <p class="text-[10px] text-gray-400 max-w-xs">Fill in details to check conflicts</p>
+                        </div>
+                    </div>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" id="schedule_id_edit" name="schedule_id">
                     <input type="hidden" id="section_id_edit" name="section_id">
                     
-                    <div class="space-y-6">
+                    <div class="space-y-3 sm:space-y-5 md:space-y-6">
                         <!-- Section Header -->
-                        <div class="flex items-center space-x-2 pb-3 border-b border-gray-200">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center space-x-1.5 sm:space-x-2 pb-2 sm:pb-3 border-b border-gray-200">
+                            <svg class="w-3.5 h-3.5 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
-                            <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Schedule Details</h4>
+                            <h4 class="text-[11px] sm:text-sm font-bold text-gray-700 uppercase tracking-wide">Schedule Details</h4>
+                        </div>
+                        
+                        <!-- Curriculum Selection -->
+                        <div id="curriculumContainer_edit">
+                            <label for="curriculum_id_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                                Curriculum <span class="text-red-500">*</span>
+                            </label>
+                            <select id="curriculum_id_edit" name="curriculum_id" required onchange="loadSubjectsForCurriculum('edit')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
+                                <option value="">Select a curriculum...</option>
+                            </select>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Choose which curriculum to use for subjects</p>
                         </div>
                         
                         <!-- Subject -->
                         <div>
-                            <label for="subject_id_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="subject_id_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                                 Subject <span class="text-red-500">*</span>
                             </label>
-                            <select id="subject_id_edit" name="subject_id" required onchange="handleSubjectChange('edit')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                            <select id="subject_id_edit" name="subject_id" required onchange="handleSubjectChange('edit')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
                                 <option value="">Loading subjects...</option>
                             </select>
-                            <p class="text-xs text-gray-500 mt-1.5">Filtered by section's department, year level, and semester</p>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Filtered by section's department, year level, and semester</p>
                         </div>
                         
                         <!-- Schedule Type -->
                         <div id="scheduleTypeContainer_edit">
-                            <label for="schedule_type_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="schedule_type_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                 </svg>
                                 Schedule Type <span class="text-red-500">*</span>
                             </label>
-                            <select id="schedule_type_edit" name="schedule_type" required onchange="handleScheduleTypeChange('edit')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all">
+                            <select id="schedule_type_edit" name="schedule_type" required onchange="handleScheduleTypeChange('edit')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all">
                                 <option value="">Select Schedule Type</option>
                                 <option value="lecture" id="lectureOption_edit">Lecture (0 units)</option>
                                 <option value="lab" id="labOption_edit">Lab (0 units)</option>
@@ -352,13 +496,13 @@
                         
                         <!-- Faculty -->
                         <div>
-                            <label for="faculty_id_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="faculty_id_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Faculty
                             </label>
-                            <select id="faculty_id_edit" name="faculty_id" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
+                            <select id="faculty_id_edit" name="faculty_id" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
                                 <option value="">TBA (To Be Assigned)</option>
                                 {% for faculty in faculties %}
                                 <option value="{{ faculty.id }}">{{ faculty.full_name }}{% if faculty.department %} - {{ faculty.department.department_code }}{% endif %}</option>
@@ -368,13 +512,13 @@
                         
                         <!-- Day of Week -->
                         <div>
-                            <label for="day_of_week_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="day_of_week_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                                 Day <span class="text-red-500">*</span>
                             </label>
-                            <select id="day_of_week_edit" name="day_of_week" required class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
+                            <select id="day_of_week_edit" name="day_of_week" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
                                 <option value="">Select Day</option>
                                 <option value="Monday">Monday</option>
                                 <option value="Tuesday">Tuesday</option>
@@ -388,13 +532,13 @@
                         
                         <!-- Room -->
                         <div>
-                            <label for="room_id_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="room_id_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 Room
                             </label>
-                            <select id="room_id_edit" name="room_id" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
+                            <select id="room_id_edit" name="room_id" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
                                 <option value="">TBA (To Be Assigned)</option>
                                 {% for room in rooms %}
                                 <option value="{{ room.id }}">{{ room.building.building_name }} - {{ room.room_number }}</option>
@@ -403,16 +547,18 @@
                         </div>
                         
                         <!-- Time Fields Row -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-2 sm:gap-4">
                             <!-- Start Time -->
                             <div>
-                                <label for="start_time_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                    <svg class="w-4 h-4 mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <label for="start_time_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    Start Time <span class="text-red-500">*</span>
+                                    <span class="hidden sm:inline">Start Time</span>
+                                    <span class="sm:hidden">Start</span>
+                                    <span class="text-red-500">*</span>
                                 </label>
-                                <select id="start_time_edit" name="start_time" required onchange="calculateEndTime('edit')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
+                                <select id="start_time_edit" name="start_time" required onchange="calculateEndTime('edit')" class="w-full px-1.5 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
                                     <option value="">Select time...</option>
                                     <option value="07:00">7:00 AM</option>
                                     <option value="07:30">7:30 AM</option>
@@ -446,14 +592,16 @@
                             
                             <!-- End Time -->
                             <div>
-                                <label for="end_time_edit" id="endTimeLabel_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                                    <svg class="w-4 h-4 mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <label for="end_time_edit" id="endTimeLabel_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    End Time <span class="text-red-500">*</span>
-                                    <span id="autoCalcBadge_edit" class="hidden ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Auto</span>
+                                    <span class="hidden sm:inline">End Time</span>
+                                    <span class="sm:hidden">End</span>
+                                    <span class="text-red-500">*</span>
+                                    <span id="autoCalcBadge_edit" class="hidden ml-1 sm:ml-2 text-[9px] sm:text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 rounded-full font-medium">Auto</span>
                                 </label>
-                                <select id="end_time_edit" name="end_time" required class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
+                                <select id="end_time_edit" name="end_time" required class="w-full px-1.5 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white transition-all">
                                     <option value="">Select time...</option>
                                     <option value="07:00">7:00 AM</option>
                                     <option value="07:30">7:30 AM</option>
@@ -487,15 +635,15 @@
                         </div>
                         
                         <!-- Submit Buttons -->
-                        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                            <button type="button" onclick="closeEditScheduleModal()" class="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all flex items-center">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex justify-end gap-1.5 sm:gap-3 pt-2 sm:pt-4 border-t border-gray-200">
+                            <button type="button" onclick="closeEditScheduleModal()" class="px-2 py-1.5 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-[11px] sm:text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all flex items-center">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                                 Cancel
                             </button>
-                            <button type="submit" id="submitScheduleEdit" disabled class="px-6 py-3 text-sm font-semibold text-white bg-gray-400 rounded-lg cursor-not-allowed transition-all flex items-center">
-                                <span id="submitScheduleEditText" class="flex items-center">Fill in Required Fields</span>
+                            <button type="submit" id="submitScheduleEdit" disabled class="px-2 py-1.5 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-[11px] sm:text-sm font-semibold text-white bg-gray-400 rounded-lg cursor-not-allowed transition-all flex items-center">
+                                <span id="submitScheduleEditText" class="flex items-center text-center leading-tight">Fill Required</span>
                             </button>
                         </div>
                     </div>
@@ -503,61 +651,61 @@
             </div>
             
             <!-- Right Side: AI Conflict Detection -->
-            <div class="w-1/2 bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-y-auto">
-                <div class="p-8">
-                    <div class="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200">
-                        <div class="p-2 rounded-lg bg-purple-100">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="hidden md:block w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-y-auto">
+                <div class="p-3 sm:p-6 md:p-8">
+                    <div class="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4 md:mb-6 pb-2 sm:pb-3 md:pb-4 border-b border-gray-200">
+                        <div class="p-1 sm:p-2 rounded-lg bg-purple-100">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                             </svg>
                         </div>
                         <div>
-                            <h4 class="text-lg font-bold text-gray-900">AI Schedule Assistant</h4>
-                            <p class="text-sm text-gray-500">Real-time conflict detection</p>
+                            <h4 class="text-xs sm:text-sm md:text-base lg:text-lg font-bold text-gray-900">AI Assistant</h4>
+                            <p class="text-[10px] sm:text-xs md:text-sm text-gray-500">Conflict detection</p>
                         </div>
                     </div>
                     
                     <!-- Auto-Check Status Display -->
-                    <div id="autoCheckStatusEdit" class="mb-6">
+                    <div id="autoCheckStatusEdit" class="mb-4 sm:mb-6">
                         <!-- Status messages will be inserted here -->
                     </div>
                     
                     <!-- AI Decision Support Panel -->
                     <div id="aiAssistantEdit" class="hidden">
-                        <div class="mb-4">
-                            <p id="aiExplanationEdit" class="text-sm text-gray-600"></p>
+                        <div class="mb-3 sm:mb-4">
+                            <p id="aiExplanationEdit" class="text-xs sm:text-sm text-gray-600"></p>
                         </div>
                         
                         <!-- Conflicts Section -->
-                        <div id="aiConflictsEdit" class="hidden mb-6">
-                            <div class="flex items-center space-x-2 mb-3">
-                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div id="aiConflictsEdit" class="hidden mb-4 sm:mb-6">
+                            <div class="flex items-center space-x-1.5 sm:space-x-2 mb-2 sm:mb-3">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                 </svg>
-                                <h5 class="text-base font-bold text-red-700">Conflicts Detected</h5>
+                                <h5 class="text-xs sm:text-sm md:text-base font-bold text-red-700">Conflicts Detected</h5>
                             </div>
-                            <div id="aiConflictsListEdit" class="space-y-3"></div>
+                            <div id="aiConflictsListEdit" class="space-y-2 sm:space-y-3"></div>
                         </div>
                         
                         <!-- Recommendations Section -->
                         <div id="aiRecommendationsEdit" class="hidden">
-                            <div class="flex items-center space-x-2 mb-3">
-                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center space-x-1.5 sm:space-x-2 mb-2 sm:mb-3">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <h5 class="text-base font-bold text-green-700">AI Recommendations</h5>
+                                <h5 class="text-xs sm:text-sm md:text-base font-bold text-green-700">AI Recommendations</h5>
                             </div>
-                            <div id="aiRecommendationsListEdit" class="space-y-4"></div>
+                            <div id="aiRecommendationsListEdit" class="space-y-3 sm:space-y-4"></div>
                         </div>
                     </div>
                     
                     <!-- Empty State -->
-                    <div id="aiEmptyStateEdit" class="flex flex-col items-center justify-center py-12 text-center">
-                        <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div id="aiEmptyStateEdit" class="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+                        <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                         </svg>
-                        <h5 class="text-sm font-semibold text-gray-500 mb-2">Update schedule details</h5>
-                        <p class="text-xs text-gray-400 max-w-xs">AI will automatically check for conflicts as you modify information</p>
+                        <h5 class="text-xs sm:text-sm font-semibold text-gray-500 mb-1.5 sm:mb-2">Update schedule details</h5>
+                        <p class="text-[10px] sm:text-xs text-gray-400 max-w-xs px-4">AI will automatically check for conflicts as you modify information</p>
                     </div>
                 </div>
             </div>
@@ -566,28 +714,28 @@
 </div>
 
 <!-- Add Exam Schedule Modal -->
-<div id="addExamScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
-        <div class="bg-white p-6 rounded-t-3xl border-b border-gray-200">
+<div id="addExamScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-1 sm:p-4">
+    <div class="bg-white rounded-xl sm:rounded-3xl shadow-2xl w-full max-w-[98vw] sm:max-w-2xl max-h-[98vh] sm:max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
+        <div class="bg-white p-2 sm:p-4 md:p-6 rounded-t-xl sm:rounded-t-3xl border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center space-x-1.5 sm:space-x-3">
+                    <div class="p-1 sm:p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                        <svg class="w-4 h-4 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900">Add Exam Schedule</h3>
+                    <h3 class="text-sm sm:text-lg md:text-xl font-bold text-gray-900">Add Exam Schedule</h3>
                 </div>
-                <button onclick="closeAddExamScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="closeAddExamScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-0.5 sm:p-1">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
         </div>
         
-        <div class="overflow-y-auto max-h-[calc(90vh-88px)]">
-            <form id="addExamScheduleForm" method="POST" action="{{ url_for('exam_schedule.add') }}" class="p-8">
+        <div class="overflow-y-auto max-h-[calc(98vh-60px)] sm:max-h-[calc(90vh-88px)]">
+            <form id="addExamScheduleForm" method="POST" action="{{ url_for('exam_schedule.add') }}" class="p-3 sm:p-6 md:p-8">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" id="section_id_exam_add" name="section_id" value="">
                 
@@ -600,6 +748,20 @@
                         <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Exam Details</h4>
                     </div>
                     
+                    <!-- Curriculum Selection -->
+                    <div>
+                        <label for="curriculum_id_exam_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                            <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            Curriculum <span class="text-red-500">*</span>
+                        </label>
+                        <select id="curriculum_id_exam_add" name="curriculum_id" required onchange="loadSubjectsForCurriculum('exam_add')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
+                            <option value="">Select a curriculum...</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1.5">Choose curriculum to filter available subjects</p>
+                    </div>
+                    
                     <!-- Subject -->
                     <div>
                         <label for="subject_id_exam_add" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
@@ -609,8 +771,9 @@
                             Subject <span class="text-red-500">*</span>
                         </label>
                         <select id="subject_id_exam_add" name="subject_id" required class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white transition-all">
-                            <option value="">Select a subject...</option>
+                            <option value="">Select curriculum first...</option>
                         </select>
+                        <p class="text-xs text-gray-500 mt-1.5">Filtered by selected curriculum, year level, and semester</p>
                     </div>
                     
                     <!-- Exam Date -->
@@ -761,28 +924,28 @@
 </div>
 
 <!-- Edit Exam Schedule Modal -->
-<div id="editExamScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
-        <div class="bg-white p-6 rounded-t-3xl border-b border-gray-200">
+<div id="editExamScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-1 sm:p-4">
+    <div class="bg-white rounded-xl sm:rounded-3xl shadow-2xl w-full max-w-[98vw] sm:max-w-2xl max-h-[98vh] sm:max-h-[90vh] overflow-hidden transform transition-all border border-gray-200">
+        <div class="bg-white p-2 sm:p-4 md:p-6 rounded-t-xl sm:rounded-t-3xl border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center space-x-1.5 sm:space-x-3">
+                    <div class="p-1 sm:p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900">Edit Exam Schedule</h3>
+                    <h3 class="text-sm sm:text-lg md:text-xl font-bold text-gray-900">Edit Exam Schedule</h3>
                 </div>
-                <button onclick="closeEditExamScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="closeEditExamScheduleModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-0.5 sm:p-1">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
         </div>
         
-        <div class="overflow-y-auto max-h-[calc(90vh-88px)]">
-            <form id="editExamScheduleForm" method="POST" action="{{ url_for('exam_schedule.edit') }}" class="p-8">
+        <div class="overflow-y-auto max-h-[calc(98vh-60px)] sm:max-h-[calc(90vh-88px)]">
+            <form id="editExamScheduleForm" method="POST" action="{{ url_for('exam_schedule.edit') }}" class="p-3 sm:p-6 md:p-8">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" id="exam_schedule_id_edit" name="exam_schedule_id" value="">
                 
@@ -795,6 +958,20 @@
                         <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Exam Details</h4>
                     </div>
                     
+                    <!-- Curriculum Selection -->
+                    <div>
+                        <label for="curriculum_id_exam_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                            <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            Curriculum <span class="text-red-500">*</span>
+                        </label>
+                        <select id="curriculum_id_exam_edit" name="curriculum_id" required onchange="loadSubjectsForCurriculum('exam_edit')" class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition-all">
+                            <option value="">Select a curriculum...</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1.5">Choose curriculum to filter available subjects</p>
+                    </div>
+                    
                     <!-- Subject -->
                     <div>
                         <label for="subject_id_exam_edit" class="flex items-center text-sm font-semibold text-gray-700 mb-2">
@@ -804,8 +981,9 @@
                             Subject <span class="text-red-500">*</span>
                         </label>
                         <select id="subject_id_exam_edit" name="subject_id" required class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white transition-all">
-                            <option value="">Select a subject...</option>
+                            <option value="">Loading subjects...</option>
                         </select>
+                        <p class="text-xs text-gray-500 mt-1.5">Filtered by selected curriculum, year level, and semester</p>
                     </div>
                     
                     <!-- Exam Date -->

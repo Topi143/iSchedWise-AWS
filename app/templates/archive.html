@@ -34,6 +34,12 @@
     }
     .tab-content.active {
         display: block;
+        height: 100%;
+    }
+    
+    /* Ensure flex layout works inside active tab content */
+    .tab-content.active > div {
+        height: 100%;
     }
     
     /* Toast Notifications */
@@ -45,19 +51,20 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        max-width: 400px;
+        max-width: 90vw;
     }
     
     .toast {
         display: flex;
         align-items: center;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         background: white;
         border-radius: 0.5rem;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         transform: translateX(400px);
         animation: slideIn 0.3s ease forwards;
-        min-width: 300px;
+        min-width: 250px;
+        max-width: 400px;
     }
     
     .toast.removing {
@@ -81,6 +88,21 @@
     .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
     .overflow-y-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Line clamp utilities */
+    .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
     
     /* List Item Styles */
     .section-item {
@@ -147,6 +169,308 @@
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
         transform: translateY(-2px);
     }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 1024px) {
+        .two-column-layout {
+            flex-direction: column !important;
+        }
+        .left-sidebar {
+            width: 100% !important;
+            max-height: 250px;
+            min-height: 200px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        /* Adjust main container padding for mobile */
+        .bg-gray-50 {
+            padding: 0.5rem !important;
+        }
+        
+        /* Toast positioning */
+        .toast-container {
+            left: 0.5rem;
+            right: 0.5rem;
+            top: 0.5rem;
+        }
+        .toast {
+            min-width: auto;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Header adjustments */
+        .page-header-container {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Tab buttons - make them more compact */
+        .main-tab-button,
+        .schedule-tab-button {
+            font-size: 0.7rem;
+            padding: 0.5rem 0.5rem;
+            gap: 0.25rem;
+        }
+        
+        .main-tab-button svg,
+        .schedule-tab-button svg {
+            width: 0.875rem;
+            height: 0.875rem;
+        }
+        
+        .main-tab-button span,
+        .schedule-tab-button span {
+            font-size: 0.7rem;
+        }
+        
+        /* Left sidebar adjustments */
+        .left-sidebar {
+            max-height: 200px !important;
+            min-height: 180px;
+        }
+        
+        /* Override for master panel in mobile master-detail layout */
+        .tab-content.active .master-panel.left-sidebar {
+            max-height: none !important;
+            min-height: 400px !important;
+            height: 100%;
+        }
+        
+        .left-sidebar h3 {
+            font-size: 0.875rem;
+        }
+        
+        /* Archive cards - more compact on mobile */
+        .archive-card {
+            padding: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .archive-card:hover {
+            transform: none;
+        }
+        
+        .archive-card h3 {
+            font-size: 0.875rem !important;
+        }
+        
+        .archive-card p,
+        .archive-card span {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Button groups in cards */
+        .archive-card button {
+            padding: 0.375rem 0.75rem !important;
+            font-size: 0.75rem !important;
+        }
+        
+        /* Filter dropdowns */
+        select {
+            font-size: 0.8rem !important;
+            padding: 0.5rem !important;
+        }
+        
+        /* List items in sidebar */
+        .section-item,
+        .faculty-item,
+        .room-item,
+        .exam-section-item {
+            padding: 0.5rem !important;
+            font-size: 0.8rem !important;
+        }
+        
+        /* Badge adjustments */
+        .badge, [class*="-badge"] {
+            font-size: 0.65rem !important;
+            padding: 0.125rem 0.5rem !important;
+        }
+        
+        /* Reduce spacing in flex containers */
+        .gap-2 {
+            gap: 0.375rem !important;
+        }
+        
+        .gap-3 {
+            gap: 0.5rem !important;
+        }
+    }
+    
+    @media (max-width: 640px) {
+        /* Extra small screens */
+        .archive-card {
+            padding: 0.5rem !important;
+        }
+        
+        /* Stack buttons vertically in cards on very small screens */
+        .archive-card .flex.gap-2 {
+            flex-direction: column !important;
+            gap: 0.375rem !important;
+        }
+        
+        .archive-card button {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+        
+        /* Make main tabs wrap better */
+        .main-tab-button {
+            min-width: calc(50% - 0.25rem);
+            flex: 1 1 calc(50% - 0.25rem);
+        }
+        
+        /* Hide some labels on very small screens */
+        .main-tab-button .label-full {
+            display: none;
+        }
+        
+        .main-tab-button .label-short {
+            display: inline;
+        }
+        
+        /* Adjust filter container */
+        .filters-container select {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Reduce header icon size */
+        .page-header-container .h-10.w-10 {
+            height: 2rem !important;
+            width: 2rem !important;
+        }
+        
+        .page-header-container svg {
+            width: 1.25rem !important;
+            height: 1.25rem !important;
+        }
+        
+        /* Left sidebar even more compact */
+        .left-sidebar {
+            max-height: 180px !important;
+            min-height: 150px;
+        }
+        
+        .left-sidebar .h-10.w-10 {
+            height: 2rem !important;
+            width: 2rem !important;
+        }
+        
+        .left-sidebar .h-10.w-10 svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        /* Very small phones */
+        .main-tab-button,
+        .schedule-tab-button {
+            font-size: 0.65rem;
+            padding: 0.4rem 0.4rem;
+        }
+        
+        .toast {
+            font-size: 0.8rem;
+        }
+        
+        .left-sidebar {
+            max-height: 160px !important;
+        }
+    }
+    
+    /* Horizontal scrolling for tab containers on small screens */
+    @media (max-width: 640px) {
+        .tab-scroll-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .tab-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-scroll-container .flex {
+            flex-wrap: nowrap !important;
+        }
+    }
+    
+    /* Master-Detail Mobile Layout */
+    .master-panel,
+    .detail-panel {
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+        /* Force the tab content to maintain flex layout */
+        .tab-content.active {
+            display: flex !important;
+            flex-direction: column;
+        }
+        
+        /* Mobile: Show master panel by default, hide detail panel */
+        .tab-content.active .master-panel {
+            display: flex !important;
+            width: 100% !important;
+            max-height: none !important;
+        }
+        
+        .tab-content.active .detail-panel {
+            display: none !important;
+        }
+        
+        /* When mobile-detail-view is active, swap visibility */
+        .tab-content.active.mobile-detail-view .master-panel {
+            display: none !important;
+        }
+        
+        .tab-content.active.mobile-detail-view .detail-panel {
+            display: flex !important;
+            width: 100% !important;
+        }
+        
+        /* Override two-column layout on mobile */
+        .tab-content.active .two-column-layout {
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100%;
+        }
+    }
+    
+    /* Back button for mobile detail view */
+    .mobile-back-button {
+        display: none;
+    }
+    
+    @media (max-width: 768px) {
+        .mobile-back-button {
+            display: flex;
+        }
+    }
+    
+    /* Mobile view toggle indicator */
+    .mobile-view-indicator {
+        display: none;
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 50;
+        padding: 0.5rem 1rem;
+        background: rgba(37, 99, 235, 0.9);
+        color: white;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    @media (max-width: 1024px) {
+        .mobile-view-indicator {
+            display: block;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -154,7 +478,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         
         <!-- Flash Messages (Hidden - converted to toasts) -->
@@ -165,84 +489,88 @@
         {% endwith %}
         
         <!-- Page Header -->
-        <div class="mb-3 flex-shrink-0">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-                <div class="flex items-center gap-3">
-                    <div class="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-2 sm:mb-3 flex-shrink-0 page-header-container">
+            <div class="bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-100 p-2 sm:p-3 md:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-7 md:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                         </svg>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Archives</h1>
-                        <p class="text-sm text-gray-600 mt-0.5">View and manage archived schedules</p>
+                    <div class="min-w-0 flex-1">
+                        <h1 class="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">Archives</h1>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5 hidden sm:block truncate">View and manage archived schedules</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Category Tabs -->
-        <div class="mb-3 flex-shrink-0">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-1.5">
-                <div class="flex flex-wrap gap-1.5">
-                    <button onclick="switchMainTab('schedules')" class="main-tab-button active flex-1 sm:flex-none px-6 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-schedules">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-100 p-1 sm:p-1.5">
+                <div class="flex flex-wrap gap-1 sm:gap-1.5">
+                    <button onclick="switchMainTab('schedules')" class="main-tab-button active flex-1 sm:flex-none px-2 sm:px-3 md:px-6 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent min-w-[80px]" id="main-tab-schedules">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        <span>Schedules</span>
+                        <span class="hidden xs:inline sm:hidden label-short">Sched</span>
+                        <span class="hidden sm:inline label-full">Schedules</span>
                     </button>
-                    <button onclick="switchMainTab('curriculum')" class="main-tab-button flex-1 sm:flex-none px-6 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-curriculum">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchMainTab('curriculum')" class="main-tab-button flex-1 sm:flex-none px-2 sm:px-3 md:px-6 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent min-w-[80px]" id="main-tab-curriculum">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
-                        <span>Curricula</span>
+                        <span class="truncate">Curricula</span>
                     </button>
-                    <button onclick="switchMainTab('department')" class="main-tab-button flex-1 sm:flex-none px-6 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-department">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchMainTab('department')" class="main-tab-button flex-1 sm:flex-none px-2 sm:px-3 md:px-6 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent min-w-[80px]" id="main-tab-department">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        <span>Departments</span>
+                        <span class="hidden xs:inline sm:hidden label-short">Dept</span>
+                        <span class="hidden sm:inline label-full">Departments</span>
                     </button>
-                    <button onclick="switchMainTab('faculty-archive')" class="main-tab-button flex-1 sm:flex-none px-6 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-faculty-archive">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchMainTab('faculty-archive')" class="main-tab-button flex-1 sm:flex-none px-2 sm:px-3 md:px-6 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent min-w-[80px]" id="main-tab-faculty-archive">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
-                        <span>Faculty</span>
+                        <span class="truncate">Faculty</span>
                     </button>
-                    <button onclick="switchMainTab('buildings')" class="main-tab-button flex-1 sm:flex-none px-6 py-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-buildings">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchMainTab('buildings')" class="main-tab-button flex-1 sm:flex-none px-2 sm:px-3 md:px-6 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent min-w-[80px]" id="main-tab-buildings">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        <span>Buildings</span>
+                        <span class="hidden xs:inline sm:hidden label-short">Bldg</span>
+                        <span class="hidden sm:inline label-full">Buildings</span>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Schedule Sub-Tabs (only visible when Schedules is selected) -->
-        <div id="schedule-subtabs" class="mb-3 flex-shrink-0">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-1.5">
-                <div class="flex flex-wrap gap-1.5">
-                    <button onclick="switchScheduleTab('class')" class="schedule-tab-button active flex-1 sm:flex-none px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm border border-transparent" id="schedule-tab-class">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div id="schedule-subtabs" class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-100 p-1 sm:p-1.5 overflow-hidden">
+                <div class="flex gap-1 sm:gap-1.5 overflow-x-auto tab-scroll-container">
+                    <button onclick="switchScheduleTab('class')" class="schedule-tab-button active flex-shrink-0 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent whitespace-nowrap" id="schedule-tab-class">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
                         <span>Class</span>
                     </button>
-                    <button onclick="switchScheduleTab('faculty')" class="schedule-tab-button flex-1 sm:flex-none px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm border border-transparent" id="schedule-tab-faculty">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchScheduleTab('faculty')" class="schedule-tab-button flex-shrink-0 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent whitespace-nowrap" id="schedule-tab-faculty">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
-                        <span>Faculty Schedule</span>
+                        <span class="hidden sm:inline">Faculty Schedule</span>
+                        <span class="sm:hidden">Faculty</span>
                     </button>
-                    <button onclick="switchScheduleTab('rooms')" class="schedule-tab-button flex-1 sm:flex-none px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm border border-transparent" id="schedule-tab-rooms">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchScheduleTab('rooms')" class="schedule-tab-button flex-shrink-0 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent whitespace-nowrap" id="schedule-tab-rooms">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                         <span>Rooms</span>
                     </button>
-                    <button onclick="switchScheduleTab('exam')" class="schedule-tab-button flex-1 sm:flex-none px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm border border-transparent" id="schedule-tab-exam">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="switchScheduleTab('exam')" class="schedule-tab-button flex-shrink-0 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 border border-transparent whitespace-nowrap" id="schedule-tab-exam">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                         <span>Exam</span>
@@ -255,32 +583,32 @@
         <div class="flex-1 overflow-hidden">
             <!-- Class Schedule Tab -->
             <div id="content-class" class="tab-content active h-full">
-                <div class="flex gap-3 h-full">
-                    <!-- Left Sidebar - Sections List -->
-                    <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-                            <h3 class="text-base font-bold text-gray-900 flex items-center">
-                                <div class="mr-3 h-10 w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col lg:flex-row gap-2 sm:gap-3 h-full two-column-layout">
+                    <!-- Master Panel - Sections List -->
+                    <div class="master-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col left-sidebar">
+                        <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center">
+                                <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                     </svg>
                                 </div>
-                                Sections
-                                <span class="ml-auto px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="class-count-badge">0</span>
+                                <span class="text-sm sm:text-base">Sections</span>
+                                <span class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="class-count-badge">0</span>
                             </h3>
                         </div>
                         
                         <!-- Filters -->
-                        <div class="p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                        <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
                             <select id="classFilterAcademicYear" onchange="loadGroupedArchives('class')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Academic Years</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="classFilterSemester" onchange="loadGroupedArchives('class')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Semesters</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
@@ -290,34 +618,42 @@
                         
                         <!-- Sections List -->
                         <div class="flex-1 overflow-y-auto" id="class-list">
-                            <div class="text-center py-12 text-gray-500 text-sm">
-                                <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
+                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                 </svg>
-                                Select filters to view sections
+                                <p class="font-medium">Select filters to view sections</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Right Content - Archives Display -->
-                    <div class="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-3 flex-shrink-0">
+                    <!-- Detail Panel - Archives Display -->
+                    <div class="detail-panel flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                        <!-- Mobile Back Button -->
+                        <button onclick="showMasterView('class')" class="mobile-back-button w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            <span>Back to Sections</span>
+                        </button>
+                        
+                        <div class="bg-white border-b border-gray-200 p-2 sm:p-3 flex-shrink-0">
                             <div class="flex items-center justify-between">
-                                <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                                    <div class="mr-3 h-8 w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <h2 class="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
+                                    <div class="mr-2 sm:mr-3 h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                         </svg>
                                     </div>
-                                    <span id="class-archives-title">Select a section to view archives</span>
+                                    <span id="class-archives-title" class="text-xs sm:text-base truncate">Select a section to view archives</span>
                                 </h2>
                             </div>
                         </div>
                         
-                        <div class="flex-1 overflow-y-auto p-4">
-                            <div id="class-archives-container" class="space-y-3">
-                                <div class="text-center py-12 text-gray-500">
-                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+                            <div id="class-archives-container" class="space-y-2 sm:space-y-3">
+                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
+                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                     </svg>
                                     <p class="text-lg font-medium text-gray-900 mb-2">No section selected</p>
@@ -331,32 +667,32 @@
 
             <!-- Faculty Tab -->
             <div id="content-faculty" class="tab-content h-full">
-                <div class="flex gap-3 h-full">
-                    <!-- Left Sidebar - Faculty List -->
-                    <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-                            <h3 class="text-base font-bold text-gray-900 flex items-center">
-                                <div class="mr-3 h-10 w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col lg:flex-row gap-2 sm:gap-3 h-full two-column-layout">
+                    <!-- Master Panel - Faculty List -->
+                    <div class="master-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col left-sidebar">
+                        <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center">
+                                <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                     </svg>
                                 </div>
-                                Faculty
-                                <span class="ml-auto px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="faculty-count-badge">0</span>
+                                <span class="text-sm sm:text-base">Faculty</span>
+                                <span class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="faculty-count-badge">0</span>
                             </h3>
                         </div>
                         
                         <!-- Filters -->
-                        <div class="p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                        <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
                             <select id="facultyFilterAcademicYear" onchange="loadGroupedArchives('faculty')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Academic Years</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="facultyFilterSemester" onchange="loadGroupedArchives('faculty')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Semesters</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
@@ -366,34 +702,42 @@
                         
                         <!-- Faculty List -->
                         <div class="flex-1 overflow-y-auto" id="faculty-list">
-                            <div class="text-center py-12 text-gray-500 text-sm">
-                                <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
+                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
-                                Select filters to view faculty
+                                <p class="font-medium">Select filters to view faculty</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Right Content - Archives Display -->
-                    <div class="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-3 flex-shrink-0">
+                    <!-- Detail Panel - Archives Display -->
+                    <div class="detail-panel flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                        <!-- Mobile Back Button -->
+                        <button onclick="showMasterView('faculty')" class="mobile-back-button w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            <span>Back to Faculty List</span>
+                        </button>
+                        
+                        <div class="bg-white border-b border-gray-200 p-2 sm:p-3 flex-shrink-0">
                             <div class="flex items-center justify-between">
-                                <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                                    <div class="mr-3 h-8 w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <h2 class="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
+                                    <div class="mr-2 sm:mr-3 h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                         </svg>
                                     </div>
-                                    <span id="faculty-archives-title">Select a faculty to view archives</span>
+                                    <span id="faculty-archives-title" class="text-xs sm:text-base truncate">Select a faculty to view archives</span>
                                 </h2>
                             </div>
                         </div>
                         
-                        <div class="flex-1 overflow-y-auto p-4">
-                            <div id="faculty-archives-container" class="space-y-3">
-                                <div class="text-center py-12 text-gray-500">
-                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+                            <div id="faculty-archives-container" class="space-y-2 sm:space-y-3">
+                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
+                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                     </svg>
                                     <p class="text-lg font-medium text-gray-900 mb-2">No faculty selected</p>
@@ -407,32 +751,32 @@
 
             <!-- Rooms Tab -->
             <div id="content-rooms" class="tab-content h-full">
-                <div class="flex gap-3 h-full">
-                    <!-- Left Sidebar - Rooms List -->
-                    <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-                            <h3 class="text-base font-bold text-gray-900 flex items-center">
-                                <div class="mr-3 h-10 w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col lg:flex-row gap-2 sm:gap-3 h-full two-column-layout">
+                    <!-- Master Panel - Rooms List -->
+                    <div class="master-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col left-sidebar">
+                        <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center">
+                                <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
                                 </div>
-                                Rooms
-                                <span class="ml-auto px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="rooms-count-badge">0</span>
+                                <span class="text-sm sm:text-base">Rooms</span>
+                                <span class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="rooms-count-badge">0</span>
                             </h3>
                         </div>
                         
                         <!-- Filters -->
-                        <div class="p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                        <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
                             <select id="roomsFilterAcademicYear" onchange="loadGroupedArchives('rooms')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Academic Years</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="roomsFilterSemester" onchange="loadGroupedArchives('rooms')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Semesters</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
@@ -442,34 +786,42 @@
                         
                         <!-- Rooms List -->
                         <div class="flex-1 overflow-y-auto" id="rooms-list">
-                            <div class="text-center py-12 text-gray-500 text-sm">
-                                <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
+                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
-                                Select filters to view rooms
+                                <p class="font-medium">Select filters to view rooms</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Right Content - Archives Display -->
-                    <div class="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-3 flex-shrink-0">
+                    <!-- Detail Panel - Archives Display -->
+                    <div class="detail-panel flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                        <!-- Mobile Back Button -->
+                        <button onclick="showMasterView('rooms')" class="mobile-back-button w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            <span>Back to Rooms List</span>
+                        </button>
+                        
+                        <div class="bg-white border-b border-gray-200 p-2 sm:p-3 flex-shrink-0">
                             <div class="flex items-center justify-between">
-                                <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                                    <div class="mr-3 h-8 w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <h2 class="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
+                                    <div class="mr-2 sm:mr-3 h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                         </svg>
                                     </div>
-                                    <span id="rooms-archives-title">Select a room to view archives</span>
+                                    <span id="rooms-archives-title" class="text-xs sm:text-base truncate">Select a room to view archives</span>
                                 </h2>
                             </div>
                         </div>
                         
-                        <div class="flex-1 overflow-y-auto p-4">
-                            <div id="rooms-archives-container" class="space-y-3">
-                                <div class="text-center py-12 text-gray-500">
-                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+                            <div id="rooms-archives-container" class="space-y-2 sm:space-y-3">
+                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
+                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
                                     <p class="text-lg font-medium text-gray-900 mb-2">No room selected</p>
@@ -483,39 +835,39 @@
 
             <!-- Exam Tab -->
             <div id="content-exam" class="tab-content h-full">
-                <div class="flex gap-3 h-full">
-                    <!-- Left Sidebar - Exam Sections List -->
-                    <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-                            <h3 class="text-base font-bold text-gray-900 flex items-center">
-                                <div class="mr-3 h-10 w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col lg:flex-row gap-2 sm:gap-3 h-full two-column-layout">
+                    <!-- Master Panel - Exam Sections List -->
+                    <div class="master-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col left-sidebar">
+                        <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center">
+                                <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                 </div>
-                                Sections
-                                <span class="ml-auto px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="exam-count-badge">0</span>
+                                <span class="text-sm sm:text-base">Sections</span>
+                                <span class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200" id="exam-count-badge">0</span>
                             </h3>
                         </div>
                         
                         <!-- Filters -->
-                        <div class="p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                        <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
                             <select id="examFilterAcademicYear" onchange="loadGroupedArchives('exam')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Academic Years</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="examFilterSemester" onchange="loadGroupedArchives('exam')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Semesters</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
                                 <option value="Summer">Summer</option>
                             </select>
                             <select id="examFilterPeriod" onchange="loadGroupedArchives('exam')" 
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">All Periods</option>
                                 <option value="Prelim">Prelim</option>
                                 <option value="Midterm">Midterm</option>
@@ -525,34 +877,42 @@
                         
                         <!-- Sections List -->
                         <div class="flex-1 overflow-y-auto" id="exam-list">
-                            <div class="text-center py-12 text-gray-500 text-sm">
-                                <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
+                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                Select filters to view sections
+                                <p class="font-medium">Select filters to view sections</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Right Content - Archives Display -->
-                    <div class="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                        <div class="bg-white border-b border-gray-200 p-3 flex-shrink-0">
+                    <!-- Detail Panel - Archives Display -->
+                    <div class="detail-panel flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                        <!-- Mobile Back Button -->
+                        <button onclick="showMasterView('exam')" class="mobile-back-button w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            <span>Back to Sections List</span>
+                        </button>
+                        
+                        <div class="bg-white border-b border-gray-200 p-2 sm:p-3 flex-shrink-0">
                             <div class="flex items-center justify-between">
-                                <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                                    <div class="mr-3 h-8 w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <h2 class="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
+                                    <div class="mr-2 sm:mr-3 h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                         </svg>
                                     </div>
-                                    <span id="exam-archives-title">Select a section to view exam archives</span>
+                                    <span id="exam-archives-title" class="text-xs sm:text-base truncate">Select a section to view exam archives</span>
                                 </h2>
                             </div>
                         </div>
                         
-                        <div class="flex-1 overflow-y-auto p-4">
-                            <div id="exam-archives-container" class="space-y-3">
-                                <div class="text-center py-12 text-gray-500">
-                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+                            <div id="exam-archives-container" class="space-y-2 sm:space-y-3">
+                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
+                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     <p class="text-lg font-medium text-gray-900 mb-2">No section selected</p>
@@ -845,8 +1205,11 @@
         }
         
         try {
+            console.log(`Loading archives for ${tab} tab with params:`, params.toString());
             const response = await fetch(`/archive/api/archives?${params.toString()}`);
             const data = await response.json();
+            
+            console.log(`Received ${data.archives ? data.archives.length : 0} archives for ${tab}`, data);
             
             if (data.success) {
                 allArchives = data.archives;
@@ -895,11 +1258,13 @@
         
         if (sections.length === 0) {
             listContainer.innerHTML = `
-                <div class="text-center py-12 text-gray-500 text-sm">
+                <div class="text-center py-12 text-gray-500 text-sm px-4">
                     <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                     </svg>
-                    No archived class schedules found
+                    <p class="font-medium text-gray-700 mb-1">No sections found</p>
+                    <p class="text-xs text-gray-500">No archived class schedules match the selected filters.</p>
+                    <p class="text-xs text-gray-500 mt-1">Try changing the academic year or semester filter.</p>
                 </div>
             `;
             return;
@@ -1117,6 +1482,9 @@
         
         // Display archives
         displayArchiveCards(filtered, 'class-archives-container');
+        
+        // Switch to detail view on mobile
+        handleMobileSelection('class');
     }
     
     // Select faculty
@@ -1135,6 +1503,9 @@
         
         // Display archives
         displayArchiveCards(filtered, 'faculty-archives-container');
+        
+        // Switch to detail view on mobile
+        handleMobileSelection('faculty');
     }
     
     // Select room
@@ -1153,6 +1524,9 @@
         
         // Display archives
         displayArchiveCards(filtered, 'rooms-archives-container');
+        
+        // Switch to detail view on mobile
+        handleMobileSelection('rooms');
     }
     
     // Select exam section
@@ -1171,6 +1545,9 @@
         
         // Display archives
         displayArchiveCards(filtered, 'exam-archives-container');
+        
+        // Switch to detail view on mobile
+        handleMobileSelection('exam');
     }
     
     // Display archive cards
@@ -1197,11 +1574,11 @@
         // Determine type badge colors
         let typeBadge = '';
         if (archive.schedule_type === 'lecture') {
-            typeBadge = '<span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">Lecture</span>';
+            typeBadge = '<span class="px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">Lecture</span>';
         } else if (archive.schedule_type === 'lab') {
-            typeBadge = '<span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">Laboratory</span>';
+            typeBadge = '<span class="px-2 py-0.5 sm:py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">Laboratory</span>';
         } else if (archive.schedule_type === 'exam') {
-            typeBadge = '<span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">Exam</span>';
+            typeBadge = '<span class="px-2 py-0.5 sm:py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">Exam</span>';
         }
         
         // Format time display
@@ -1213,73 +1590,76 @@
         }
         
         return `
-            <div class="archive-card bg-white rounded-lg border border-gray-200 p-4 hover:border-purple-300">
-                <div class="flex items-start justify-between">
+            <div class="archive-card bg-white rounded-lg border border-gray-200 p-3 sm:p-4 hover:border-purple-300 mb-3">
+                <!-- Mobile: Stack all content vertically -->
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div class="flex-1 min-w-0">
                         <!-- Header -->
-                        <div class="flex items-center gap-2 mb-3">
+                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                             ${typeBadge}
-                            <span class="text-xs text-gray-500">
+                            <span class="text-xs text-gray-500 truncate">
                                 ${archive.academic_year || 'N/A'} • ${archive.semester || 'N/A'}
                                 ${archive.exam_period ? `• ${archive.exam_period}` : ''}
                             </span>
                         </div>
                         
                         <!-- Subject Info -->
-                        <div class="mb-3">
-                            <div class="flex items-center gap-2 mb-1">
+                        <div class="mb-2 sm:mb-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 mb-1">
                                 <span class="text-sm font-bold text-purple-900">${archive.subject_code || 'N/A'}</span>
-                                <span class="text-xs text-gray-500">•</span>
-                                <span class="text-sm text-gray-700">${archive.course_description || 'No description'}</span>
+                                <span class="hidden sm:inline text-xs text-gray-500">•</span>
+                                <span class="text-xs sm:text-sm text-gray-700 line-clamp-2 sm:line-clamp-1">${archive.course_description || 'No description'}</span>
                             </div>
                         </div>
                         
                         <!-- Schedule Details -->
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600 mb-3">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1.5 sm:gap-y-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+                            <div class="flex items-center gap-1.5 sm:gap-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                 </svg>
                                 <span class="truncate">${archive.section_name || 'N/A'}</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center gap-1.5 sm:gap-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 <span class="truncate">${archive.faculty_name || 'TBA'}</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center gap-1.5 sm:gap-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
-                                <span class="truncate">${archive.room_number || 'TBA'} ${archive.building_name ? `(${archive.building_name})` : ''}</span>
+                                <span class="truncate text-xs">${archive.room_number || 'TBA'} ${archive.building_name ? `(${archive.building_name})` : ''}</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center gap-1.5 sm:gap-2">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="text-xs">${timeDisplay}</span>
+                                <span class="text-xs truncate">${timeDisplay}</span>
                             </div>
                         </div>
                         
                         <!-- Archive Metadata -->
-                        <div class="pt-3 border-t border-gray-100 text-xs text-gray-500">
-                            <div class="flex items-center justify-between">
-                                <span>Archived: ${formatDateTime(archive.archived_at)}</span>
-                                ${archive.archive_reason ? `<span class="text-gray-400">• ${archive.archive_reason}</span>` : ''}
+                        <div class="pt-2 sm:pt-3 border-t border-gray-100 text-xs text-gray-500">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                <span class="truncate">Archived: ${formatDateTime(archive.archived_at)}</span>
+                                ${archive.archive_reason ? `<span class="text-gray-400 truncate">• ${archive.archive_reason}</span>` : ''}
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Actions -->
-                    <div class="ml-4 flex-shrink-0">
-                        <button onclick="deleteArchive(${archive.id})" 
-                                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete archive permanently">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
+                    <!-- Actions - Full width on mobile, side by side on larger screens -->
+                    <div class="w-full sm:w-auto sm:ml-4 flex-shrink-0">
+                        <div class="flex flex-col gap-1.5 sm:gap-2">
+                            <button onclick="deleteArchive(${archive.id})" 
+                                    class="w-full sm:w-auto px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5 border border-red-200">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                <span>Delete</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2026,6 +2406,31 @@
         } catch (error) {
             console.error('Error:', error);
             showToast('Error deleting building', 'error');
+        }
+    }
+    
+    // Master-Detail View Switching for Mobile
+    function showMasterView(tabName) {
+        const container = document.getElementById(`content-${tabName}`);
+        
+        if (container) {
+            container.classList.remove('mobile-detail-view');
+            // Master view is default on mobile, no special class needed
+        }
+    }
+    
+    function showDetailView(tabName) {
+        const container = document.getElementById(`content-${tabName}`);
+        
+        if (container) {
+            container.classList.add('mobile-detail-view');
+        }
+    }
+    
+    function handleMobileSelection(tabName) {
+        // Only switch views on mobile screens
+        if (window.innerWidth <= 768) {
+            showDetailView(tabName);
         }
     }
     

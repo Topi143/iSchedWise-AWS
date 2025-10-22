@@ -126,13 +126,353 @@
         background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
         color: #2563eb;
     }
+    
+    /* Responsive Design - Mobile First */
+    
+    /* Mobile optimizations for stat cards */
+    @media (max-width: 768px) {
+        .stat-card {
+            padding: 0.75rem !important;
+        }
+        
+        .stat-card .stat-icon {
+            padding: 0.5rem !important;
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        
+        .stat-card .stat-icon svg {
+            width: 1.25rem !important;
+            height: 1.25rem !important;
+        }
+    }
+    
+    /* Mobile tab navigation - horizontal scroll */
+    @media (max-width: 640px) {
+        .tab-nav-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            position: relative;
+        }
+        
+        .tab-nav-container::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+        
+        .tab-button {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        /* Visual hint that tabs are scrollable */
+        .tab-nav-container::after {
+            content: '→';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(to right, transparent, white 40%);
+            padding: 0.5rem 1rem 0.5rem 2rem;
+            pointer-events: none;
+            font-size: 1.2rem;
+            color: #9ca3af;
+            transition: opacity 0.3s ease;
+        }
+        
+        .tab-nav-container.scrolled-to-end::after {
+            opacity: 0;
+        }
+    }
+    
+    /* Compact spacing on mobile */
+    @media (max-width: 640px) {
+        .chart-container {
+            height: 200px;
+        }
+        
+        .chart-container-large {
+            height: 250px;
+        }
+    }
+    
+    /* Make tables horizontally scrollable on mobile */
+    @media (max-width: 768px) {
+        .overflow-x-auto {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .overflow-x-auto table {
+            min-width: 600px;
+        }
+    }
+    
+    /* Responsive modal */
+    @media (max-width: 640px) {
+        #ai-modal-content {
+            max-width: 95vw;
+            max-height: 95vh;
+        }
+        
+        /* Mobile-friendly modal padding */
+        #ai-modal-content .p-8 {
+            padding: 1rem !important;
+        }
+        
+        #ai-modal-content .px-8 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        
+        #ai-modal-content .py-6 {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+    }
+    
+    /* Improve touch targets on mobile */
+    @media (max-width: 640px) {
+        button, a, select {
+            min-height: 44px; /* Apple's recommended touch target size */
+        }
+        
+        .tab-button {
+            padding: 0.75rem 1rem !important;
+        }
+    }
+    
+    /* Better mobile typography */
+    @media (max-width: 640px) {
+        h1 {
+            font-size: 1.25rem !important;
+        }
+        
+        h2 {
+            font-size: 1.125rem !important;
+        }
+        
+        h3 {
+            font-size: 1rem !important;
+        }
+        
+        /* Smaller stat card numbers on very small screens */
+        .stat-card .text-3xl {
+            font-size: 1.5rem !important;
+        }
+        
+        /* Better export button layout on mobile */
+        .export-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .export-buttons button,
+        .export-buttons a {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    /* Touch feedback for better UX */
+    @media (hover: none) and (pointer: coarse) {
+        button:active,
+        a.button:active {
+            transform: scale(0.97);
+            transition: transform 0.1s;
+        }
+    }
+    
+    /* Loading state for buttons */
+    .button-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+    
+    .button-loading::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-left: -8px;
+        margin-top: -8px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: button-loading-spinner 0.6s linear infinite;
+    }
+    
+    @keyframes button-loading-spinner {
+        from {
+            transform: rotate(0turn);
+        }
+        to {
+            transform: rotate(1turn);
+        }
+    }
+    
+    /* Optimize table for mobile viewing */
+    @media (max-width: 640px) {
+        table {
+            font-size: 0.75rem !important;
+        }
+        
+        table th,
+        table td {
+            padding: 0.5rem !important;
+        }
+    }
+    
+    /* Better spacing for mobile cards */
+    @media (max-width: 640px) {
+        .space-y-3 > * + * {
+            margin-top: 0.5rem !important;
+        }
+        
+        .space-y-4 > * + * {
+            margin-top: 0.75rem !important;
+        }
+    }
+    
+    /* Compact mobile layout - reduce all spacing */
+    @media (max-width: 640px) {
+        /* Reduce page container padding */
+        .bg-gray-50 > .p-3 {
+            padding: 0.5rem !important;
+        }
+        
+        /* Compact cards and sections */
+        .bg-white.rounded-xl {
+            padding: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Compact stat cards */
+        .stat-card {
+            padding: 0.5rem !important;
+        }
+        
+        .stat-card h3,
+        .stat-card p {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.125rem !important;
+        }
+        
+        .stat-card .text-3xl,
+        .stat-card .text-xl {
+            font-size: 1.25rem !important;
+            line-height: 1.5rem !important;
+        }
+        
+        /* Compact grid gaps */
+        .grid {
+            gap: 0.5rem !important;
+        }
+        
+        /* Reduce section spacing */
+        .mb-4 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Compact headings */
+        h2, h3 {
+            margin-bottom: 0.5rem !important;
+            line-height: 1.25 !important;
+        }
+        
+        /* Compact chart containers */
+        .chart-container {
+            height: 180px !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        .chart-container-large {
+            height: 220px !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        /* Compact tables */
+        table th,
+        table td {
+            padding: 0.375rem 0.5rem !important;
+            font-size: 0.7rem !important;
+        }
+        
+        /* Compact buttons */
+        button,
+        a.inline-flex {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.75rem !important;
+        }
+        
+        /* Compact tab navigation */
+        .tab-button {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.75rem !important;
+        }
+        
+        /* Compact quick actions */
+        .group.bg-gradient-to-br {
+            padding: 0.75rem !important;
+        }
+        
+        .group.bg-gradient-to-br h3 {
+            font-size: 0.875rem !important;
+        }
+        
+        .group.bg-gradient-to-br p {
+            font-size: 0.7rem !important;
+        }
+        
+        /* Compact activity stats */
+        #activity-stats .bg-gradient-to-br {
+            padding: 0.5rem !important;
+        }
+        
+        /* Compact filter section */
+        select,
+        input {
+            padding: 0.5rem !important;
+            font-size: 0.75rem !important;
+        }
+        
+        /* Reduce icon sizes */
+        svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        .stat-icon svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        /* Compact progress bars section */
+        .space-y-4 {
+            gap: 0.5rem !important;
+        }
+        
+        /* Compact pagination */
+        #activity-pagination {
+            margin-top: 0.75rem !important;
+        }
+        
+        /* Compact weekly distribution bars */
+        .space-y-3 {
+            gap: 0.375rem !important;
+        }
+    }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 
 {% block content %}
 <div class="bg-gray-50 min-h-screen">
-    <div class="p-4">
+    <div class="p-2 sm:p-4">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -147,30 +487,30 @@
         {% endwith %}
 
         <!-- Page Header -->
-        <div class="mb-4 animate-slide-in">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="mb-2 sm:mb-4 animate-slide-in">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-2 sm:p-4">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
                     <div>
-                        <h1 class="text-2xl font-bold flex items-center text-gray-900">
-                            <svg class="w-7 h-7 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h1 class="text-xl sm:text-2xl font-bold flex items-center text-gray-900">
+                            <svg class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
                             Reports & Analytics
                         </h1>
                         {% if academic_year and semester %}
-                        <p class="text-gray-600 mt-1 ml-9 text-sm">{{ academic_year }} - {{ semester }}{% if exam_period %} - {{ exam_period }}{% endif %}</p>
+                        <p class="text-gray-600 mt-1 ml-8 sm:ml-9 text-xs sm:text-sm">{{ academic_year }} - {{ semester }}{% if exam_period %} - {{ exam_period }}{% endif %}</p>
                         {% endif %}
                     </div>
                     
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <button onclick="openAIModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="openAIModal()" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                             </svg>
                             AI Analysis
                         </button>
-                        <a href="{{ url_for('reports.export_summary') }}" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 shadow-sm transition-all border border-gray-300">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <a href="{{ url_for('reports.export_summary') }}" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-white text-gray-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-50 shadow-sm transition-all border border-gray-300">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                             Export Report
@@ -181,15 +521,15 @@
         </div>
 
         <!-- Filters Section -->
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 animate-slide-in border border-gray-200">
-            <div class="flex items-center mb-3">
+        <div class="bg-white rounded-xl shadow-sm p-2 sm:p-4 mb-2 sm:mb-4 animate-slide-in border border-gray-200">
+            <div class="flex items-center mb-2 sm:mb-3">
                 <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
-                <h2 class="text-sm font-semibold text-gray-900">Filter by Department</h2>
+                <h2 class="text-xs sm:text-sm font-semibold text-gray-900">Filter by Department</h2>
             </div>
             <div class="max-w-md">
-                <select id="filter-department" onchange="applyFilters()" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                <select id="filter-department" onchange="applyFilters()" class="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                     <option value="">All Departments</option>
                     {% for dept in departments %}
                     <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.department_code }} - {{ dept.department_name }}</option>
@@ -199,9 +539,9 @@
         </div>
 
         <!-- Overview Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-2 sm:mb-4">
             <!-- Total Schedules -->
-            <div class="stat-card rounded-xl shadow-sm p-4">
+            <div class="stat-card rounded-xl shadow-sm p-2 sm:p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-xs font-medium uppercase tracking-wide">Class Schedules</p>
@@ -221,7 +561,7 @@
             </div>
 
             <!-- Exam Schedules -->
-            <div class="stat-card rounded-xl shadow-sm p-4">
+            <div class="stat-card rounded-xl shadow-sm p-2 sm:p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-xs font-medium uppercase tracking-wide">Exam Schedules</p>
@@ -241,7 +581,7 @@
             </div>
 
             <!-- Active Faculty -->
-            <div class="stat-card rounded-xl shadow-sm p-4">
+            <div class="stat-card rounded-xl shadow-sm p-2 sm:p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-xs font-medium uppercase tracking-wide">Active Faculty</p>
@@ -261,7 +601,7 @@
             </div>
 
             <!-- Sections -->
-            <div class="stat-card rounded-xl shadow-sm p-4">
+            <div class="stat-card rounded-xl shadow-sm p-2 sm:p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-xs font-medium uppercase tracking-wide">Active Sections</p>
@@ -282,9 +622,9 @@
         </div>
 
         <!-- Tabs Navigation -->
-        <div class="bg-white rounded-xl shadow-sm mb-4 animate-slide-in border border-gray-200">
+        <div class="bg-white rounded-xl shadow-sm mb-2 sm:mb-4 animate-slide-in border border-gray-200">
             <div class="border-b border-gray-200">
-                <nav class="flex space-x-6 px-4" aria-label="Tabs">
+                <nav class="flex space-x-3 sm:space-x-6 px-2 sm:px-4 tab-nav-container" aria-label="Tabs">
                     <button onclick="switchTab('overview')" class="tab-button active py-3 px-1 text-center border-b-2 font-medium text-sm">
                         <div class="flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,10 +676,10 @@
         <!-- Overview Tab -->
         <div id="overview-tab" class="tab-content active">
             <!-- Charts Row -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 <!-- Schedule Type Distribution Chart -->
-                <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
@@ -352,8 +692,8 @@
                 </div>
 
                 <!-- Weekly Distribution Chart -->
-                <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center">
+                <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -366,10 +706,10 @@
             </div>
 
             <!-- Resource Utilization Charts -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 <!-- Faculty Workload Chart -->
-                <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center">
+                <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
@@ -381,8 +721,8 @@
                 </div>
 
                 <!-- Room Utilization Chart -->
-                <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center">
+                <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
@@ -395,9 +735,9 @@
             </div>
             
             <!-- System Overview Stats -->
-            <div class="bg-white rounded-xl shadow-xl p-4 mb-4 animate-slide-in">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-gray-900 flex items-center">
+            <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 mb-4 animate-slide-in">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center">
                         <svg class="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -439,8 +779,8 @@
         <!-- Faculty Workload Tab -->
         <div id="faculty-tab" class="tab-content">
             <!-- Faculty Workload Chart -->
-            <div class="bg-white rounded-xl shadow-xl p-4 mb-4 animate-slide-in">
-                <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center">
+            <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 mb-4 animate-slide-in">
+                <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
@@ -452,18 +792,18 @@
             </div>
 
             <!-- Faculty Workload Table -->
-            <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-gray-900 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 export-buttons">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
                         Complete Faculty Workload Data
                         {% if stats.faculty_workloads %}
-                        <span class="ml-3 text-sm font-normal text-gray-500">({{ stats.faculty_workloads|length }} faculty)</span>
+                        <span class="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-gray-500">({{ stats.faculty_workloads|length }} faculty)</span>
                         {% endif %}
                     </h2>
-                    <a href="{{ url_for('reports.export_faculty_workload') }}" class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-all">
+                    <a href="{{ url_for('reports.export_faculty_workload') }}" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-green-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-green-700 transition-all w-full sm:w-auto">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
@@ -511,10 +851,10 @@
         <!-- Room Utilization Tab -->
         <div id="rooms-tab" class="tab-content">
             <!-- Room Utilization Charts -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 <!-- Top Rooms Chart -->
-                <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center">
+                <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -526,8 +866,8 @@
                 </div>
 
                 <!-- Room Usage Breakdown Chart -->
-                <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                    <h3 class="text-base font-bold text-gray-900 mb-3 flex items-center">
+                <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-3 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
@@ -541,15 +881,15 @@
             </div>
 
             <!-- Room Utilization Table -->
-            <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-gray-900 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                         Complete Room Usage Data
                         {% if stats.room_utilizations %}
-                        <span class="ml-3 text-sm font-normal text-gray-500">({{ stats.room_utilizations|length }} rooms)</span>
+                        <span class="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-gray-500">({{ stats.room_utilizations|length }} rooms)</span>
                         {% endif %}
                     </h2>
                 </div>
@@ -611,10 +951,10 @@
 
         <!-- Weekly Distribution Tab -->
         <div id="weekly-tab" class="tab-content">
-            <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-gray-900 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Schedule Distribution by Day
@@ -642,16 +982,16 @@
         <!-- User Activity Tab (Admin Only) -->
         {% if current_user.role == 'admin' %}
         <div id="activity-tab" class="tab-content">
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-4 border border-gray-200">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 mb-4 border border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+                    <h3 class="text-base sm:text-xl font-bold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                         User Activity Logs
                     </h3>
-                    <button onclick="loadActivityLogs()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
-                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="loadActivityLogs()" class="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-semibold flex items-center justify-center w-full sm:w-auto">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
                         Refresh
@@ -659,61 +999,61 @@
                 </div>
 
                 <!-- Activity Stats -->
-                <div id="activity-stats" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                        <p class="text-sm font-semibold text-blue-700 mb-1">Total Actions</p>
-                        <p class="text-3xl font-bold text-blue-900" id="stat-total-actions">-</p>
+                <div id="activity-stats" class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 sm:p-4 border border-blue-200">
+                        <p class="text-xs sm:text-sm font-semibold text-blue-700 mb-1">Total Actions</p>
+                        <p class="text-xl sm:text-3xl font-bold text-blue-900" id="stat-total-actions">-</p>
                     </div>
-                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                        <p class="text-sm font-semibold text-green-700 mb-1">Last 24 Hours</p>
-                        <p class="text-3xl font-bold text-green-900" id="stat-recent-actions">-</p>
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 sm:p-4 border border-green-200">
+                        <p class="text-xs sm:text-sm font-semibold text-green-700 mb-1">Last 24 Hours</p>
+                        <p class="text-xl sm:text-3xl font-bold text-green-900" id="stat-recent-actions">-</p>
                     </div>
-                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                        <p class="text-sm font-semibold text-purple-700 mb-1">Unique Actions</p>
-                        <p class="text-3xl font-bold text-purple-900" id="stat-unique-actions">-</p>
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 sm:p-4 border border-purple-200">
+                        <p class="text-xs sm:text-sm font-semibold text-purple-700 mb-1">Unique Actions</p>
+                        <p class="text-xl sm:text-3xl font-bold text-purple-900" id="stat-unique-actions">-</p>
                     </div>
                 </div>
 
                 <!-- Filters -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
-                        <select id="filter-activity-user" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">User</label>
+                        <select id="filter-activity-user" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
                             <option value="">All Users</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Action Type</label>
-                        <select id="filter-activity-action" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Action Type</label>
+                        <select id="filter-activity-action" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
                             <option value="">All Actions</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Entity Type</label>
-                        <select id="filter-activity-entity" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Entity Type</label>
+                        <select id="filter-activity-entity" onchange="loadActivityLogs()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
                             <option value="">All Entities</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Activity Logs Table -->
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto -mx-3 sm:mx-0">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Entity</th>
+                                <th class="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Time</th>
+                                <th class="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">User</th>
+                                <th class="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Action</th>
+                                <th class="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Entity</th>
                             </tr>
                         </thead>
                         <tbody id="activity-logs-tbody" class="bg-white divide-y divide-gray-200">
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">
-                                    <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <td colspan="4" class="px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-500">
+                                    <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    Loading activity logs...
+                                    <span class="text-xs sm:text-sm">Loading activity logs...</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -721,15 +1061,15 @@
                 </div>
 
                 <!-- Pagination -->
-                <div id="activity-pagination" class="mt-6 flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
+                <div id="activity-pagination" class="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="text-xs sm:text-sm text-gray-600 order-2 sm:order-1">
                         Showing <span id="activity-showing">0</span> of <span id="activity-total">0</span> logs
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="loadActivityLogs(currentActivityPage - 1)" id="activity-prev-btn" disabled class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <div class="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
+                        <button onclick="loadActivityLogs(currentActivityPage - 1)" id="activity-prev-btn" disabled class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm">
                             Previous
                         </button>
-                        <button onclick="loadActivityLogs(currentActivityPage + 1)" id="activity-next-btn" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button onclick="loadActivityLogs(currentActivityPage + 1)" id="activity-next-btn" disabled class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm">
                             Next
                         </button>
                     </div>
@@ -742,53 +1082,53 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="bg-white rounded-xl shadow-xl p-4 animate-slide-in">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-xl shadow-xl p-2 sm:p-4 animate-slide-in">
+            <h2 class="text-base sm:text-lg font-bold text-gray-900 mb-2 sm:mb-4 flex items-center">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
                 Quick Actions
             </h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <a href="{{ url_for('schedule.index') }}" class="group bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-lg p-4 transition-all border-2 border-blue-200 hover:border-blue-400">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+                <a href="{{ url_for('schedule.index') }}" class="group bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-lg p-2 sm:p-4 transition-all border-2 border-blue-200 hover:border-blue-400">
                     <div class="flex items-center">
-                        <div class="bg-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-blue-600 p-2 sm:p-3 rounded-lg group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                         </div>
-                        <div class="ml-4">
-                            <p class="font-bold text-gray-900">Manage Schedules</p>
-                            <p class="text-sm text-gray-600">View & edit</p>
+                        <div class="ml-3 sm:ml-4">
+                            <p class="font-bold text-gray-900 text-sm sm:text-base">Manage Schedules</p>
+                            <p class="text-xs sm:text-sm text-gray-600">View & edit</p>
                         </div>
                     </div>
                 </a>
                 
-                <a href="{{ url_for('faculty.index') }}" class="group bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-lg p-4 transition-all border-2 border-green-200 hover:border-green-400">
+                <a href="{{ url_for('faculty.index') }}" class="group bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-lg p-2 sm:p-4 transition-all border-2 border-green-200 hover:border-green-400">
                     <div class="flex items-center">
-                        <div class="bg-green-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-green-600 p-2 sm:p-3 rounded-lg group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                             </svg>
                         </div>
-                        <div class="ml-4">
-                            <p class="font-bold text-gray-900">Faculty</p>
-                            <p class="text-sm text-gray-600">Manage faculty</p>
+                        <div class="ml-3 sm:ml-4">
+                            <p class="font-bold text-gray-900 text-sm sm:text-base">Faculty</p>
+                            <p class="text-xs sm:text-sm text-gray-600">Manage faculty</p>
                         </div>
                     </div>
                 </a>
                 
-                <a href="{{ url_for('building.index') }}" class="group bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-lg p-4 transition-all border-2 border-orange-200 hover:border-orange-400">
+                <a href="{{ url_for('building.index') }}" class="group bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-lg p-2 sm:p-4 transition-all border-2 border-orange-200 hover:border-orange-400">
                     <div class="flex items-center">
-                        <div class="bg-orange-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-orange-600 p-2 sm:p-3 rounded-lg group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <div class="ml-4">
-                            <p class="font-bold text-gray-900">Buildings</p>
-                            <p class="text-sm text-gray-600">Manage rooms</p>
+                        <div class="ml-3 sm:ml-4">
+                            <p class="font-bold text-gray-900 text-sm sm:text-base">Buildings</p>
+                            <p class="text-xs sm:text-sm text-gray-600">Manage rooms</p>
                         </div>
                     </div>
                 </a>
@@ -943,7 +1283,23 @@ let scheduleTypeChart, weeklyChart, facultyChart, roomChart;
 document.addEventListener('DOMContentLoaded', function() {
     initializeCharts();
     restoreActiveTab();
+    setupMobileEnhancements();
 });
+
+function setupMobileEnhancements() {
+    // Hide tab scroll indicator when scrolled to end
+    const tabNav = document.querySelector('.tab-nav-container');
+    if (tabNav && window.innerWidth <= 640) {
+        tabNav.addEventListener('scroll', function() {
+            const isScrolledToEnd = this.scrollLeft >= (this.scrollWidth - this.clientWidth - 10);
+            if (isScrolledToEnd) {
+                this.classList.add('scrolled-to-end');
+            } else {
+                this.classList.remove('scrolled-to-end');
+            }
+        });
+    }
+}
 
 function restoreActiveTab() {
     // Get saved tab from localStorage or default to 'overview'

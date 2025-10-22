@@ -64,42 +64,67 @@
         justify-content: center;
         flex-shrink: 0;
     }
+    
+    /* Mobile Responsive Adjustments */
+    @media (max-width: 640px) {
+        .stat-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        .stat-icon svg {
+            width: 1.25rem !important;
+            height: 1.25rem !important;
+        }
+        .dashboard-card:hover,
+        .stat-card:hover {
+            transform: none;
+        }
+    }
+    
+    /* Disable hover effects on touch devices */
+    @media (hover: none) {
+        .dashboard-card:hover,
+        .stat-card:hover {
+            transform: none;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="h-screen overflow-hidden bg-gray-50">
-    <div class="h-full flex flex-col p-6">
+<div class="min-h-screen bg-gray-50 pb-6 md:h-screen md:overflow-hidden">
+    <div class="h-full flex flex-col p-3 sm:p-4 md:p-6">
         <!-- Page Header -->
-        <div class="mb-6 flex-shrink-0">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+        <div class="mb-4 md:mb-6 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
                 <div class="flex items-center">
-                    <svg class="w-7 h-7 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 sm:w-7 sm:h-7 mr-2 sm:mr-3 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                     </svg>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">
+                    <div class="min-w-0 flex-1">
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
                             Dashboard
                         </h1>
-                        <p class="text-sm text-gray-600 mt-0.5">Overview of your academic management system</p>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5 hidden sm:block">Overview of your academic management system</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 overflow-y-auto pr-2">
+        <div class="flex-1 overflow-y-auto pr-1 md:pr-2">
             <!-- Quick Stats -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 animate-fade-in">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 mb-4 md:mb-6 animate-fade-in">
                 <!-- Stat 1: Curriculum -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+                <div class="stat-card bg-white rounded-xl shadow-sm p-3 sm:p-4 md:p-5 border border-gray-200">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Curriculum</p>
-                            <p class="text-3xl font-bold text-gray-900">{{ curriculum_count }}</p>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 sm:mb-2 truncate">Curriculum</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900">{{ curriculum_count }}</p>
                         </div>
-                        <div class="stat-icon">
-                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="stat-icon ml-2">
+                            <svg class="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                             </svg>
                         </div>
@@ -107,14 +132,14 @@
                 </div>
 
                 <!-- Stat 2: Departments -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+                <div class="stat-card bg-white rounded-xl shadow-sm p-3 sm:p-4 md:p-5 border border-gray-200">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Departments</p>
-                            <p class="text-3xl font-bold text-gray-900">{{ department_count }}</p>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 sm:mb-2 truncate">Departments</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900">{{ department_count }}</p>
                         </div>
-                        <div class="stat-icon">
-                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="stat-icon ml-2">
+                            <svg class="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
@@ -122,14 +147,14 @@
                 </div>
 
                 <!-- Stat 3: Faculty -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+                <div class="stat-card bg-white rounded-xl shadow-sm p-3 sm:p-4 md:p-5 border border-gray-200">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Faculty Members</p>
-                            <p class="text-3xl font-bold text-gray-900">{{ faculty_count }}</p>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 sm:mb-2 truncate">Faculty</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900">{{ faculty_count }}</p>
                         </div>
-                        <div class="stat-icon">
-                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="stat-icon ml-2">
+                            <svg class="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
@@ -137,14 +162,14 @@
                 </div>
 
                 <!-- Stat 4: Buildings -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
+                <div class="stat-card bg-white rounded-xl shadow-sm p-3 sm:p-4 md:p-5 border border-gray-200">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Buildings</p>
-                            <p class="text-3xl font-bold text-gray-900">{{ building_count }}</p>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 sm:mb-2 truncate">Buildings</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-900">{{ building_count }}</p>
                         </div>
-                        <div class="stat-icon">
-                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="stat-icon ml-2">
+                            <svg class="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
@@ -154,51 +179,51 @@
 
             <!-- Schedule Stats Row -->
             {% if current_settings %}
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                        <div class="stat-icon mr-3">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 mb-4 md:mb-6 border border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+                    <div class="flex items-start sm:items-center">
+                        <div class="stat-icon mr-3 flex-shrink-0">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900">Current Academic Period</h3>
-                            <p class="text-sm text-gray-600">{{ current_settings.academic_year }} • {{ current_settings.semester }} • {{ current_settings.exam_period }}</p>
+                        <div class="min-w-0">
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900">Current Academic Period</h3>
+                            <p class="text-xs sm:text-sm text-gray-600 break-words">{{ current_settings.academic_year }} • {{ current_settings.semester }} • {{ current_settings.exam_period }}</p>
                         </div>
                     </div>
-                    <a href="{{ url_for('settings.index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
+                    <a href="{{ url_for('settings.index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-semibold text-center whitespace-nowrap">
                         Manage Settings
                     </a>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p class="text-sm text-gray-600 mb-1">Class Schedules</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ schedule_count }}</p>
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div class="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-1">Class Schedules</p>
+                        <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ schedule_count }}</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p class="text-sm text-gray-600 mb-1">Exam Schedules</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ exam_schedule_count }}</p>
+                    <div class="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-1">Exam Schedules</p>
+                        <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ exam_schedule_count }}</p>
                     </div>
                 </div>
             </div>
             {% endif %}
 
             <!-- Management Cards Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 mb-4 md:mb-6">
                 <!-- Card 1: Schedules -->
                 <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div class="flex items-center justify-between mb-3">
                             <div class="stat-icon">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-900">Schedules</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Schedules</h3>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">View and manage class schedules</p>
-                        <a href="{{ url_for('schedule.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-4">View and manage class schedules</p>
+                        <a href="{{ url_for('schedule.index') }}" class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors">
                             Manage
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -209,17 +234,17 @@
 
                 <!-- Card 2: Curriculum -->
                 <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div class="flex items-center justify-between mb-3">
                             <div class="stat-icon">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-900">Curriculum</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Curriculum</h3>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">Manage academic programs and courses</p>
-                        <a href="{{ url_for('curriculum.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage academic programs and courses</p>
+                        <a href="{{ url_for('curriculum.index') }}" class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors">
                             Manage
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -230,17 +255,17 @@
 
                 <!-- Card 3: Departments -->
                 <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div class="flex items-center justify-between mb-3">
                             <div class="stat-icon">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-900">Departments</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Departments</h3>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">Manage academic departments</p>
-                        <a href="{{ url_for('department.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage academic departments</p>
+                        <a href="{{ url_for('department.index') }}" class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors">
                             Manage
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -251,17 +276,17 @@
 
                 <!-- Card 4: Faculty -->
                 <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div class="flex items-center justify-between mb-3">
                             <div class="stat-icon">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-900">Faculty</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Faculty</h3>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">Manage faculty information</p>
-                        <a href="{{ url_for('faculty.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage faculty information</p>
+                        <a href="{{ url_for('faculty.index') }}" class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors">
                             Manage
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -272,17 +297,17 @@
 
                 <!-- Card 5: Buildings -->
                 <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div class="flex items-center justify-between mb-3">
                             <div class="stat-icon">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-900">Buildings</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Buildings</h3>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">Manage campus buildings and rooms</p>
-                        <a href="{{ url_for('building.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage campus buildings and rooms</p>
+                        <a href="{{ url_for('building.index') }}" class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors">
                             Manage
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -293,17 +318,17 @@
 
                 <!-- Card 6: Archives -->
                 <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div class="flex items-center justify-between mb-3">
                             <div class="stat-icon">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-900">Archives</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Archives</h3>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">View archived schedules and records</p>
-                        <a href="{{ url_for('archive.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-4">View archived schedules and records</p>
+                        <a href="{{ url_for('archive.index') }}" class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors">
                             Manage
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -314,54 +339,54 @@
             </div>
 
             <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+            <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 border border-gray-200 mb-4 md:mb-6">
                 <div class="flex items-center mb-4">
                     <div class="stat-icon mr-3">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-base font-bold text-gray-900">Recent Schedules</h3>
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900">Recent Schedules</h3>
                 </div>
                 {% if recent_schedules %}
-                <div class="space-y-3">
+                <div class="space-y-2 sm:space-y-3">
                     {% for schedule in recent_schedules %}
-                    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-800 truncate">
+                            <p class="text-xs sm:text-sm font-semibold text-gray-800 truncate">
                                 {{ schedule.subject.subject_code if schedule.subject else 'N/A' }} - {{ schedule.section.section_name if schedule.section else 'N/A' }}
                             </p>
-                            <p class="text-xs text-gray-500">
+                            <p class="text-xs text-gray-500 truncate">
                                 {{ schedule.faculty.full_name if schedule.faculty else 'TBA' }} • 
                                 {{ schedule.day_of_week }} {{ schedule.start_time.strftime('%I:%M %p') if schedule.start_time else '' }}
                             </p>
                         </div>
-                        <div class="text-xs text-gray-400">
+                        <div class="text-xs text-gray-400 flex-shrink-0 ml-2">
                             {{ schedule.created_at.strftime('%b %d') if schedule.created_at else '' }}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 <div class="mt-4 text-center">
-                    <a href="{{ url_for('schedule.index') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <a href="{{ url_for('schedule.index') }}" class="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
                         View All Schedules →
                     </a>
                 </div>
                 {% else %}
-                <div class="text-center py-8">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="text-center py-6 sm:py-8">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                     </div>
-                    <p class="text-sm text-gray-500 font-medium">No schedules created yet</p>
+                    <p class="text-xs sm:text-sm text-gray-500 font-medium">No schedules created yet</p>
                     <p class="text-xs text-gray-400 mt-1">Start by creating your first schedule</p>
-                    <a href="{{ url_for('schedule.index') }}" class="inline-block mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                    <a href="{{ url_for('schedule.index') }}" class="inline-block mt-3 px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700 transition-colors">
                         Create Schedule
                     </a>
                 </div>
@@ -369,37 +394,37 @@
             </div>
 
             <!-- Department & Faculty Overview Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-4 md:mb-6">
                 <!-- Departments Overview -->
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 border border-gray-200">
                     <div class="flex items-center mb-4">
                         <div class="stat-icon mr-3">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <h3 class="text-base font-bold text-gray-900">Departments Overview</h3>
+                        <h3 class="text-sm sm:text-base font-bold text-gray-900">Departments Overview</h3>
                     </div>
                     {% if departments_overview %}
                     <div class="space-y-2 max-h-64 overflow-y-auto">
                         {% for dept in departments_overview %}
-                        <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div class="p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div class="flex items-center justify-between mb-2">
-                                <p class="text-sm font-semibold text-gray-800">{{ dept.name }}</p>
-                                <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">{{ dept.code }}</span>
+                                <p class="text-xs sm:text-sm font-semibold text-gray-800 truncate flex-1 mr-2">{{ dept.name }}</p>
+                                <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium flex-shrink-0">{{ dept.code }}</span>
                             </div>
-                            <div class="flex items-center gap-4 text-xs text-gray-600">
-                                <span>📚 {{ dept.curriculum_count }} Curriculum</span>
-                                <span>👥 {{ dept.section_count }} Sections</span>
-                                <span>👨‍🏫 {{ dept.faculty_count }} Faculty</span>
+                            <div class="flex items-center flex-wrap gap-2 sm:gap-4 text-xs text-gray-600">
+                                <span class="truncate">📚 {{ dept.curriculum_count }} Curriculum</span>
+                                <span class="truncate">👥 {{ dept.section_count }} Sections</span>
+                                <span class="truncate">👨‍🏫 {{ dept.faculty_count }} Faculty</span>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center py-8">
-                        <p class="text-sm text-gray-500">No departments available</p>
-                        <a href="{{ url_for('department.index') }}" class="inline-block mt-2 text-sm text-green-600 hover:text-green-700 font-medium">
+                    <div class="text-center py-6 sm:py-8">
+                        <p class="text-xs sm:text-sm text-gray-500">No departments available</p>
+                        <a href="{{ url_for('department.index') }}" class="inline-block mt-2 text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium">
                             Add Department →
                         </a>
                     </div>
@@ -407,34 +432,34 @@
                 </div>
 
                 <!-- Faculty Workload Overview -->
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 border border-gray-200">
                     <div class="flex items-center mb-4">
                         <div class="stat-icon mr-3">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-base font-bold text-gray-900">Top Faculty (By Schedule)</h3>
+                        <h3 class="text-sm sm:text-base font-bold text-gray-900">Top Faculty (By Schedule)</h3>
                     </div>
                     {% if faculty_workload %}
                     <div class="space-y-2 max-h-64 overflow-y-auto">
                         {% for faculty in faculty_workload %}
-                        <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div class="p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div class="flex items-center justify-between mb-2">
-                                <p class="text-sm font-semibold text-gray-800 truncate">{{ faculty.full_name }}</p>
-                                <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">{{ faculty.total_units|round(1) if faculty.total_units else 0 }} units</span>
+                                <p class="text-xs sm:text-sm font-semibold text-gray-800 truncate flex-1 mr-2">{{ faculty.full_name }}</p>
+                                <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium flex-shrink-0">{{ faculty.total_units|round(1) if faculty.total_units else 0 }} units</span>
                             </div>
-                            <div class="flex items-center gap-4 text-xs text-gray-600">
-                                <span>🏢 {{ faculty.department_name if faculty.department_name else 'No Dept' }}</span>
-                                <span>📅 {{ faculty.schedule_count }} Classes</span>
+                            <div class="flex items-center flex-wrap gap-2 sm:gap-4 text-xs text-gray-600">
+                                <span class="truncate">🏢 {{ faculty.department_name if faculty.department_name else 'No Dept' }}</span>
+                                <span class="truncate">📅 {{ faculty.schedule_count }} Classes</span>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center py-8">
-                        <p class="text-sm text-gray-500">No faculty schedules available</p>
-                        <a href="{{ url_for('faculty.index') }}" class="inline-block mt-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
+                    <div class="text-center py-6 sm:py-8">
+                        <p class="text-xs sm:text-sm text-gray-500">No faculty schedules available</p>
+                        <a href="{{ url_for('faculty.index') }}" class="inline-block mt-2 text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium">
                             Manage Faculty →
                         </a>
                     </div>

@@ -1000,16 +1000,68 @@ def delete():
     return redirect(url_for('schedule.index', section_id=section_id))
 
 
+@schedule_bp.route('/get-curricula/<int:section_id>')
+@login_required
+def get_curricula_for_section(section_id):
+    """Get available curricula for a section's department ONLY"""
+    from flask import jsonify
+    from app.models.curriculum import Curriculum
+    
+    try:
+        # Get the section
+        section = Section.query.get_or_404(section_id)
+        
+        # Ensure section has a department
+        if not section.department_id:
+            return jsonify({
+                'curricula': [],
+                'error': 'Section has no department assigned'
+            }), 400
+        
+        # Get ONLY active curricula for THIS SPECIFIC department
+        curricula = Curriculum.query.filter_by(
+            department_id=section.department_id,
+            is_active=True,
+            is_archived=False
+        ).order_by(Curriculum.curriculum_code).all()
+        
+        # Debug logging
+        print(f"[CURRICULA] Section {section_id} ({section.section_name}) - Department ID: {section.department_id}")
+        print(f"[CURRICULA] Found {len(curricula)} curricula for department {section.department_id}")
+        
+        # Format curricula for JSON response
+        curricula_data = [
+            {
+                'id': curriculum.id,
+                'curriculum_code': curriculum.curriculum_code,
+                'curriculum_name': curriculum.curriculum_name,
+                'degree_program': curriculum.degree_program,
+                'department_id': curriculum.department_id,  # Include for verification
+                'display': f"{curriculum.curriculum_code} - {curriculum.curriculum_name}"
+            }
+            for curriculum in curricula
+        ]
+        
+        return jsonify({'curricula': curricula_data})
+        
+    except Exception as e:
+        print(f"[CURRICULA ERROR] {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 @schedule_bp.route('/get-subjects/<int:section_id>')
 @login_required
 def get_subjects_for_section(section_id):
-    """Get subjects for a specific section based on department, year level, and semester"""
+    """Get subjects for a specific section based on curriculum, year level, and semester"""
     from flask import jsonify
     from app.models.curriculum import Curriculum, YearLevel, Semester
     
     try:
         # Get the section
         section = Section.query.get_or_404(section_id)
+        
+        # Get curriculum_id from query parameter (optional)
+        curriculum_id = request.args.get('curriculum_id', type=int)
         
         # Get current academic settings to determine the semester
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
@@ -1025,11 +1077,19 @@ def get_subjects_for_section(section_id):
         }
         semester_number = semester_mapping.get(current_settings.semester, 1)
         
-        # Find curriculum for this department
-        curriculum = Curriculum.query.filter_by(
-            department_id=section.department_id,
-            is_active=True
-        ).first()
+        # Find curriculum
+        if curriculum_id:
+            # Use specified curriculum
+            curriculum = Curriculum.query.get(curriculum_id)
+            if not curriculum or curriculum.department_id != section.department_id:
+                return jsonify({'subjects': [], 'error': 'Invalid curriculum for this section'})
+        else:
+            # Default to first active curriculum for this department
+            curriculum = Curriculum.query.filter_by(
+                department_id=section.department_id,
+                is_active=True,
+                is_archived=False
+            ).first()
         
         if not curriculum:
             return jsonify({'subjects': []})
@@ -1117,6 +1177,34 @@ def get_faculty_for_subject(subject_id):
         ]
         
         return jsonify({'faculty': faculty_data})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@schedule_bp.route('/get-all-faculties')
+@login_required
+def get_all_faculties():
+    """Get all active faculty members"""
+    try:
+        # Get all active faculty
+        faculties = Faculty.query.filter(
+            Faculty.is_active == True,
+            Faculty.is_archived == False
+        ).order_by(Faculty.full_name).all()
+        
+        # Format faculty for JSON response
+        faculty_data = [
+            {
+                'id': faculty.id,
+                'full_name': faculty.full_name,
+                'department_code': faculty.department.department_code if faculty.department else '',
+                'display': f"{faculty.full_name}" + (f" - {faculty.department.department_code}" if faculty.department else "")
+            }
+            for faculty in faculties
+        ]
+        
+        return jsonify({'faculties': faculty_data})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

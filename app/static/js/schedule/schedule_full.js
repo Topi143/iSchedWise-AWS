@@ -205,6 +205,11 @@
         url.searchParams.set('section_id', id);
         window.history.pushState({}, '', url);
         
+        // Show detail view on mobile
+        if (typeof showClassDetail === 'function') {
+            showClassDetail();
+        }
+        
         // Update UI: highlight selected item
         document.querySelectorAll('.section-list-item').forEach(item => {
             item.classList.remove('selected');
@@ -321,8 +326,8 @@
             resetAutoCheckState('add');
         }
         
-        // Load subjects for this section
-        loadSubjectsForSection(sectionId);
+        // Load curricula for this section (which will then load subjects)
+        loadCurriculaForSection(sectionId, 'add');
     }
 
     function closeAddScheduleModal() {
@@ -336,51 +341,16 @@
         }
     }
     
-    // Load subjects dynamically based on section
+    // Note: loadCurriculaForSection and loadSubjectsForCurriculum are now in curriculum_selector.js
+    
+    // Load subjects dynamically based on section (DEPRECATED - use loadCurriculaForSection instead)
     function loadSubjectsForSection(sectionId) {
-        const subjectSelect = document.getElementById('subject_id_add');
-        
-        // Show loading state
-        subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
-        subjectSelect.disabled = true;
-        
-        // Fetch subjects for this section
-        fetch(`/schedule/get-subjects/${sectionId}`)
-            .then(response => response.json())
-            .then(data => {
-                subjectSelect.innerHTML = '<option value="">Select Subject</option>';
-                
-                if (data.subjects && data.subjects.length > 0) {
-                    data.subjects.forEach(subject => {
-                        const option = document.createElement('option');
-                        option.value = subject.id;
-                        option.textContent = subject.display;
-                        
-                        // Add data attributes for smart scheduling
-                        option.dataset.code = subject.subject_code;
-                        option.dataset.description = subject.course_description;
-                        option.dataset.lecUnits = subject.lec_units;
-                        option.dataset.labUnits = subject.lab_units;
-                        option.dataset.totalUnits = subject.total_units;
-                        
-                        subjectSelect.appendChild(option);
-                    });
-                } else {
-                    subjectSelect.innerHTML = '<option value="">No subjects available for this section</option>';
-                }
-                
-                subjectSelect.disabled = false;
-            })
-            .catch(error => {
-                console.error('Error loading subjects:', error);
-                subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
-                subjectSelect.disabled = false;
-                showToast('Error loading subjects. Please try again.', 'error');
-            });
+        // For backward compatibility, redirect to curriculum-based loading
+        loadCurriculaForSection(sectionId, 'add');
     }
 
     // Load faculty assigned to a specific subject
-    function loadFacultyForSubject(subjectId, mode = 'add') {
+    function loadFacultyForSubject(subjectId, mode = 'add', selectedFacultyId = null) {
         const facultySelect = document.getElementById(`faculty_id_${mode}`);
         
         if (!subjectId) {
@@ -400,11 +370,20 @@
             .then(data => {
                 facultySelect.innerHTML = '<option value="">TBA</option>';
                 
+                let facultyFound = false;
+                
                 if (data.faculty && data.faculty.length > 0) {
                     data.faculty.forEach(faculty => {
                         const option = document.createElement('option');
                         option.value = faculty.id;
                         option.textContent = faculty.display;
+                        
+                        // Pre-select the faculty if specified
+                        if (selectedFacultyId && faculty.id == selectedFacultyId) {
+                            option.selected = true;
+                            facultyFound = true;
+                        }
+                        
                         facultySelect.appendChild(option);
                     });
                 } else {
@@ -414,6 +393,32 @@
                     option.textContent = "No faculty assigned to this subject";
                     option.disabled = true;
                     facultySelect.appendChild(option);
+                }
+                
+                // If selected faculty wasn't in the subject-specific list, 
+                // we need to fetch ALL faculties and add the selected one
+                if (selectedFacultyId && !facultyFound && mode === 'edit') {
+                    // For edit mode, if the faculty isn't in the subject list,
+                    // we need to preserve it by fetching all faculties
+                    fetch('/schedule/get-all-faculties')
+                        .then(response => response.json())
+                        .then(allData => {
+                            if (allData.faculties && allData.faculties.length > 0) {
+                                const selectedFaculty = allData.faculties.find(f => f.id == selectedFacultyId);
+                                if (selectedFaculty) {
+                                    // Add the selected faculty to the dropdown with a note
+                                    const option = document.createElement('option');
+                                    option.value = selectedFaculty.id;
+                                    option.textContent = `${selectedFaculty.display} (Currently assigned)`;
+                                    option.selected = true;
+                                    // Insert after TBA option
+                                    facultySelect.insertBefore(option, facultySelect.children[1]);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading all faculties:', error);
+                        });
                 }
                 
                 facultySelect.disabled = false;
@@ -466,9 +471,9 @@
             document.getElementById('bothOption_edit').disabled = true;
         }
         
-        // Load subjects for the schedule's section first
+        // Load curricula and subjects for the schedule's section first (using new curriculum-based approach)
         const sectionId = scheduleData.section_id;
-        loadSubjectsForEdit(sectionId, scheduleData);
+        loadCurriculaForEdit(sectionId, scheduleData);
         
         // Set other fields immediately
         document.getElementById('faculty_id_edit').value = scheduleData.faculty_id || '';
@@ -550,8 +555,8 @@
                             }
                         }, 100);
                         
-                        // Load faculty for the selected subject
-                        loadFacultyForSubject(scheduleData.subject_id, 'edit');
+                        // Load faculty for the selected subject and preserve the selected faculty
+                        loadFacultyForSubject(scheduleData.subject_id, 'edit', scheduleData.faculty_id);
                     }
                 } else {
                     subjectSelect.innerHTML = '<option value="">No subjects available for this section</option>';
@@ -830,6 +835,11 @@
         url.searchParams.set('faculty_id', id);
         window.history.pushState({}, '', url);
         
+        // Show detail view on mobile
+        if (typeof showFacultyDetail === 'function') {
+            showFacultyDetail();
+        }
+        
         // Update UI: highlight selected item
         document.querySelectorAll('.faculty-list-item').forEach(item => {
             item.classList.remove('selected');
@@ -890,6 +900,11 @@
         const url = new URL(window.location.href);
         url.searchParams.set('room_id', id);
         window.history.pushState({}, '', url);
+        
+        // Show detail view on mobile
+        if (typeof showRoomDetail === 'function') {
+            showRoomDetail();
+        }
         
         // Update UI: highlight selected item
         document.querySelectorAll('.room-list-item').forEach(item => {
@@ -1030,6 +1045,11 @@
         url.searchParams.set('exam_section_id', id);
         window.history.pushState({}, '', url);
         
+        // Show detail view on mobile
+        if (typeof showExamDetail === 'function') {
+            showExamDetail();
+        }
+        
         // Update UI: highlight selected item
         document.querySelectorAll('#examSectionList .section-list-item').forEach(item => {
             item.classList.remove('selected');
@@ -1126,8 +1146,8 @@
         document.getElementById('addExamScheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
         
-        // Load subjects for this section
-        loadSubjectsForExamSection(sectionId, 'add');
+        // Load curricula for this section (which will then load subjects)
+        loadCurriculaForSection(sectionId, 'exam_add');
     }
 
     function closeAddExamScheduleModal() {
@@ -1150,9 +1170,9 @@
     function editExamSchedule(id, examData) {
         document.getElementById('exam_schedule_id_edit').value = id;
         
-        // Load subjects for the exam's section first
+        // Load curricula and subjects for the exam's section
         const sectionId = examData.section_id;
-        loadSubjectsForExamSection(sectionId, 'edit', examData);
+        loadCurriculaForEdit(sectionId, examData, 'exam_edit');
         
         // Set other fields immediately
         document.getElementById('exam_date_edit').value = examData.exam_date || '';
@@ -1343,89 +1363,171 @@
     function displayAIConflicts(conflicts, mode) {
         const suffix = mode === 'add' ? 'Add' : 'Edit';
         const conflictsContainer = document.getElementById('aiConflicts' + suffix);
+        const conflictsContainerMobile = document.getElementById('aiConflicts' + suffix + 'Mobile');
         const conflictsList = document.getElementById('aiConflictsList' + suffix);
+        const conflictsListMobile = document.getElementById('aiConflictsList' + suffix + 'Mobile');
         
-        conflictsList.innerHTML = '';
+        // Clear both desktop and mobile lists
+        if (conflictsList) conflictsList.innerHTML = '';
+        if (conflictsListMobile) conflictsListMobile.innerHTML = '';
         
         conflicts.forEach(conflict => {
-            const conflictDiv = document.createElement('div');
-            conflictDiv.className = 'p-2 bg-red-50 border border-red-200 rounded-lg text-sm';
-            conflictDiv.innerHTML = `
-                <div class="flex items-start space-x-2">
-                    <span class="text-red-600 font-semibold">${conflict.type.toUpperCase()}:</span>
-                    <div class="flex-1">
-                        <p class="text-red-800">${conflict.message}</p>
-                        <p class="text-red-600 text-xs mt-1">
-                            ${conflict.details.subject} • ${conflict.details.day} ${conflict.details.time}
-                        </p>
+            // Desktop version
+            if (conflictsList) {
+                const conflictDiv = document.createElement('div');
+                conflictDiv.className = 'p-2 bg-red-50 border border-red-200 rounded-lg text-sm';
+                conflictDiv.innerHTML = `
+                    <div class="flex items-start space-x-2">
+                        <span class="text-red-600 font-semibold">${conflict.type.toUpperCase()}:</span>
+                        <div class="flex-1">
+                            <p class="text-red-800">${conflict.message}</p>
+                            <p class="text-red-600 text-xs mt-1">
+                                ${conflict.details.subject} • ${conflict.details.day} ${conflict.details.time}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            `;
-            conflictsList.appendChild(conflictDiv);
+                `;
+                conflictsList.appendChild(conflictDiv);
+            }
+            
+            // Mobile version (more compact)
+            if (conflictsListMobile) {
+                const conflictDivMobile = document.createElement('div');
+                conflictDivMobile.className = 'p-2 bg-red-50 border border-red-200 rounded-lg';
+                conflictDivMobile.innerHTML = `
+                    <div class="flex items-start space-x-1.5">
+                        <span class="text-red-600 font-semibold text-[10px]">${conflict.type.toUpperCase()}:</span>
+                        <div class="flex-1">
+                            <p class="text-red-800 text-[10px]">${conflict.message}</p>
+                            <p class="text-red-600 text-[9px] mt-0.5">
+                                ${conflict.details.subject} • ${conflict.details.day} ${conflict.details.time}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                conflictsListMobile.appendChild(conflictDivMobile);
+            }
         });
         
-        conflictsContainer.classList.remove('hidden');
+        if (conflictsContainer) conflictsContainer.classList.remove('hidden');
+        if (conflictsContainerMobile) conflictsContainerMobile.classList.remove('hidden');
     }
     
     function displayAIRecommendations(recommendations, mode) {
         const suffix = mode === 'add' ? 'Add' : 'Edit';
         const recommendationsContainer = document.getElementById('aiRecommendations' + suffix);
+        const recommendationsContainerMobile = document.getElementById('aiRecommendations' + suffix + 'Mobile');
         const recommendationsList = document.getElementById('aiRecommendationsList' + suffix);
+        const recommendationsListMobile = document.getElementById('aiRecommendationsList' + suffix + 'Mobile');
         
-        recommendationsList.innerHTML = '';
+        // Clear both lists
+        if (recommendationsList) recommendationsList.innerHTML = '';
+        if (recommendationsListMobile) recommendationsListMobile.innerHTML = '';
         
         if (recommendations.length === 0) {
-            recommendationsContainer.classList.add('hidden');
+            if (recommendationsContainer) recommendationsContainer.classList.add('hidden');
+            if (recommendationsContainerMobile) recommendationsContainerMobile.classList.add('hidden');
             return;
         }
         
         recommendations.forEach(rec => {
-            const recDiv = document.createElement('div');
-            recDiv.className = 'p-3 bg-green-50 border border-green-200 rounded-lg';
-            
-            let optionsHTML = '';
-            
-            if (rec.type === 'time_slot') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'day') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyDay('${opt.day}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
-                        ${opt.day}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'room') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyRoom('${opt.room_id}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'faculty') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyFaculty('${opt.faculty_id}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
+            // Desktop version
+            if (recommendationsList) {
+                const recDiv = document.createElement('div');
+                recDiv.className = 'p-3 bg-green-50 border border-green-200 rounded-lg';
+                
+                let optionsHTML = '';
+                
+                if (rec.type === 'time_slot') {
+                    optionsHTML = rec.options.map(opt => 
+                        `<button type="button" onclick="applyTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" 
+                                class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.display}
+                        </button>`
+                    ).join('');
+                } else if (rec.type === 'day') {
+                    optionsHTML = rec.options.map(opt => 
+                        `<button type="button" onclick="applyDay('${opt.day}', '${mode}')" 
+                                class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.day}
+                        </button>`
+                    ).join('');
+                } else if (rec.type === 'room') {
+                    optionsHTML = rec.options.map(opt => 
+                        `<button type="button" onclick="applyRoom('${opt.room_id}', '${mode}')" 
+                                class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.display}
+                        </button>`
+                    ).join('');
+                } else if (rec.type === 'faculty') {
+                    optionsHTML = rec.options.map(opt => 
+                        `<button type="button" onclick="applyFaculty('${opt.faculty_id}', '${mode}')" 
+                                class="px-3 py-1 text-sm bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.display}
+                        </button>`
+                    ).join('');
+                }
+                
+                recDiv.innerHTML = `
+                    <h6 class="text-sm font-semibold text-green-800 mb-2">${rec.title}</h6>
+                    <div class="flex flex-wrap gap-2">
+                        ${optionsHTML}
+                    </div>
+                `;
+                
+                recommendationsList.appendChild(recDiv);
             }
             
-            recDiv.innerHTML = `
-                <h6 class="text-sm font-semibold text-green-800 mb-2">${rec.title}</h6>
-                <div class="flex flex-wrap gap-2">
-                    ${optionsHTML}
-                </div>
-            `;
-            
-            recommendationsList.appendChild(recDiv);
+            // Mobile version (more compact)
+            if (recommendationsListMobile) {
+                const recDivMobile = document.createElement('div');
+                recDivMobile.className = 'p-2 bg-green-50 border border-green-200 rounded-lg';
+                
+                let optionsHTMLMobile = '';
+                
+                if (rec.type === 'time_slot') {
+                    optionsHTMLMobile = rec.options.map(opt => 
+                        `<button type="button" onclick="applyTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" 
+                                class="px-2 py-1 text-[10px] bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.display}
+                        </button>`
+                    ).join('');
+                } else if (rec.type === 'day') {
+                    optionsHTMLMobile = rec.options.map(opt => 
+                        `<button type="button" onclick="applyDay('${opt.day}', '${mode}')" 
+                                class="px-2 py-1 text-[10px] bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.day}
+                        </button>`
+                    ).join('');
+                } else if (rec.type === 'room') {
+                    optionsHTMLMobile = rec.options.map(opt => 
+                        `<button type="button" onclick="applyRoom('${opt.room_id}', '${mode}')" 
+                                class="px-2 py-1 text-[10px] bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.display}
+                        </button>`
+                    ).join('');
+                } else if (rec.type === 'faculty') {
+                    optionsHTMLMobile = rec.options.map(opt => 
+                        `<button type="button" onclick="applyFaculty('${opt.faculty_id}', '${mode}')" 
+                                class="px-2 py-1 text-[10px] bg-white border border-green-300 rounded hover:bg-green-100 transition-colors">
+                            ${opt.display}
+                        </button>`
+                    ).join('');
+                }
+                
+                recDivMobile.innerHTML = `
+                    <h6 class="text-[10px] font-semibold text-green-800 mb-1.5">${rec.title}</h6>
+                    <div class="flex flex-wrap gap-1.5">
+                        ${optionsHTMLMobile}
+                    </div>
+                `;
+                
+                recommendationsListMobile.appendChild(recDivMobile);
+            }
         });
         
-        recommendationsContainer.classList.remove('hidden');
+        if (recommendationsContainer) recommendationsContainer.classList.remove('hidden');
+        if (recommendationsContainerMobile) recommendationsContainerMobile.classList.remove('hidden');
     }
     
     function applyTimeSlot(startTime, endTime, mode) {
