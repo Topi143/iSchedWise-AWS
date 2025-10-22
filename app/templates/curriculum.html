@@ -60,6 +60,8 @@
         #curriculum-container .master-panel {
             display: flex;
             flex-direction: column;
+            max-height: none !important; /* Remove height restriction on mobile */
+            height: 100%;
         }
         
         #curriculum-container .detail-panel {
@@ -68,17 +70,25 @@
         
         /* When mobile detail view is active, hide master and show detail */
         #curriculum-container.mobile-detail-view .master-panel {
-            display: none;
+            display: none !important;
         }
         
         #curriculum-container.mobile-detail-view .detail-panel {
-            display: flex;
+            display: flex !important;
             flex-direction: column;
+            height: 100%;
         }
         
         /* Mobile back button - only visible on mobile */
         .mobile-back-btn {
             display: block;
+        }
+        
+        /* Ensure curriculum container fills available space on mobile */
+        #curriculum-container {
+            min-height: 0;
+            flex: 1;
+            overflow: hidden;
         }
     }
     
@@ -145,6 +155,12 @@
             max-height: 100vh;
             height: 100vh;
             border-radius: 0;
+        }
+        
+        /* Ensure detail panel scrolls properly on mobile */
+        .detail-panel {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
         }
     }
     
@@ -312,8 +328,8 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col p-3 sm:p-4">
-    <div class="w-full flex flex-col h-full overflow-hidden">
+<div class="bg-gray-50 min-h-screen lg:h-screen flex flex-col p-3 sm:p-4">
+    <div class="w-full flex flex-col flex-1 overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -349,7 +365,7 @@
         <div class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-3" id="curriculum-container">
             {% if curricula %}
             <!-- Left Panel: Curriculum List -->
-            <div class="master-panel left-sidebar w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-96 lg:max-h-none">
+            <div class="master-panel left-sidebar w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col lg:max-h-none">
                 <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
                     <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-2 sm:mb-3">
                         <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1417,6 +1433,7 @@
             const container = document.getElementById('curriculum-container');
             if (container && window.innerWidth <= 768) {
                 container.classList.add('mobile-detail-view');
+                console.log('📱 Mobile: Showing detail view');
             }
         }
         
@@ -1428,7 +1445,12 @@
         
         // Check if we have a selected curriculum and show detail view on mobile
         const selectedCurriculumId = new URLSearchParams(window.location.search).get('curriculum_id');
-        if (selectedCurriculumId && window.innerWidth <= 768) {
+        const isMobile = window.innerWidth <= 768;
+        
+        console.log('📱 Page load - Mobile:', isMobile, 'Selected curriculum:', selectedCurriculumId);
+        
+        if (selectedCurriculumId && isMobile) {
+            // Automatically show detail view on mobile when curriculum is selected
             handleMobileSelection();
         }
         
