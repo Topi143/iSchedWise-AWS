@@ -471,6 +471,27 @@ sudo systemctl restart ischedwise
 
 ## Troubleshooting
 
+### Issue: Git Pull Fails with "Dubious Ownership"
+```bash
+# Error: fatal: detected dubious ownership in repository at '/var/www/ischedwise'
+
+# Solution 1: Add safe directory (Recommended)
+git config --global --add safe.directory /var/www/ischedwise
+
+# Then try again
+git pull origin main
+
+# Solution 2: Fix ownership permanently
+sudo chown -R ubuntu:ubuntu /var/www/ischedwise
+
+# Then try again
+git pull origin main
+
+# Verify ownership is correct
+ls -la /var/www/ischedwise
+# Should show: drwxr-xr-x ubuntu ubuntu
+```
+
 ### Issue: Git Pull Fails with "Conflict"
 ```bash
 # View conflicting files
