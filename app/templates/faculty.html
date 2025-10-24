@@ -4,45 +4,76 @@
 
 {% block extra_css %}
 <style>
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with settings */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 3px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
+    }
+    
+    /* Card Styles - Consistent with settings */
+    .faculty-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .faculty-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     
     /* Faculty List Item Styles */
     .faculty-list-item {
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        border-left: 3px solid transparent;
     }
     
     .faculty-list-item:hover {
-        background: #f8fafc;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+        transform: translateX(2px);
     }
     
     .faculty-list-item.selected {
-        background: #eff6ff;
-        border-left: 3px solid #3b82f6;
-        border-bottom: none;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-left: 3px solid #2563eb;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
     }
     
     .faculty-list-item.selected:hover {
-        background: #dbeafe;
+        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
     }
     
     .subject-row {
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* Toast Notifications */
+    .subject-row:hover {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%);
+        transform: translateX(2px);
+    }
+    
+    /* Button Styles - Consistent with base */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    }
+    
+    /* Toast Notifications - Enhanced design */
     .toast-container {
         position: fixed;
         top: 1rem;
@@ -59,15 +90,16 @@
         align-items: center;
         padding: 1rem;
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         transform: translateX(400px);
-        animation: slideIn 0.3s ease forwards;
+        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         min-width: 300px;
+        border: 1px solid #e5e7eb;
     }
     
     .toast.removing {
-        animation: slideOut 0.3s ease forwards;
+        animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
     
     @keyframes slideIn {
@@ -85,14 +117,17 @@
     
     .toast-success {
         border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
     }
     
     .toast-error {
         border-left: 4px solid #ef4444;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
     }
     
     .toast-info {
         border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
     }
     
     .toast-progress {
@@ -103,6 +138,7 @@
         background: currentColor;
         opacity: 0.3;
         animation: progress 5s linear forwards;
+        border-radius: 0 0 0.75rem 0.75rem;
     }
     
     @keyframes progress {
@@ -227,6 +263,11 @@
     
     /* Mobile optimizations */
     @media (max-width: 640px) {
+        /* Ultra-compact mobile layout */
+        .bg-gray-50 {
+            padding: 0.5rem !important;
+        }
+        
         /* Compact faculty list items */
         .faculty-list-item {
             padding: 0.75rem !important;
@@ -236,16 +277,108 @@
         .faculty-list-item .flex.items-center.gap-2 {
             flex-wrap: wrap;
         }
+        
+        .faculty-card {
+            padding: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
     }
     
     /* Disable hover effects on touch devices */
     @media (hover: none) {
         .faculty-list-item:hover {
             background: inherit;
+            transform: none;
         }
         
         .faculty-list-item.selected:hover {
-            background: #eff6ff;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+        
+        .subject-row:hover {
+            background: inherit;
+            transform: none;
+        }
+    }
+    
+    /* Mobile Modal Optimizations */
+    @media (max-width: 640px) {
+        #assignSubjectModal .bg-white.rounded-xl {
+            max-height: 100vh !important;
+            height: 100vh !important;
+            border-radius: 0 !important;
+        }
+        
+        /* Make modal full screen on mobile */
+        #assignSubjectModal {
+            padding: 0 !important;
+        }
+        
+        /* Compact header on mobile */
+        #assignSubjectModal .bg-gradient-to-r {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        /* Compact faculty info */
+        #assignSubjectModal .bg-white.border-b {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        /* Compact search bar */
+        #assignSubjectModal .px-4.py-3 {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        /* Adjust subject list padding */
+        #subject_list_container {
+            padding: 0.75rem !important;
+        }
+        
+        #subject_list {
+            gap: 0.5rem !important;
+        }
+        
+        /* More compact subject items */
+        .subject-item {
+            padding: 0.75rem !important;
+        }
+        
+        /* Hide selected subjects panel on mobile, show as bottom sheet instead */
+        #selected_subjects_section {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-height: 40vh !important;
+            border-left: none !important;
+            border-top: 2px solid #10b981 !important;
+            border-radius: 1rem 1rem 0 0 !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+            z-index: 10 !important;
+        }
+        
+        /* Adjust selected list height on mobile */
+        #selected_subjects_list {
+            max-height: calc(40vh - 140px) !important;
+            padding: 0.75rem !important;
+        }
+        
+        /* Hide sidebar when empty on mobile */
+        #selected_subjects_section.empty-mobile {
+            transform: translateY(100%) !important;
+            transition: transform 0.3s ease !important;
+        }
+    }
+    
+    /* Tablet Modal Optimizations */
+    @media (min-width: 641px) and (max-width: 1024px) {
+        #assignSubjectModal .bg-white.rounded-xl {
+            max-width: 95vw !important;
+        }
+        
+        #selected_subjects_section {
+            width: 280px !important;
         }
     }
 </style>
@@ -255,7 +388,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col p-3 sm:p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -269,44 +402,40 @@
         {% endwith %}
 
         <!-- Page Header -->
-        <div class="mb-3 flex-shrink-0 animate-slide-in">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="page-header-icon w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
-                            Faculty Management
-                            <span class="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ faculties|length }}</span>
-                            <span class="text-xs sm:text-sm font-normal text-gray-600 bg-green-50 px-2 sm:px-3 py-1 rounded-full border border-green-200">
-                                {{ active_settings.academic_year }} • {{ active_settings.semester }}
-                            </span>
-                        </h1>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Manage faculty members and their subject assignments for the current academic period</p>
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Faculty Management</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Manage faculty members and their subject assignments</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Two Panel Layout -->
-        <div id="faculty-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-3">
+        <div id="faculty-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 sm:gap-3">
             {% if faculties %}
             <!-- Master Panel: Faculty List -->
-            <div class="master-panel faculty-list-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col left-sidebar">
+            <div class="master-panel faculty-list-panel w-full lg:w-80 flex-shrink-0 faculty-card overflow-hidden flex flex-col left-sidebar">
                 <div class="bg-white p-3 sm:p-4 flex-shrink-0 border-b border-gray-200">
                     <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-3">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                        Faculty
-                        <span id="faculty-count-badge" class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ faculties|length }}</span>
+                        <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-sm sm:text-base">Faculty</span>
+                        <span id="faculty-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ faculties|length }}</span>
                     </h3>
-                    <button onclick="openAddFacultyModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-xs sm:text-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    <button onclick="openAddFacultyModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                         Add Faculty
                     </button>
@@ -366,40 +495,40 @@
             </div>
 
             <!-- Detail Panel: Faculty Details -->
-            <div class="detail-panel faculty-detail-panel flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" id="facultyDetailPanel">
-                <!-- Header - Always Visible -->
-                <div class="bg-white px-3 py-2.5 flex-shrink-0 border-b border-gray-200">
+            <div class="detail-panel faculty-detail-panel flex-1 faculty-card overflow-hidden flex flex-col" id="facultyDetailPanel">
+                <!-- Mobile Back Button -->
+                <button onclick="closeMobileDetailView()" class="mobile-back-btn w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    <span>Back to Faculty</span>
+                </button>
+                
+                <!-- Header: Always visible -->
+                <div class="bg-white p-2 sm:p-3 flex-shrink-0 border-b border-gray-200">
                     {% if selected_faculty %}
                     <div class="flex items-center justify-between gap-2">
-                        <!-- Mobile Back Button -->
-                        <button onclick="closeMobileDetailView()" class="mobile-back-btn hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0" aria-label="Back to list">
-                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                            </svg>
-                        </button>
-                        
                         <div class="flex-1 min-w-0">
                             <h3 class="text-sm sm:text-base font-bold text-gray-900 truncate">{{ selected_faculty.full_name }}</h3>
                             {% if selected_faculty.department %}
-                            <p class="text-xs text-gray-600 truncate">{{ selected_faculty.department.department_name }}</p>
+                            <p class="text-xs sm:text-sm text-gray-600 truncate">{{ selected_faculty.department.department_name }}</p>
+                            {% else %}
+                            <p class="text-xs sm:text-sm text-gray-600 truncate">No Department</p>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                            <button onclick="openAssignSubjectModal({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" 
-                                    class="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
-                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                            <button onclick="openAssignSubjectModal({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" class="p-1.5 sm:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
                             </button>
-                            <button onclick="editFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}', {{ selected_faculty.department_id or 'null' }})" 
-                                    class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Faculty">
-                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="editFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}', {{ selected_faculty.department_id or 'null' }})" class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Faculty">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
-                            <button onclick="archiveFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" 
-                                    class="p-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Faculty">
-                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="archiveFaculty({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" class="p-1.5 sm:p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Faculty">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                 </svg>
                             </button>
@@ -407,23 +536,16 @@
                     </div>
                     {% else %}
                     <div class="flex items-center justify-between gap-2">
-                        <!-- Mobile Back Button (hidden when no faculty selected) -->
-                        <button onclick="closeMobileDetailView()" class="mobile-back-btn hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0" aria-label="Back to list">
-                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                            </svg>
-                        </button>
-                        
                         <div class="flex-1 min-w-0">
                             <h3 class="text-sm sm:text-base font-bold text-gray-900">Faculty Details</h3>
-                            <p class="text-xs text-gray-600">Select a faculty member to view details</p>
+                            <p class="text-xs sm:text-sm text-gray-600">Select a faculty member to view details</p>
                         </div>
                     </div>
                     {% endif %}
                 </div>
 
                 <!-- Content Area -->
-                <div class="flex-1 overflow-y-auto {% if not selected_faculty %}p-6 bg-gray-50{% else %}p-3{% endif %}">
+                <div class="flex-1 overflow-y-auto {% if not selected_faculty %}p-6 sm:p-8 bg-gray-50{% else %}p-3 sm:p-4{% endif %}">
                     {% if selected_faculty %}
                         <!-- Workload Summary Card -->
                         {% if selected_faculty.id in faculty_workloads %}
@@ -551,21 +673,17 @@
             {% else %}
             <!-- Empty State: No Faculty Members -->
             <!-- Left Panel: Empty List -->
-            <div class="faculty-list-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+            <div class="faculty-list-panel w-full lg:w-80 flex-shrink-0 faculty-card overflow-hidden flex flex-col">
                 <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
-                    <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
-                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                        Faculty
+                    <h3 class="text-base font-bold text-gray-900 flex items-center">
+                        <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <span>Faculty</span>
                         <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
                     </h3>
-                    <button onclick="openAddFacultyModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        Add Faculty
-                    </button>
                 </div>
                 
                 <div class="h-full flex items-center justify-center p-8 bg-gray-50">
@@ -575,25 +693,29 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
-                        <p class="text-sm font-bold text-gray-800">No faculty members yet</p>
-                        <p class="text-sm text-gray-500 mt-1">Click the button above to add your first faculty member</p>
+                        <p class="text-sm text-gray-600 mb-4">No faculty yet</p>
+                        <button onclick="openAddFacultyModal()" class="btn-primary inline-flex items-center px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Faculty
+                        </button>
                     </div>
                 </div>
             </div>
 
             <!-- Right Panel: Getting Started -->
-            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
+            <div class="flex-1 faculty-card overflow-hidden flex flex-col">
+                <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
                             <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
-                            <p class="text-sm text-gray-600">Create your first faculty member</p>
+                            <p class="text-sm text-gray-600">Add your first faculty member to begin</p>
                         </div>
                     </div>
                 </div>
-                
                 <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center max-w-md">
+                    <div class="text-center max-w-md px-8">
                         <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                             <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -602,7 +724,7 @@
                         <h3 class="text-2xl font-bold text-gray-900 mb-3">No Faculty Members Yet</h3>
                         <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by adding your first faculty member. Faculty members can be assigned to subjects for scheduling.</p>
                         
-                        <button onclick="openAddFacultyModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm">
+                        <button onclick="openAddFacultyModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-sm">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
@@ -745,23 +867,26 @@
 </div>
 
 <!-- Assign Subject Modal -->
-<div id="assignSubjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col">
+<div id="assignSubjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-0 sm:p-3 md:p-4">
+    <div class="bg-white rounded-none sm:rounded-xl shadow-2xl w-full max-w-7xl h-full sm:h-auto sm:max-h-[95vh] overflow-hidden border-0 sm:border border-gray-100 flex flex-col">
         <!-- Compact Header -->
-        <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
                 </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white">Assign Subjects to Faculty</h3>
+                <div class="hidden sm:block">
+                    <h3 class="text-base sm:text-lg font-bold text-white">Assign Subjects to Faculty</h3>
                     <p class="text-xs text-blue-100">Click subjects to select, then assign</p>
                 </div>
+                <div class="block sm:hidden">
+                    <h3 class="text-sm font-bold text-white">Assign Subjects</h3>
+                </div>
             </div>
-            <button onclick="closeAssignSubjectModal()" class="text-white hover:bg-white hover:bg-opacity-10 p-2 rounded-lg transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="closeAssignSubjectModal()" class="text-white hover:bg-white hover:bg-opacity-10 p-1.5 sm:p-2 rounded-lg transition-all">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
@@ -776,43 +901,43 @@
                 <!-- Left Panel: Faculty Info & Subject List -->
                 <div class="flex-1 flex flex-col bg-gray-50 overflow-hidden">
                     <!-- Faculty Info -->
-                    <div class="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between flex-shrink-0">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-white border-b border-gray-200 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between flex-shrink-0">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
                             </div>
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-xs text-gray-500">Assigning to</p>
-                                <p class="font-bold text-gray-900 text-sm" id="faculty_name_display"></p>
+                                <p class="font-bold text-gray-900 text-xs sm:text-sm truncate" id="faculty_name_display"></p>
                             </div>
                         </div>
-                        <div class="text-right bg-gradient-to-br from-purple-50 to-blue-50 px-2.5 py-1 rounded-lg border border-purple-200">
+                        <div class="text-right bg-gradient-to-br from-purple-50 to-blue-50 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-purple-200">
                             <p class="text-xs font-bold text-purple-700">{{ active_settings.academic_year }}</p>
-                            <p class="text-xs text-gray-600">{{ active_settings.semester }}</p>
+                            <p class="text-xs text-gray-600 hidden sm:block">{{ active_settings.semester }}</p>
                         </div>
                     </div>
                     
                     <!-- Search Bar -->
-                    <div class="px-3 py-2 bg-white border-b border-gray-200 flex-shrink-0">
+                    <div class="px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200 flex-shrink-0">
                         <div class="relative">
                             <input type="text" id="subject_search" 
-                                   class="w-full px-3 py-2 pl-9 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                                   class="w-full px-3 py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
                                    placeholder="Search subjects..."
                                    autocomplete="off">
-                            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-2.5 sm:top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
                     </div>
                     
                     <!-- Subject List -->
-                    <div id="subject_list_container" class="flex-1 overflow-y-auto p-2">
-                        <div id="subject_list" class="space-y-1.5">
+                    <div id="subject_list_container" class="flex-1 overflow-y-auto p-2 sm:p-3">
+                        <div id="subject_list" class="space-y-1.5 sm:space-y-2 pb-32 sm:pb-0">
                             <!-- Subject items will be populated by JavaScript -->
                         </div>
-                        <div id="no_subjects_found" class="hidden flex flex-col items-center justify-center py-12">
+                        <div id="no_subjects_found" class="hidden flex flex-col items-center justify-center py-16">
                             <svg class="w-16 h-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
@@ -826,13 +951,13 @@
                 </div>
                 
                 <!-- Right Panel: Selected Subjects Sidebar -->
-                <div id="selected_subjects_section" class="w-72 bg-gradient-to-b from-green-50 to-emerald-50 border-l-2 border-green-300 flex flex-col hidden">
+                <div id="selected_subjects_section" class="w-full sm:w-80 bg-gradient-to-b from-green-50 to-emerald-50 border-l-0 sm:border-l-2 border-green-300 flex flex-col">
                     <!-- Sidebar Header -->
-                    <div class="bg-gradient-to-br from-green-500 to-emerald-600 px-3 py-2 flex-shrink-0">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-7 h-7 bg-white bg-opacity-25 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <div class="bg-gradient-to-br from-green-500 to-emerald-600 px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
+                        <div class="flex items-center justify-between mb-2.5">
+                            <div class="flex items-center gap-1.5 sm:gap-2">
+                                <div class="w-7 h-7 sm:w-8 sm:h-8 bg-white bg-opacity-25 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                     </svg>
                                 </div>
@@ -842,28 +967,28 @@
                                 </div>
                             </div>
                             <button type="button" onclick="clearAllSubjects()" 
-                                    class="text-white hover:bg-white hover:bg-opacity-20 p-1.5 rounded-lg transition-all">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
                             </button>
                         </div>
                         <!-- Total Units -->
-                        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-2 py-1.5 flex items-center justify-between">
-                            <span class="text-xs font-medium text-white">Total Units:</span>
-                            <span id="selected_units_total" class="text-base font-bold text-white">0</span>
+                        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between">
+                            <span class="text-xs sm:text-sm font-medium text-white">Total Units:</span>
+                            <span id="selected_units_total" class="text-base sm:text-lg font-bold text-white">0</span>
                         </div>
                     </div>
                     
                     <!-- Selected List -->
-                    <div id="selected_subjects_list" class="flex-1 overflow-y-auto p-2 space-y-1.5">
+                    <div id="selected_subjects_list" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-1.5 sm:space-y-2">
                         <!-- Selected subjects will appear here -->
                     </div>
                     
                     <!-- Sidebar Footer -->
-                    <div class="bg-white border-t-2 border-green-300 p-2 flex-shrink-0">
+                    <div class="bg-white border-t-2 border-green-300 p-2 sm:p-3 flex-shrink-0">
                         <button type="submit" id="assignSubjectsBtn" disabled
-                                class="w-full py-2 px-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 text-sm">
+                                class="w-full py-2 sm:py-2.5 px-3 sm:px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
@@ -1222,26 +1347,26 @@
             const isDisabled = isAssigned;
             
             return `
-            <div class="subject-item p-2 rounded-lg bg-white border border-gray-200 ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}" 
+            <div class="subject-item p-2 sm:p-3 rounded-lg bg-white border border-gray-200 shadow-sm ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}" 
                  onclick="${isDisabled ? '' : `toggleSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', ${subject.units})`}"
                  style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'}">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 sm:gap-3">
                     <!-- Checkbox/Status Icon -->
                     <div class="flex-shrink-0 subject-checkbox ${isDisabled ? 'disabled' : ''}">
                         ${isAssigned ? `
-                            <div class="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center">
-                                <svg class="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
                         ` : isSelected ? `
-                            <div class="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
-                                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
                         ` : `
-                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-green-500 transition-colors"></div>
+                            <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-gray-300 hover:border-green-500 transition-colors"></div>
                         `}
                     </div>
                     
@@ -1249,15 +1374,15 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-1.5 mb-0.5">
-                                    <h4 class="font-bold text-gray-900 text-sm">${subject.code}</h4>
+                                <div class="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                                    <h4 class="font-bold text-gray-900 text-xs sm:text-sm">${subject.code}</h4>
                                     ${isAssigned ? `
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                        <span class="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
                                             Assigned
                                         </span>
                                     ` : ''}
                                 </div>
-                                <p class="text-xs text-gray-700 mb-1 leading-tight truncate">${subject.name}</p>
+                                <p class="text-xs text-gray-700 mb-1 sm:mb-1.5 leading-tight truncate">${subject.name}</p>
                                 <div class="flex items-center gap-1 flex-wrap">
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700">
                                         ${subject.curriculum}
@@ -1333,16 +1458,30 @@
         const unitsTotal = document.getElementById('selected_units_total');
         
         if (selectedSubjects.size === 0) {
-            section.classList.add('hidden');
+            // Show empty state in the panel instead of hiding it
             assignBtn.disabled = true;
             count.textContent = '0';
             btnCount.textContent = '0';
             unitsTotal.textContent = '0';
             dataContainer.innerHTML = '';
+            
+            // Display empty state message
+            list.innerHTML = `
+                <div class="h-full flex items-center justify-center p-4 sm:p-6">
+                    <div class="text-center">
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </div>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-700 mb-1">No subjects selected</p>
+                        <p class="text-xs text-gray-500 hidden sm:block">Click subjects from the list to add them here</p>
+                    </div>
+                </div>
+            `;
             return;
         }
         
-        section.classList.remove('hidden');
         assignBtn.disabled = false;
         count.textContent = selectedSubjects.size;
         btnCount.textContent = selectedSubjects.size;
@@ -1359,26 +1498,27 @@
         
         // Render selected subjects
         list.innerHTML = selectedArray.map(subject => `
-            <div class="selected-subject-card group flex items-center gap-2 p-2 bg-white rounded-lg border border-green-300 hover:border-green-400 hover:shadow-sm transition-all">
+            <div class="selected-subject-card group flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 bg-white rounded-lg border border-green-300 hover:border-green-400 hover:shadow-md transition-all">
                 <div class="flex-shrink-0">
-                    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5">
-                        <span class="font-bold text-xs text-gray-900">${subject.code}</span>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-700">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <span class="font-bold text-xs sm:text-sm text-gray-900">${subject.code}</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded text-xs font-semibold bg-purple-100 text-purple-700">
                             ${subject.units}
                         </span>
                     </div>
+                    <p class="text-xs text-gray-600 truncate mt-0.5 hidden sm:block">${subject.name}</p>
                 </div>
                 <button type="button" onclick="event.stopPropagation(); toggleSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', ${subject.units})" 
-                        class="flex-shrink-0 w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                        class="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
                         title="Remove ${subject.code}">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>

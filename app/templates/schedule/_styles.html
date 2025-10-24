@@ -1,24 +1,44 @@
 <style>
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with base.html and settings.html */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: rgba(203, 213, 225, 0.5);
-        border-radius: 3px;
+        background: #d1d5db;
+        border-radius: 4px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
+    }
+    
+    /* Card Styles - Consistent with settings design */
+    .schedule-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .schedule-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .card-hover {
+        transition: all 0.2s ease;
+    }
+    
+    .card-hover:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     
     /* Unified List Item Styles (Section, Faculty, Room) */
     .section-list-item,
     .faculty-list-item,
     .room-list-item {
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         border-left: 3px solid transparent;
     }
@@ -26,31 +46,36 @@
     .section-list-item:hover,
     .faculty-list-item:hover,
     .room-list-item:hover {
-        background: #f8fafc;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+        transform: translateX(2px);
     }
     
     .section-list-item.selected {
-        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        border-left: 3px solid #3b82f6;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-left: 3px solid #2563eb;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
     }
     
     .faculty-list-item.selected {
         background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
         border-left: 3px solid #2563eb;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
     }
     
     .room-list-item.selected {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
         border-left: 3px solid #10b981;
+        box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
     }
     
-    /* Table Styles */
+    /* Table Styles - Enhanced consistency */
     .schedule-row {
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .schedule-row:hover {
-        background-color: #f9fafb !important;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%) !important;
+        transform: translateX(2px);
     }
     
     /* Consistent table styling */
@@ -61,7 +86,7 @@
     }
     
     table thead {
-        background-color: #f9fafb;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border-bottom: 2px solid #e5e7eb;
         position: sticky;
         top: 0;
@@ -75,8 +100,9 @@
         padding: 12px 16px;
         text-align: left;
         white-space: nowrap;
-        background-color: #f9fafb;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border-bottom: 2px solid #e5e7eb;
+        color: #64748b;
     }
     
     table th:last-child {
@@ -86,6 +112,7 @@
     table tbody tr {
         border-bottom: 1px solid #e5e7eb;
         background-color: white;
+        transition: all 0.2s ease;
     }
     
     table tbody tr:last-child {
@@ -102,30 +129,30 @@
         overflow-x: auto;
         overflow-y: auto;
         max-height: calc(100vh - 280px);
-        border-radius: 0.5rem;
+        border-radius: 0.75rem;
     }
     
     /* Scrollbar styling for table container */
     .table-container::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 5px;
+        height: 5px;
     }
     
     .table-container::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: transparent;
         border-radius: 4px;
     }
     
     .table-container::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 4px;
     }
     
     .table-container::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
     }
     
-    /* Toast Notifications */
+    /* Toast Notifications - Enhanced design */
     .toast-container {
         position: fixed;
         top: 1rem;
@@ -142,15 +169,16 @@
         align-items: center;
         padding: 1rem;
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         transform: translateX(400px);
-        animation: slideIn 0.3s ease forwards;
+        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         min-width: 300px;
+        border: 1px solid #e5e7eb;
     }
     
     .toast.removing {
-        animation: slideOut 0.3s ease forwards;
+        animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
     
     @keyframes slideIn {
@@ -166,9 +194,18 @@
         }
     }
     
-    .toast-success { border-left: 4px solid #10b981; }
-    .toast-error { border-left: 4px solid #ef4444; }
-    .toast-info { border-left: 4px solid #3b82f6; }
+    .toast-success { 
+        border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+    }
+    .toast-error { 
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    }
+    .toast-info { 
+        border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    }
     
     .toast-progress {
         position: absolute;
@@ -178,6 +215,7 @@
         background: currentColor;
         opacity: 0.3;
         animation: progress 5s linear forwards;
+        border-radius: 0 0 0.75rem 0.75rem;
     }
     
     @keyframes progress {
@@ -203,23 +241,26 @@
     .day-saturday { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #6b21a8; border: 1px solid #d8b4fe; }
     .day-sunday { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b; border: 1px solid #fca5a5; }
     
-    /* Tab Styles */
+    /* Tab Styles - Consistent with settings */
     .tab-button {
-        color: #6b7280;
+        color: #64748b;
         background: transparent;
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
     }
     
     .tab-button:hover {
-        color: #374151;
-        background: #f3f4f6;
+        color: #1e40af;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+        transform: translateY(-1px);
     }
     
     .tab-button.active {
-        color: #2563eb;
-        background: #eff6ff;
+        color: #1e40af;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
         font-weight: 600;
-        border: 1px solid #bfdbfe;
+        border: 1px solid #93c5fd;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
     }
     
     .tab-content {
@@ -230,7 +271,7 @@
         display: flex !important;
     }
     
-    /* Calendar View Styles */
+    /* Calendar View Styles - Enhanced */
     .calendar-grid {
         width: 100%;
         font-size: 0.75rem;
@@ -241,22 +282,22 @@
     
     /* Scrollbar styling for calendar grid */
     .calendar-grid::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 5px;
+        height: 5px;
     }
     
     .calendar-grid::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: transparent;
         border-radius: 4px;
     }
     
     .calendar-grid::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 4px;
     }
     
     .calendar-grid::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
     }
     
     .calendar-grid > div {
@@ -296,14 +337,15 @@
         height: 0.7rem;
     }
     
-    /* Schedule card hover effects */
+    /* Schedule card hover effects - Enhanced */
     .calendar-grid .absolute {
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .calendar-grid .absolute:hover {
         z-index: 10;
         transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     
     /* View toggle button styles */
@@ -496,21 +538,27 @@
     
     /* Small mobile devices (portrait phones) */
     @media (max-width: 480px) {
-        /* Even more compact spacing */
-        .bg-white.p-4 {
+        /* Even more compact spacing - only target schedule content, not sidebar */
+        .tab-content .bg-white.p-4,
+        #scheduleContainer .bg-white.p-4 {
             padding: 0.75rem;
         }
         
-        /* Stack buttons vertically in detail header */
-        .flex.items-center.justify-between > .flex.gap-2,
-        .flex.items-center.justify-between > .flex.items-center.gap-2 {
+        /* Stack buttons vertically in detail header - only target schedule content */
+        .tab-content .flex.items-center.justify-between > .flex.gap-2,
+        .tab-content .flex.items-center.justify-between > .flex.items-center.gap-2,
+        #scheduleContainer .flex.items-center.justify-between > .flex.gap-2,
+        #scheduleContainer .flex.items-center.justify-between > .flex.items-center.gap-2 {
             flex-direction: column;
             align-items: stretch;
             width: 100%;
         }
         
-        .flex.gap-2 > *,
-        .flex.items-center.gap-2 > * {
+        /* Full width for button containers - only target schedule content */
+        .tab-content .flex.gap-2 > *,
+        .tab-content .flex.items-center.gap-2 > *,
+        #scheduleContainer .flex.gap-2 > *,
+        #scheduleContainer .flex.items-center.gap-2 > * {
             width: 100%;
         }
         

@@ -41,11 +41,19 @@ class UserActivityLog(db.Model):
             ip_address: User's IP address (optional)
             user_agent: User's browser/client info (optional)
         """
-        # Convert details to JSON string if it's a dict
-        if isinstance(details, dict):
-            details = json.dumps(details)
-        elif details is not None and not isinstance(details, str):
-            details = str(details)
+        # Details should already be formatted as string by activity_logger
+        # Only convert to string if it's not already a string
+        if details is not None and not isinstance(details, str):
+            if isinstance(details, dict):
+                # Format dict as readable string
+                detail_parts = []
+                for key, value in details.items():
+                    if value is not None and value != '':
+                        readable_key = key.replace('_', ' ').title()
+                        detail_parts.append(f"{readable_key}: {value}")
+                details = " | ".join(detail_parts) if detail_parts else None
+            else:
+                details = str(details)
             
         log = UserActivityLog(
             user_id=user_id,
@@ -63,13 +71,25 @@ class UserActivityLog(db.Model):
     
     def to_dict(self):
         """Convert activity log to dictionary"""
-        # Parse JSON details if it's a JSON string
-        details_parsed = self.details
+        # Keep details as string for display
+        # If it's stored as JSON, try to format it nicely
+        details_formatted = self.details
         if self.details:
             try:
-                details_parsed = json.loads(self.details)
+                # Try to parse as JSON and format it
+                details_dict = json.loads(self.details)
+                if isinstance(details_dict, dict):
+                    detail_parts = []
+                    for key, value in details_dict.items():
+                        if value is not None and value != '':
+                            readable_key = key.replace('_', ' ').title()
+                            detail_parts.append(f"{readable_key}: {value}")
+                    details_formatted = " | ".join(detail_parts) if detail_parts else self.details
+                else:
+                    details_formatted = self.details
             except (json.JSONDecodeError, TypeError):
-                details_parsed = self.details
+                # Not JSON, keep as is
+                details_formatted = self.details
         
         return {
             'id': self.id,
@@ -80,7 +100,7 @@ class UserActivityLog(db.Model):
             'entity_type': self.entity_type,
             'entity_id': self.entity_id,
             'entity_name': self.entity_name,
-            'details': details_parsed,
+            'details': details_formatted,  # Always return as string
             'ip_address': self.ip_address,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }

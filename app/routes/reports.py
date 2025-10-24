@@ -1045,12 +1045,18 @@ def get_user_activity():
     try:
         # Get pagination parameters
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
         
-        # Get filter parameters
+        # Get filter parameters - handle empty strings as None
         filter_user = request.args.get('user_id', type=int)
         filter_action = request.args.get('action', type=str)
         filter_entity = request.args.get('entity_type', type=str)
+        
+        # Convert empty strings to None
+        if filter_action == '':
+            filter_action = None
+        if filter_entity == '':
+            filter_entity = None
         
         # Build query
         query = UserActivityLog.query

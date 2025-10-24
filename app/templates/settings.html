@@ -4,19 +4,77 @@
 
 {% block extra_css %}
 <style>
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with base.html */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 3px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
+    }
+    
+    /* Card Styles - Consistent with base design */
+    .settings-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .settings-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Status Badge - Consistent with sidebar badges */
+    .status-badge {
+        background: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    
+    .status-badge.active {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #86efac;
+    }
+    
+    .status-badge.inactive {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+    }
+    
+    /* Form Elements - Enhanced */
+    input[type="text"],
+    select {
+        transition: all 0.2s ease;
+    }
+    
+    input[type="text"]:focus,
+    select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    /* Button Styles - Consistent with base */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
     }
     
     /* Mobile Responsive Styles */
@@ -35,60 +93,226 @@
         }
     }
     
-    @media (max-width: 768px) {
-        /* Compact padding on mobile */
-        .mobile-compact {
-            padding: 0.75rem !important;
-        }
-        
-        /* Stack form inputs vertically on mobile */
-        .form-grid {
-            grid-template-columns: 1fr !important;
-        }
-        
-        /* Reduce font sizes on mobile */
-        .mobile-text-sm {
-            font-size: 0.875rem;
-        }
-        
-        .mobile-text-xs {
-            font-size: 0.75rem;
-        }
-        
-        /* Adjust icon sizes */
-        .mobile-icon-sm {
-            width: 1rem;
-            height: 1rem;
-        }
-        
-        /* Make touch targets larger */
-        button, select, input {
-            min-height: 44px;
-        }
-    }
-    
     @media (max-width: 640px) {
-        /* Extra compact for small phones */
-        .mobile-p-2 {
+        /* Ultra-compact mobile layout */
+        .bg-gray-50 {
             padding: 0.5rem !important;
         }
         
-        .mobile-gap-2 {
-            gap: 0.5rem !important;
-        }
-        
-        .mobile-mb-2 {
+        /* Compact all cards */
+        .settings-card {
+            padding: 0.75rem !important;
             margin-bottom: 0.5rem !important;
         }
         
-        /* Smaller badges and cards */
-        .stat-card {
-            padding: 0.5rem !important;
+        /* Page header compact */
+        .page-header {
+            padding: 0.75rem !important;
         }
         
-        /* Compact history items */
+        .page-header h1 {
+            font-size: 1rem !important;
+            line-height: 1.25rem !important;
+        }
+        
+        .page-header p {
+            font-size: 0.625rem !important;
+            line-height: 1rem !important;
+        }
+        
+        .page-header .icon-container {
+            width: 2rem !important;
+            height: 2rem !important;
+        }
+        
+        .page-header .icon-container svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        /* Current period card - compact */
+        .current-period-card {
+            padding: 0.75rem !important;
+        }
+        
+        .current-period-card h2 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .current-period-card .period-box {
+            padding: 0.5rem !important;
+            margin-bottom: 0.375rem !important;
+        }
+        
+        .current-period-card .period-label {
+            font-size: 0.625rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .current-period-card .period-value {
+            font-size: 0.875rem !important;
+            line-height: 1.25rem !important;
+        }
+        
+        /* Stats card - compact */
+        .stats-card {
+            padding: 0.75rem !important;
+        }
+        
+        .stats-card h3 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .stats-card .stat-item {
+            padding: 0.5rem !important;
+            font-size: 0.625rem !important;
+        }
+        
+        .stats-card .stat-value {
+            font-size: 0.875rem !important;
+        }
+        
+        /* Form section - compact */
+        .form-section {
+            padding: 0.75rem !important;
+        }
+        
+        .form-section h2 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+        }
+        
+        .form-label {
+            font-size: 0.6875rem !important;
+            margin-bottom: 0.375rem !important;
+        }
+        
+        input[type="text"],
+        select {
+            padding: 0.625rem !important;
+            font-size: 0.875rem !important;
+            min-height: 42px !important;
+        }
+        
+        .form-help-text {
+            font-size: 0.625rem !important;
+            margin-top: 0.25rem !important;
+        }
+        
+        /* Button - compact but touchable */
+        .btn-primary {
+            padding: 0.625rem 1rem !important;
+            font-size: 0.75rem !important;
+            min-height: 42px !important;
+        }
+        
+        .btn-primary svg {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+            margin-right: 0.375rem !important;
+        }
+        
+        /* History section - compact */
+        .history-section {
+            padding: 0.75rem !important;
+        }
+        
+        .history-section h2 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
         .history-item {
             padding: 0.625rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .history-item h4 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .history-badge {
+            font-size: 0.625rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        
+        .history-date {
+            font-size: 0.625rem !important;
+            padding: 0.25rem 0.375rem !important;
+        }
+        
+        /* Icon containers - compact */
+        .icon-box {
+            width: 1.5rem !important;
+            height: 1.5rem !important;
+            padding: 0.25rem !important;
+        }
+        
+        .icon-box svg {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+        }
+        
+        /* Section titles - compact */
+        .section-icon {
+            width: 1.5rem !important;
+            height: 1.5rem !important;
+            margin-right: 0.375rem !important;
+        }
+        
+        .section-icon svg {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+        }
+        
+        /* Toast messages - compact */
+        .toast-container {
+            padding: 0.625rem !important;
+        }
+        
+        .toast-icon {
+            width: 1.5rem !important;
+            height: 1.5rem !important;
+            margin-right: 0.5rem !important;
+        }
+        
+        .toast-icon svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        .toast-message {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Spacing adjustments */
+        .space-y-3 > * + * {
+            margin-top: 0.5rem !important;
+        }
+        
+        .space-y-4 > * + * {
+            margin-top: 0.75rem !important;
+        }
+        
+        .gap-2 {
+            gap: 0.5rem !important;
+        }
+        
+        .gap-3 {
+            gap: 0.5rem !important;
+        }
+        
+        /* History scroll container */
+        .history-scroll {
+            max-height: 300px !important;
         }
     }
 </style>
@@ -100,15 +324,15 @@
         
         <!-- Page Header -->
         <div class="mb-2 sm:mb-3 flex-shrink-0">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4 page-header">
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0 icon-container" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                         <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                     </div>
-                    <div>
+                    <div class="flex-1 min-w-0">
                         <h1 class="text-lg sm:text-xl font-bold text-gray-900">Academic Settings</h1>
                         <p class="text-xs sm:text-sm text-gray-600">Configure and manage academic periods</p>
                     </div>
@@ -121,14 +345,14 @@
         <div class="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 overflow-hidden two-column-layout">
             
             <!-- LEFT COLUMN: Current Settings & Stats -->
-            <div class="w-full lg:w-80 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden left-column">
-                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto mobile-compact">
+            <div class="w-full lg:w-80 settings-card flex flex-col overflow-hidden left-column">
+                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto">
                     
                     <!-- Current Active Settings -->
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-md p-3 sm:p-4 text-white mobile-p-2">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg p-3 sm:p-4 text-white current-period-card">
                         <div class="flex items-center justify-between mb-2 sm:mb-3">
                             <h2 class="text-xs sm:text-sm font-bold flex items-center">
-                                <div class="w-6 h-6 sm:w-7 sm:h-7 bg-white/20 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
+                                <div class="w-6 h-6 sm:w-7 sm:h-7 bg-white/20 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2 icon-box">
                                     <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                     </svg>
@@ -136,26 +360,26 @@
                                 Current Period
                             </h2>
                             {% if active_settings %}
-                            <span class="px-1.5 sm:px-2 py-0.5 bg-green-400 text-green-900 text-xs font-bold rounded-full">Active</span>
+                            <span class="px-1.5 sm:px-2 py-0.5 status-badge active text-xs font-bold rounded-full">Active</span>
                             {% else %}
-                            <span class="px-1.5 sm:px-2 py-0.5 bg-red-400 text-red-900 text-xs font-bold rounded-full">Not Set</span>
+                            <span class="px-1.5 sm:px-2 py-0.5 status-badge inactive text-xs font-bold rounded-full">Not Set</span>
                             {% endif %}
                         </div>
 
                         {% if active_settings %}
                         <div class="space-y-1.5 sm:space-y-2">
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
-                                <p class="text-xs text-blue-100 font-semibold mb-0.5">Academic Year</p>
-                                <p class="text-base sm:text-lg font-bold">{{ active_settings.academic_year }}</p>
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20 period-box">
+                                <p class="text-xs text-blue-100 font-semibold mb-0.5 period-label">Academic Year</p>
+                                <p class="text-base sm:text-lg font-bold period-value">{{ active_settings.academic_year }}</p>
                             </div>
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
-                                <p class="text-xs text-blue-100 font-semibold mb-0.5">Semester</p>
-                                <p class="text-base sm:text-lg font-bold">{{ active_settings.semester }}</p>
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20 period-box">
+                                <p class="text-xs text-blue-100 font-semibold mb-0.5 period-label">Semester</p>
+                                <p class="text-base sm:text-lg font-bold period-value">{{ active_settings.semester }}</p>
                             </div>
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
-                                <p class="text-xs text-blue-100 font-semibold mb-0.5">Exam Period</p>
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20 period-box">
+                                <p class="text-xs text-blue-100 font-semibold mb-0.5 period-label">Exam Period</p>
                                 {% if active_settings.exam_period %}
-                                <p class="text-base sm:text-lg font-bold">{{ active_settings.exam_period }}</p>
+                                <p class="text-base sm:text-lg font-bold period-value">{{ active_settings.exam_period }}</p>
                                 {% else %}
                                 <p class="text-sm italic opacity-75">Not set</p>
                                 {% endif %}
@@ -175,28 +399,28 @@
                     </div>
 
                     <!-- Quick Stats -->
-                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2 stat-card">
+                    <div class="settings-card p-3 sm:p-4 shadow-sm stats-card">
                         <h3 class="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 flex items-center">
-                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2 section-icon" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                 </svg>
                             </div>
                             Statistics
                         </h3>
                         <div class="space-y-1.5 sm:space-y-2">
-                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-gray-50 rounded-lg border border-gray-200 stat-item">
                                 <span class="text-xs text-gray-700 font-medium">Total Configurations</span>
-                                <span class="text-sm sm:text-base font-bold text-gray-900">{{ all_settings|length }}</span>
+                                <span class="text-sm sm:text-base font-bold text-gray-900 stat-value">{{ all_settings|length }}</span>
                             </div>
-                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-green-50 rounded-lg border border-green-200">
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-green-50 rounded-lg border border-green-200 stat-item">
                                 <span class="text-xs text-green-700 font-medium">Active</span>
-                                <span class="text-sm sm:text-base font-bold text-green-800">{{ all_settings|selectattr('is_active')|list|length }}</span>
+                                <span class="text-sm sm:text-base font-bold text-green-800 stat-value">{{ all_settings|selectattr('is_active')|list|length }}</span>
                             </div>
                             {% if active_settings %}
-                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-blue-50 rounded-lg border border-blue-200 stat-item">
                                 <span class="text-xs text-blue-700 font-medium">Last Updated</span>
-                                <span class="text-sm sm:text-base font-bold text-blue-800">{{ active_settings.created_at.strftime('%b %d') }}</span>
+                                <span class="text-sm sm:text-base font-bold text-blue-800 stat-value">{{ active_settings.created_at.strftime('%b %d') }}</span>
                             </div>
                             {% endif %}
                         </div>
@@ -205,14 +429,14 @@
             </div>
 
             <!-- RIGHT COLUMN: Settings Manager & History -->
-            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden right-column">
-                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto mobile-compact">
+            <div class="flex-1 settings-card flex flex-col overflow-hidden right-column">
+                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto">
                     
                     <!-- Update/Create Settings Form -->
-                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2">
-                        <h2 class="text-xs sm:text-sm font-bold text-gray-800 mb-3 sm:mb-4 flex items-center mobile-mb-2">
-                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-green-600 to-green-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="settings-card p-3 sm:p-4 shadow-sm form-section">
+                        <h2 class="text-xs sm:text-sm font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2 section-icon" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
@@ -220,23 +444,23 @@
                             Settings Manager
                         </h2>
 
-                        <form action="{{ url_for('settings.update') }}" method="POST" class="space-y-2 sm:space-y-3 mobile-gap-2">
+                        <form action="{{ url_for('settings.update') }}" method="POST" class="space-y-2 sm:space-y-3">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 form-grid mobile-gap-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 form-grid">
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1 mobile-text-sm">Academic Year *</label>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1 form-label">Academic Year *</label>
                                     <input type="text" name="academic_year" 
                                            value="{{ active_settings.academic_year if active_settings else '2024-2025' }}"
                                            placeholder="e.g., 2024-2025"
                                            required
                                            class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
                                            style="font-size: 16px;">
-                                    <p class="text-xs text-gray-500 mt-1">Format: YYYY-YYYY</p>
+                                    <p class="text-xs text-gray-500 mt-1 form-help-text">Format: YYYY-YYYY</p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1 mobile-text-sm">Semester *</label>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1 form-label">Semester *</label>
                                     <select name="semester" required
                                             class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
                                             style="font-size: 16px;">
@@ -249,7 +473,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1 mobile-text-sm">Exam Period *</label>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1 form-label">Exam Period *</label>
                                 <select name="exam_period" required
                                         class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
                                         style="font-size: 16px;">
@@ -261,7 +485,7 @@
                             </div>
 
                             <div class="flex justify-end pt-2">
-                                <button type="submit" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs sm:text-sm rounded-lg hover:from-blue-700 hover:to-blue-900 font-semibold shadow-md hover:shadow-lg transition-all min-h-[44px]">
+                                <button type="submit" class="btn-primary px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-semibold shadow-md hover:shadow-lg transition-all min-h-[44px]">
                                     <svg class="w-3 h-3 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
@@ -272,10 +496,10 @@
                     </div>
 
                     <!-- Settings History Timeline -->
-                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2">
-                        <h2 class="text-xs sm:text-sm font-bold text-gray-800 mb-3 sm:mb-4 flex items-center mobile-mb-2">
-                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="settings-card p-3 sm:p-4 shadow-sm history-section">
+                        <h2 class="text-xs sm:text-sm font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2 section-icon" style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%);">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                             </div>
@@ -283,27 +507,27 @@
                         </h2>
 
                         {% if all_settings %}
-                        <div class="space-y-2 max-h-96 overflow-y-auto pr-1 sm:pr-2">
+                        <div class="space-y-2 max-h-96 overflow-y-auto pr-1 sm:pr-2 history-scroll">
                             {% for settings in all_settings %}
-                            <div class="border {% if settings.is_active %}border-green-400 bg-green-50{% else %}border-gray-200 bg-white{% endif %} rounded-lg p-2 sm:p-3 hover:shadow-md transition-all history-item">
+                            <div class="border {% if settings.is_active %}border-green-300 bg-green-50{% else %}border-gray-200 bg-white{% endif %} rounded-lg p-2 sm:p-3 hover:shadow-md transition-all history-item">
                                 <div class="flex items-start justify-between flex-col sm:flex-row gap-2">
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-1.5 sm:gap-2 mb-1">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
                                             <h4 class="text-xs sm:text-sm font-bold text-gray-900">{{ settings.academic_year }}</h4>
                                             {% if settings.is_active %}
-                                            <span class="px-1.5 sm:px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">Active</span>
+                                            <span class="px-1.5 sm:px-2 py-0.5 status-badge active text-xs font-bold rounded-full history-badge">Active</span>
                                             {% endif %}
                                         </div>
                                         <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
-                                            <span class="flex items-center bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded">
-                                                <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <span class="flex items-center bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded history-badge">
+                                                <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                                 </svg>
-                                                {{ settings.semester }}
+                                                <span class="truncate">{{ settings.semester }}</span>
                                             </span>
                                             {% if settings.exam_period %}
-                                            <span class="flex items-center bg-orange-100 px-1.5 sm:px-2 py-0.5 rounded">
-                                                <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <span class="flex items-center bg-orange-100 px-1.5 sm:px-2 py-0.5 rounded history-badge">
+                                                <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                                 </svg>
                                                 <span class="text-orange-700 font-semibold">{{ settings.exam_period }}</span>
@@ -313,7 +537,7 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <span class="text-xs text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap">{{ settings.created_at.strftime('%b %d, %Y') }}</span>
+                                    <span class="text-xs text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0 history-date">{{ settings.created_at.strftime('%b %d, %Y') }}</span>
                                 </div>
                             </div>
                             {% endfor %}
@@ -341,22 +565,22 @@
 {% if messages %}
 <div class="fixed top-4 right-4 z-50 space-y-2 max-w-xs sm:max-w-md w-full px-2 sm:px-0">
     {% for category, message in messages %}
-    <div class="bg-white rounded-lg shadow-xl p-3 sm:p-4 border-l-4 {% if category == 'success' %}border-green-500{% else %}border-red-500{% endif %} animate-slide-in">
+    <div class="settings-card p-3 sm:p-4 border-l-4 {% if category == 'success' %}border-green-500 bg-green-50{% else %}border-red-500 bg-red-50{% endif %} animate-slide-in shadow-lg toast-container">
         <div class="flex items-center">
             {% if category == 'success' %}
-            <div class="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+            <div class="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0 toast-icon">
                 <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
             {% else %}
-            <div class="w-6 h-6 sm:w-8 sm:h-8 bg-red-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+            <div class="w-6 h-6 sm:w-8 sm:h-8 bg-red-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0 toast-icon">
                 <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
             {% endif %}
-            <p class="text-xs sm:text-sm text-gray-800 font-medium flex-1">{{ message }}</p>
+            <p class="text-xs sm:text-sm {% if category == 'success' %}text-green-800{% else %}text-red-800{% endif %} font-medium flex-1 toast-message">{{ message }}</p>
         </div>
     </div>
     {% endfor %}

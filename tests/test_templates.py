@@ -30,7 +30,7 @@ with app.app_context():
     
     if curricula:
         for c in curricula:
-            print(f"  - {c.curriculum_code}: {c.curriculum_name}")
+            print(f"  - {c.curriculum_code}: {c.degree_program}")
             year_levels = YearLevel.query.filter_by(curriculum_id=c.id).count()
             print(f"    Year Levels: {year_levels}")
     else:

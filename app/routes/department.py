@@ -108,11 +108,18 @@ def edit():
                 flash(f'Department code "{department_code}" already exists. Please use a different code.', 'error')
                 return redirect(url_for('department.index', department_id=int(department_id)))
         
+        # Track changes
+        changes = {}
+        if department.department_code != department_code:
+            changes['code'] = f'{department.department_code} → {department_code}'
+        if department.department_name != department_name:
+            changes['name'] = f'{department.department_name} → {department_name}'
+        
         department.department_code = department_code
         department.department_name = department_name
         
-        # Log activity
-        log_edit('department', department.id, department_code, {'name': department_name})
+        # Log activity with changes
+        log_edit('department', department.id, department_code, changes if changes else None)
         
         db.session.commit()
         
@@ -353,11 +360,18 @@ def edit_section():
             flash('Section not found.', 'error')
             return redirect(url_for('department.index'))
         
+        # Track changes
+        changes = {}
+        if section.section_name != section_name:
+            changes['name'] = f'{section.section_name} → {section_name}'
+        if section.year_level != year_level:
+            changes['year_level'] = f'{section.year_level} → {year_level}'
+        
         section.section_name = section_name
         section.year_level = year_level
         
-        # Log activity
-        log_edit('section', section.id, section_name, {'year_level': year_level})
+        # Log activity with changes
+        log_edit('section', section.id, section_name, changes if changes else None)
         
         db.session.commit()
         

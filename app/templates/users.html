@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <style>
+    /* Modal Styles */
     .modal {
         display: none;
         position: fixed;
@@ -21,37 +22,87 @@
         padding: 1rem;
     }
     
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with base.html */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 3px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
+    }
+    
+    /* Card Styles - Consistent with settings */
+    .users-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .users-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     
     .user-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
         transition: all 0.2s ease;
     }
+    
     .user-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
     }
     
+    /* Status Badge - Consistent with sidebar badges */
+    .status-badge {
+        background: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    
+    .status-badge.active {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #86efac;
+    }
+    
+    .status-badge.inactive {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+    }
+    
     /* Tab Styles */
     .tab-button {
         position: relative;
+        transition: all 0.2s ease;
     }
     .tab-button.active {
         color: #2563eb;
         background-color: white;
         border-bottom-color: #2563eb;
+    }
+    
+    /* Button Styles - Consistent with base */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
     }
     
     /* Mobile Responsive Styles */
@@ -63,40 +114,180 @@
             width: 100% !important;
             max-height: none;
         }
-    }
-    
-    @media (max-width: 768px) {
-        .mobile-compact {
-            padding: 0.75rem !important;
-        }
-        .mobile-p-2 {
-            padding: 0.5rem !important;
-        }
-        .mobile-gap-2 {
-            gap: 0.5rem !important;
-        }
-        .mobile-text-sm {
-            font-size: 0.75rem !important;
-        }
-        .stat-card {
-            padding: 0.5rem !important;
-        }
-        .stat-card p {
-            font-size: 1.25rem !important;
+        .right-column {
+            width: 100%;
         }
     }
     
     @media (max-width: 640px) {
+        /* Ultra-compact mobile layout */
+        .bg-gray-50 {
+            padding: 0.5rem !important;
+        }
+        
+        /* Compact all cards */
+        .users-card {
+            padding: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Page header compact */
+        .page-header {
+            padding: 0.75rem !important;
+        }
+        
+        .page-header h1 {
+            font-size: 1rem !important;
+            line-height: 1.25rem !important;
+        }
+        
+        .page-header p {
+            font-size: 0.625rem !important;
+            line-height: 1rem !important;
+        }
+        
+        .page-header .icon-container {
+            width: 2rem !important;
+            height: 2rem !important;
+        }
+        
+        .page-header .icon-container svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        /* Stats overview card - compact */
+        .stats-overview-card {
+            padding: 0.75rem !important;
+        }
+        
+        .stats-overview-card h2 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .stats-overview-card .stat-box {
+            padding: 0.5rem !important;
+            margin-bottom: 0.375rem !important;
+        }
+        
+        .stats-overview-card .stat-label {
+            font-size: 0.625rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .stats-overview-card .stat-value {
+            font-size: 1.25rem !important;
+            line-height: 1.5rem !important;
+        }
+        
+        /* Role breakdown - compact */
+        .role-breakdown-card {
+            padding: 0.75rem !important;
+        }
+        
+        .role-breakdown-card h3 {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .role-breakdown-card .role-item {
+            padding: 0.5rem !important;
+            font-size: 0.625rem !important;
+        }
+        
+        .role-breakdown-card .role-value {
+            font-size: 0.875rem !important;
+        }
+        
+        /* Search section - compact */
+        .search-section {
+            padding: 0.75rem !important;
+        }
+        
+        .search-section input,
+        .search-section select {
+            padding: 0.625rem !important;
+            font-size: 0.875rem !important;
+            min-height: 42px !important;
+        }
+        
+        /* User cards - compact */
+        .user-card {
+            padding: 0.75rem !important;
+        }
+        
+        .user-card:hover {
+            transform: none;
+        }
+        
+        .user-card .user-name {
+            font-size: 0.875rem !important;
+        }
+        
+        .user-card .user-detail {
+            font-size: 0.625rem !important;
+        }
+        
+        /* Modal - compact */
         .modal .bg-white {
             margin: 0.5rem;
             max-height: 90vh;
             overflow-y: auto;
         }
-        .user-card {
-            padding: 0.75rem !important;
+        
+        .modal input,
+        .modal select {
+            padding: 0.625rem !important;
+            font-size: 0.875rem !important;
+            min-height: 42px !important;
         }
-        .user-card:hover {
-            transform: none;
+        
+        .modal label {
+            font-size: 0.6875rem !important;
+            margin-bottom: 0.375rem !important;
+        }
+        
+        /* Buttons - compact but touchable */
+        .btn-primary {
+            padding: 0.625rem 1rem !important;
+            font-size: 0.75rem !important;
+            min-height: 42px !important;
+        }
+        
+        .btn-primary svg {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+            margin-right: 0.375rem !important;
+        }
+        
+        /* Icon containers - compact */
+        .section-icon {
+            width: 1.5rem !important;
+            height: 1.5rem !important;
+            margin-right: 0.375rem !important;
+        }
+        
+        .section-icon svg {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+        }
+        
+        /* Spacing adjustments */
+        .space-y-3 > * + * {
+            margin-top: 0.5rem !important;
+        }
+        
+        .space-y-4 > * + * {
+            margin-top: 0.75rem !important;
+        }
+        
+        .gap-2 {
+            gap: 0.5rem !important;
+        }
+        
+        .gap-3 {
+            gap: 0.5rem !important;
         }
     }
 </style>
@@ -108,20 +299,20 @@
         
         <!-- Page Header -->
         <div class="mb-2 sm:mb-3 flex-shrink-0">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4 mobile-p-2">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4 page-header">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
                     <div class="flex items-center gap-2 sm:gap-3">
-                        <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0 icon-container" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                             <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                             </svg>
                         </div>
-                        <div>
+                        <div class="flex-1 min-w-0">
                             <h1 class="text-lg sm:text-xl font-bold text-gray-900">User Management</h1>
-                            <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Manage system users and access controls</p>
+                            <p class="text-xs sm:text-sm text-gray-600">Manage system users and access control</p>
                         </div>
                     </div>
-                    <button onclick="openAddModal()" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs sm:text-sm rounded-lg hover:from-blue-700 hover:to-blue-900 font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[44px]">
+                    <button onclick="openAddModal()" class="btn-primary px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[44px]">
                         <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
@@ -136,14 +327,14 @@
         <div class="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 overflow-hidden two-column-layout">
             
             <!-- LEFT COLUMN: Statistics Overview -->
-            <div class="w-full lg:w-80 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden left-column">
-                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto mobile-compact">
+            <div class="w-full lg:w-80 users-card flex flex-col overflow-hidden left-column">
+                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto">
                     
                     <!-- Statistics Card -->
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-md p-3 sm:p-4 text-white mobile-p-2 stat-card">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg p-3 sm:p-4 text-white stats-overview-card">
                         <div class="flex items-center justify-between mb-2 sm:mb-3">
                             <h2 class="text-xs sm:text-sm font-bold flex items-center">
-                                <div class="w-6 h-6 sm:w-7 sm:h-7 bg-white/20 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
+                                <div class="w-6 h-6 sm:w-7 sm:h-7 bg-white/20 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2 section-icon">
                                     <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                     </svg>
@@ -153,75 +344,67 @@
                         </div>
 
                         <div class="space-y-1.5 sm:space-y-2">
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
-                                <p class="text-xs text-blue-100 font-semibold mb-0.5">Total Users</p>
-                                <p class="text-xl sm:text-2xl font-bold" id="totalUsers">0</p>
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20 stat-box">
+                                <p class="text-xs text-blue-100 font-semibold mb-0.5 stat-label">Total Users</p>
+                                <p class="text-xl sm:text-2xl font-bold stat-value" id="totalUsers">0</p>
                             </div>
-                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20">
-                                <p class="text-xs text-blue-100 font-semibold mb-0.5">Active Users</p>
-                                <p class="text-xl sm:text-2xl font-bold" id="activeCount">0</p>
+                            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-2 sm:p-2.5 border border-white/20 stat-box">
+                                <p class="text-xs text-blue-100 font-semibold mb-0.5 stat-label">Active Users</p>
+                                <p class="text-xl sm:text-2xl font-bold stat-value" id="activeCount">0</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Role Breakdown -->
-                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2">
+                    <div class="users-card p-3 sm:p-4 shadow-sm role-breakdown-card">
                         <h3 class="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 flex items-center">
-                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center mr-2 section-icon" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
                             </div>
                             Role Distribution
                         </h3>
                         <div class="space-y-1.5 sm:space-y-2">
-                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-purple-50 rounded-lg border border-purple-200">
-                                <div class="flex items-center gap-1.5 sm:gap-2">
-                                    <div class="w-6 h-6 sm:w-8 sm:h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.040A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                        </svg>
-                                    </div>
-                                    <span class="text-xs text-purple-700 font-medium">Administrators</span>
-                                </div>
-                                <span class="text-sm sm:text-base font-bold text-purple-800" id="adminCount">0</span>
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-purple-50 rounded-lg border border-purple-200 role-item">
+                                <span class="text-xs text-purple-700 font-medium flex items-center">
+                                    <span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
+                                    Administrators
+                                </span>
+                                <span class="text-sm sm:text-base font-bold text-purple-800 role-value" id="adminCount">0</span>
                             </div>
-                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-indigo-50 rounded-lg border border-indigo-200">
-                                <div class="flex items-center gap-1.5 sm:gap-2">
-                                    <div class="w-6 h-6 sm:w-8 sm:h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                        </svg>
-                                    </div>
-                                    <span class="text-xs text-indigo-700 font-medium">Deans</span>
-                                </div>
-                                <span class="text-sm sm:text-base font-bold text-indigo-800" id="deanCount">0</span>
+                            <div class="flex items-center justify-between p-1.5 sm:p-2 bg-green-50 rounded-lg border border-green-200 role-item">
+                                <span class="text-xs text-green-700 font-medium flex items-center">
+                                    <span class="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                                    Deans
+                                </span>
+                                <span class="text-sm sm:text-base font-bold text-green-800 role-value" id="deanCount">0</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Actions -->
-                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2 hidden lg:block">
+                    <div class="users-card p-3 sm:p-4 shadow-sm hidden lg:block">
                         <h3 class="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 flex items-center">
-                            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-green-600 to-green-800 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center mr-2 section-icon" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
                             </div>
                             Quick Actions
                         </h3>
-                        <div class="space-y-1.5 sm:space-y-2">
-                            <button onclick="openAddModal()" class="w-full px-2 sm:px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[44px]">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        <div class="space-y-2">
+                            <button onclick="openAddModal()" class="w-full px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 border border-blue-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
                                 Add New User
                             </button>
-                            <button onclick="loadUsers()" class="w-full px-2 sm:px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 min-h-[44px]">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="clearFilters()" class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 border border-gray-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
-                                Refresh List
+                                Clear All Filters
                             </button>
                         </div>
                     </div>
@@ -229,7 +412,7 @@
             </div>
 
             <!-- RIGHT COLUMN: Users List -->
-            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
+            <div class="flex-1 users-card flex flex-col overflow-hidden right-column">
                 <!-- Tabs -->
                 <div class="border-b border-gray-200 bg-gray-50">
                     <div class="flex">
@@ -258,28 +441,33 @@
                     </div>
                 </div>
 
-                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto mobile-compact">
+                <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto">
                     
                     <!-- Search and Filter -->
-                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 border border-gray-200 mobile-p-2">
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                    <div class="users-card p-3 sm:p-4 shadow-sm search-section">
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
                             <div class="flex-1">
-                                <div class="relative">
-                                    <input type="text" id="searchUsers" placeholder="Search users..." 
-                                           class="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]"
-                                           style="font-size: 16px;"
-                                           onkeyup="filterUsers()">
-                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-2.5 sm:left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                </div>
+                                <input type="text" id="searchUsers" 
+                                       placeholder="Search by name, email, or username..." 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm min-h-[44px] transition-all"
+                                       style="font-size: 16px; border-color: #e5e7eb;"
+                                       oninput="filterUsers()"
+                                       onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37, 99, 235, 0.1)'"
+                                       onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                             </div>
-                            <select id="filterRole" class="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px]" style="font-size: 16px;" onchange="filterUsers()">
-                                <option value="">All Roles</option>
-                                <option value="admin">Admin</option>
-                                <option value="dean">Dean</option>
-                            </select>
-                            <button onclick="clearFilters()" class="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm rounded-lg font-medium transition-colors min-h-[44px] whitespace-nowrap">
+                            <div class="w-full sm:w-48">
+                                <select id="filterRole" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm min-h-[44px] transition-all"
+                                        style="font-size: 16px; border-color: #e5e7eb;"
+                                        onchange="filterUsers()"
+                                        onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37, 99, 235, 0.1)'"
+                                        onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
+                                    <option value="">All Roles</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="dean">Dean</option>
+                                </select>
+                            </div>
+                            <button onclick="clearFilters()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold text-xs sm:text-sm transition-all min-h-[44px] flex-shrink-0 border border-gray-200">
                                 Clear
                             </button>
                         </div>
@@ -490,10 +678,10 @@
                                 <h3 class="text-base font-bold text-gray-900 truncate">${user.full_name}</h3>
                                 <p class="text-xs text-gray-600 truncate">@${user.username}</p>
                             </div>
-                            <span class="flex-shrink-0 ml-2 px-2.5 py-1 text-xs font-semibold rounded-full ${
-                                user.is_active ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200'
+                            <span class="flex-shrink-0 ml-2 px-2.5 py-1 text-xs font-bold rounded-full uppercase status-badge ${
+                                user.is_active ? 'active' : 'inactive'
                             }">
-                                ${user.is_active ? '● Active' : '○ Inactive'}
+                                ${user.is_active ? 'Active' : 'Inactive'}
                             </span>
                         </div>
                         

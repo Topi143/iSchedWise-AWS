@@ -4,19 +4,19 @@
 
 {% block extra_css %}
 <style>
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with settings */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 3px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
     }
     
     /* Animations */
@@ -253,6 +253,29 @@
         touch-action: manipulation;
     }
     
+    /* Curriculum Card - Consistent with building and department */
+    .curriculum-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .curriculum-card:hover {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Button Primary - Consistent gradient */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    }
+    
     /* Toast Notifications */
     .toast-container {
         position: fixed;
@@ -328,7 +351,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen flex flex-col p-3 sm:p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col flex-1 overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -342,41 +365,40 @@
         {% endwith %}
 
         <!-- Page Header -->
-        <div class="mb-3 sm:mb-4 animate-slide-in">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl shadow-sm flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
                     </div>
-                    <div class="min-w-0 flex-1">
-                        <h1 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            Curriculum Management
-                            <span class="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ curricula|length }}</span>
-                        </h1>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5 hidden sm:block">Organize programs, year levels & subjects</p>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Curriculum Management</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Organize programs, year levels & subjects</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Two-Panel Layout: Curriculum List + Detail View -->
-        <div class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-3" id="curriculum-container">
+        <div class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 sm:gap-3" id="curriculum-container">
             {% if curricula %}
             <!-- Left Panel: Curriculum List -->
-            <div class="master-panel left-sidebar w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col lg:max-h-none">
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
-                    <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-2 sm:mb-3">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                        </svg>
-                        Curriculum
-                        <span id="curriculum-count-badge" class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ curricula|length }}</span>
+            <div class="master-panel left-sidebar w-full lg:w-80 flex-shrink-0 curriculum-card overflow-hidden flex flex-col lg:max-h-none">
+                <div class="bg-white p-3 sm:p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-3">
+                        <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <span class="text-sm sm:text-base">Curriculum</span>
+                        <span id="curriculum-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ curricula|length }}</span>
                     </h3>
-                    <button onclick="openAddCurriculumModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-xs sm:text-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    <button onclick="openAddCurriculumModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                         Add Curriculum
                     </button>
@@ -402,22 +424,18 @@
                         <div class="p-3 sm:p-4">
                             <div class="flex items-start justify-between mb-2">
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="text-xs sm:text-sm font-bold text-gray-900 truncate">{{ curriculum.curriculum_code }}</h4>
-                                    <p class="text-xs sm:text-sm text-gray-600 truncate mt-0.5">{{ curriculum.curriculum_name }}</p>
+                                    <h4 class="text-sm font-bold text-gray-900 truncate">{{ curriculum.curriculum_code }}</h4>
                                 </div>
+                                <span class="ml-2 px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold rounded-full flex-shrink-0 {{ 'bg-green-100 text-green-700' if curriculum.is_active else 'bg-gray-100 text-gray-600' }}">
+                                    {{ 'Active' if curriculum.is_active else 'Inactive' }}
+                                </span>
                             </div>
-                            <div class="flex items-center gap-2 sm:gap-3 text-xs text-gray-500 flex-wrap">
+                            <div class="flex items-center gap-3 text-xs text-gray-500">
                                 <span class="flex items-center">
-                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
-                                    {{ curriculum.department.department_code if curriculum.department else 'N/A' }}
-                                </span>
-                                <span class="flex items-center">
-                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                    </svg>
-                                    {{ curriculum.year_levels|length }} {{ 'Year' if curriculum.year_levels|length == 1 else 'Years' }}
+                                    {{ curriculum.department.department_code if curriculum.department else 'No Dept' }}
                                 </span>
                             </div>
                         </div>
@@ -427,40 +445,40 @@
             </div>
 
             <!-- Right Panel: Curriculum Detail View -->
-            <div class="detail-panel flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col" id="curriculumDetailPanel">
+            <div class="detail-panel flex-1 curriculum-card overflow-hidden flex flex-col" id="curriculumDetailPanel">
                 {% if selected_curriculum %}
                 {% set display_curriculum = selected_curriculum %}
                 
-                <!-- Mobile Back Button (Blue Banner) -->
-                <div class="mobile-back-btn bg-blue-600 text-white p-3 sm:p-4 flex items-center gap-3 cursor-pointer" onclick="closeMobileCurriculumView()">
+                <!-- Mobile Back Button -->
+                <button onclick="closeMobileCurriculumView()" class="mobile-back-btn w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
-                    <span class="font-medium">Back to Curricula</span>
-                </div>
+                    <span>Back to Curricula</span>
+                </button>
                 
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="bg-white p-2 sm:p-3 flex-shrink-0 border-b border-gray-200">
+                    <div class="flex items-center justify-between gap-2">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base sm:text-lg font-bold text-gray-900" id="detailCurriculumCode">{{ display_curriculum.curriculum_code }}</h3>
-                            <p class="text-xs sm:text-sm text-gray-600 truncate" id="detailCurriculumName">{{ display_curriculum.curriculum_name }}</p>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900 truncate" id="detailCurriculumCode">{{ display_curriculum.curriculum_code }}</h3>
+                            <p class="text-xs sm:text-sm text-gray-600" id="detailDepartmentName">{{ display_curriculum.department.department_name if display_curriculum.department else 'No Department' }}</p>
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
+                        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                             <button onclick="openBulkImportModal({{ display_curriculum.id }}); event.stopPropagation();" 
-                                    class="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Bulk Import Subjects">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="p-1.5 sm:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Bulk Import Subjects">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                 </svg>
                             </button>
-                            <button onclick="editCurriculum({{ display_curriculum.id }}, '{{ display_curriculum.curriculum_code }}', '{{ display_curriculum.curriculum_name }}', {{ display_curriculum.department_id }}, {{ display_curriculum.year_levels|length }})" 
+                            <button onclick="editCurriculum({{ display_curriculum.id }}, '{{ display_curriculum.curriculum_code }}', {{ display_curriculum.department_id }}, {{ display_curriculum.year_levels|length }})" 
                                     data-year-levels='[{% for yl in display_curriculum.year_levels %}{"semesters_count": {{ yl.semesters|length }}}{% if not loop.last %},{% endif %}{% endfor %}]'
-                                    class="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Curriculum">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Curriculum">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
-                            <button onclick="archiveCurriculum({{ display_curriculum.id }}, '{{ display_curriculum.curriculum_code }}')" class="p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Curriculum">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="archiveCurriculum({{ display_curriculum.id }}, '{{ display_curriculum.curriculum_code }}')" class="p-1.5 sm:p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Curriculum">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                 </svg>
                             </button>
@@ -522,8 +540,8 @@
                                                     <!-- Subject Code & Description -->
                                                     <div class="flex items-start justify-between gap-2 mb-2">
                                                         <div class="flex-1 min-w-0">
-                                                            <h4 class="text-sm font-bold text-gray-900 mb-0.5">{{ subject.subject_code }}</h4>
-                                                            <p class="text-xs text-gray-600 leading-relaxed">{{ subject.course_description }}</p>
+                                                            <h4 class="text-sm font-bold text-gray-900 mb-0.5 truncate">{{ subject.subject_code }}</h4>
+                                                            <p class="text-xs text-gray-600 leading-relaxed line-clamp-2">{{ subject.course_description }}</p>
                                                         </div>
                                                         <!-- Action Buttons - Mobile -->
                                                         <div class="flex gap-1 flex-shrink-0">
@@ -542,20 +560,20 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    <!-- Units Info - Compact Inline -->
-                                                    <div class="flex items-center gap-2 text-xs">
+                                                    <!-- Units Info - Compact Inline with wrapping -->
+                                                    <div class="flex items-center flex-wrap gap-1.5 text-xs">
                                                         <span class="inline-flex items-center gap-1 text-gray-600">
                                                             <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                                             </svg>
-                                                            <span class="font-semibold">{{ subject.lec_units }}</span>
+                                                            <span class="font-semibold">Lec: {{ subject.lec_units }}</span>
                                                         </span>
                                                         <span class="text-gray-400">·</span>
                                                         <span class="inline-flex items-center gap-1 text-gray-600">
                                                             <svg class="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                                                             </svg>
-                                                            <span class="font-semibold">{{ subject.lab_units }}</span>
+                                                            <span class="font-semibold">Lab: {{ subject.lab_units }}</span>
                                                         </span>
                                                         <span class="text-gray-400">·</span>
                                                         <span class="inline-flex items-center px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-semibold">
@@ -563,16 +581,16 @@
                                                         </span>
                                                         {% if subject.prerequisite %}
                                                         <span class="text-gray-400">·</span>
-                                                        <span class="text-blue-600 font-medium truncate">{{ subject.prerequisite }}</span>
+                                                        <span class="text-blue-600 font-medium truncate max-w-[120px]" title="{{ subject.prerequisite }}">{{ subject.prerequisite }}</span>
                                                         {% endif %}
                                                     </div>
                                                 </div>
                                             </div>
                                             
                                             <!-- Desktop: Card View (Original Design) -->
-                                            <div class="hidden sm:flex flex-col sm:flex-row sm:items-center justify-between">
+                                            <div class="hidden sm:flex flex-col lg:flex-row lg:items-center justify-between">
                                                 <!-- Subject Info Section -->
-                                                <div class="flex-1 p-3 sm:p-3">
+                                                <div class="flex-1 p-3 min-w-0">
                                                     <!-- Subject Code & Icon -->
                                                     <div class="flex items-start gap-2.5 mb-2">
                                                         <div class="bg-blue-100 rounded-lg p-2 flex-shrink-0">
@@ -581,52 +599,49 @@
                                                             </svg>
                                                         </div>
                                                         <div class="flex-1 min-w-0">
-                                                            <h4 class="text-sm font-bold text-gray-900 mb-1">{{ subject.subject_code }}</h4>
-                                                            <p class="text-sm text-gray-700 leading-snug">{{ subject.course_description }}</p>
+                                                            <h4 class="text-sm font-bold text-gray-900 mb-1 truncate">{{ subject.subject_code }}</h4>
+                                                            <p class="text-sm text-gray-700 leading-snug line-clamp-2">{{ subject.course_description }}</p>
                                                         </div>
                                                     </div>
                                                     
-                                                    <!-- Units Info - Grid Layout for Desktop -->
-                                                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 mt-3 pt-3 border-t border-gray-100">
-                                                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                                                    <!-- Units Info - Responsive Grid Layout -->
+                                                    <div class="grid grid-cols-2 lg:flex lg:flex-wrap gap-2 lg:gap-3 mt-3 pt-3 border-t border-gray-100">
+                                                        <div class="flex flex-col lg:flex-row lg:items-center lg:gap-1">
                                                             <span class="text-xs text-gray-500 font-medium">Lecture:</span>
                                                             <span class="text-sm font-semibold text-gray-900">{{ subject.lec_units }} {{ 'unit' if subject.lec_units == 1 else 'units' }}</span>
                                                         </div>
-                                                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                                                        <div class="flex flex-col lg:flex-row lg:items-center lg:gap-1">
                                                             <span class="text-xs text-gray-500 font-medium">Lab:</span>
                                                             <span class="text-sm font-semibold text-gray-900">{{ subject.lab_units }} {{ 'unit' if subject.lab_units == 1 else 'units' }}</span>
                                                         </div>
-                                                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1 col-span-2 sm:col-span-1">
-                                                            <span class="text-xs text-gray-500 font-medium">Total Units:</span>
+                                                        <div class="flex flex-col lg:flex-row lg:items-center lg:gap-1">
+                                                            <span class="text-xs text-gray-500 font-medium">Total:</span>
                                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold bg-green-100 text-green-800 border border-green-200">
                                                                 {{ subject.total_units }}
                                                             </span>
                                                         </div>
-                                                        {% if subject.prerequisite %}
-                                                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1 col-span-2 sm:col-span-1">
+                                                        <div class="flex flex-col lg:flex-row lg:items-center lg:gap-1 col-span-2 lg:col-span-1">
                                                             <span class="text-xs text-gray-500 font-medium">Prerequisite:</span>
-                                                            <span class="text-sm font-semibold text-blue-700">{{ subject.prerequisite }}</span>
-                                                        </div>
-                                                        {% else %}
-                                                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1 col-span-2 sm:col-span-1">
-                                                            <span class="text-xs text-gray-500 font-medium">Prerequisite:</span>
+                                                            {% if subject.prerequisite %}
+                                                            <span class="text-sm font-semibold text-blue-700 truncate" title="{{ subject.prerequisite }}">{{ subject.prerequisite }}</span>
+                                                            {% else %}
                                                             <span class="text-sm text-gray-400 italic">None</span>
+                                                            {% endif %}
                                                         </div>
-                                                        {% endif %}
                                                     </div>
                                                 </div>
                                                 
                                                 <!-- Action Buttons Section - Desktop -->
-                                                <div class="flex sm:flex-col items-center gap-1 p-2 sm:p-3 bg-gray-50 sm:bg-transparent border-t sm:border-t-0 sm:border-l border-gray-100">
+                                                <div class="flex lg:flex-col items-center gap-1 p-2 lg:p-3 bg-gray-50 lg:bg-transparent border-t lg:border-t-0 lg:border-l border-gray-100">
                                                     <button onclick="editSubject({{ subject.id }}, '{{ subject.subject_code }}', '{{ subject.course_description }}', {{ subject.lec_units }}, {{ subject.lab_units }}, '{{ subject.prerequisite or '' }}')"
-                                                            class="flex-1 sm:flex-none p-2.5 sm:p-2 bg-blue-50 sm:bg-transparent hover:bg-blue-100 rounded-lg transition-colors touch-manipulation" title="Edit Subject">
-                                                        <svg class="w-5 h-5 sm:w-4 sm:h-4 text-blue-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            class="flex-1 lg:flex-none p-2.5 lg:p-2 bg-blue-50 lg:bg-transparent hover:bg-blue-100 rounded-lg transition-colors touch-manipulation" title="Edit Subject">
+                                                        <svg class="w-5 h-5 lg:w-4 lg:h-4 text-blue-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                         </svg>
                                                     </button>
                                                     <button onclick="deleteSubject({{ subject.id }}, '{{ subject.subject_code }}')" 
-                                                            class="flex-1 sm:flex-none p-2.5 sm:p-2 bg-red-50 sm:bg-transparent hover:bg-red-100 rounded-lg transition-colors touch-manipulation" title="Delete Subject">
-                                                        <svg class="w-5 h-5 sm:w-4 sm:h-4 text-red-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            class="flex-1 lg:flex-none p-2.5 lg:p-2 bg-red-50 lg:bg-transparent hover:bg-red-100 rounded-lg transition-colors touch-manipulation" title="Delete Subject">
+                                                        <svg class="w-5 h-5 lg:w-4 lg:h-4 text-red-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                         </svg>
                                                     </button>
@@ -653,23 +668,23 @@
                 </div>
                 {% else %}
                 <!-- No Curriculum Selected -->
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
-                    <div class="flex items-center justify-between">
+                <div class="bg-white p-2 sm:p-3 flex-shrink-0 border-b border-gray-200">
+                    <div class="flex items-center justify-between gap-2">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base sm:text-lg font-bold text-gray-900">Curriculum Details</h3>
-                            <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Select a curriculum to view information</p>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Curriculum Details</h3>
+                            <p class="text-xs sm:text-sm text-gray-600">Select a curriculum to view information</p>
                         </div>
                     </div>
                 </div>
-                <div class="h-full flex items-center justify-center bg-gray-50 p-4">
-                    <div class="text-center px-4">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex-1 overflow-y-auto p-6 sm:p-8 bg-gray-50" id="buildingContent">
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Curriculum Selected</h3>
-                        <p class="text-xs sm:text-sm text-gray-500">Select a curriculum to view details</p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Curriculum Selected</h3>
+                        <p class="text-sm text-gray-500">Select a curriculum to view details</p>
                     </div>
                 </div>
                 {% endif %}
@@ -677,8 +692,8 @@
             {% else %}
             <!-- Empty State: No Curricula -->
             <!-- Left Panel: Empty List -->
-            <div class="curriculum-list-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+            <div class="curriculum-list-panel w-full lg:w-80 flex-shrink-0 curriculum-card overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-gray-200 flex-shrink-0">
                     <h3 class="text-base font-bold text-gray-900 flex items-center mb-3">
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -708,14 +723,10 @@
             </div>
 
             <!-- Right Panel: Getting Started -->
-            <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
-                            <p class="text-sm text-gray-600">Create your first curriculum</p>
-                        </div>
-                    </div>
+            <div class="flex-1 curriculum-card overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-gray-200 flex-shrink-0">
+                    <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
+                    <p class="text-sm text-gray-600">Create your first curriculum</p>
                 </div>
                 
                 <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
@@ -777,17 +788,6 @@
                         maxlength="50"
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors uppercase">
                     <p class="mt-0.5 text-xs text-gray-500">Unique code for the curriculum (e.g., BSCS-2025)</p>
-                </div>
-
-                <!-- Curriculum Name -->
-                <div>
-                    <label for="curriculum_name" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Curriculum Name <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="curriculum_name" name="curriculum_name" required
-                        placeholder="e.g., Computer Science"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                    <p class="mt-0.5 text-xs text-gray-500">Enter the name of the curriculum</p>
                 </div>
 
                 <!-- Department -->
@@ -884,17 +884,6 @@
                         maxlength="50"
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors uppercase">
                     <p class="mt-0.5 text-xs text-gray-500">Unique code for the curriculum (e.g., BSCS-2025)</p>
-                </div>
-
-                <!-- Curriculum Name -->
-                <div>
-                    <label for="edit_curriculum_name" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Curriculum Name <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="edit_curriculum_name" name="curriculum_name" required
-                        placeholder="e.g., Computer Science"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                    <p class="mt-0.5 text-xs text-gray-500">Enter the name of the curriculum</p>
                 </div>
 
                 <!-- Department -->
@@ -1891,11 +1880,10 @@
         document.getElementById('editYearLevelSemesterConfig').innerHTML = '';
     }
 
-    function editCurriculum(id, code, name, departmentId, yearLevelsCount) {
+    function editCurriculum(id, code, departmentId, yearLevelsCount) {
         currentOpenCurriculumId = id; // Track which curriculum is being edited
         document.getElementById('edit_curriculum_id').value = id;
         document.getElementById('edit_curriculum_code').value = code;
-        document.getElementById('edit_curriculum_name').value = name;
         document.getElementById('edit_department_id').value = departmentId;
         document.getElementById('edit_year_levels').value = yearLevelsCount;
         

@@ -57,8 +57,9 @@ def add():
         db.session.add(new_building)
         db.session.flush()
         
-        # Log activity
-        log_create('building', new_building.id, new_building.building_name)
+        # Log activity with details
+        log_create('building', new_building.id, new_building.building_name, 
+                   details={'building_name': new_building.building_name})
         
         db.session.commit()
         
@@ -98,11 +99,18 @@ def edit():
             flash(f'Building name "{building_name}" is already in use.', 'error')
             return redirect(url_for('building.index', building_id=building_id))
         
+        # Track changes
+        old_name = building.building_name
+        changes = {}
+        
+        if building_name != old_name:
+            changes['name'] = f'{old_name} → {building_name}'
+        
         # Update building
         building.building_name = building_name
         
-        # Log activity
-        log_edit('building', building.id, building.building_name)
+        # Log activity with changes
+        log_edit('building', building.id, building.building_name, details=changes if changes else None)
         
         db.session.commit()
         
@@ -285,11 +293,18 @@ def edit_room():
             flash(f'Room number "{room_number}" already exists in this building.', 'error')
             return redirect(url_for('building.index', building_id=building_id))
         
+        # Track changes
+        old_room_number = room.room_number
+        details = {'building': room.building.building_name}
+        
+        if room_number != old_room_number:
+            details['room_number'] = f'{old_room_number} → {room_number}'
+        
         # Update room
         room.room_number = room_number
         
-        # Log activity
-        log_edit('room', room.id, room_number, {'building': room.building.building_name})
+        # Log activity with changes
+        log_edit('room', room.id, room_number, details)
         
         db.session.commit()
         

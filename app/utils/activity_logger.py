@@ -17,11 +17,21 @@ def log_activity(action, entity_type, entity_id=None, entity_name=None, details=
         entity_type: Type of entity (e.g., 'schedule', 'faculty', 'building')
         entity_id: ID of the affected entity (optional)
         entity_name: Name/description of the entity (optional)
-        details: Additional details about the action (optional)
+        details: Additional details about the action (optional, can be dict or string)
     
     Returns:
         UserActivityLog instance
     """
+    # Convert details dict to readable string if needed
+    if isinstance(details, dict) and details:
+        detail_parts = []
+        for key, value in details.items():
+            if value is not None and value != '':
+                # Format the key to be more readable
+                readable_key = key.replace('_', ' ').title()
+                detail_parts.append(f"{readable_key}: {value}")
+        details = " | ".join(detail_parts) if detail_parts else None
+    
     return UserActivityLog.log_action(
         user_id=current_user.id,
         action=action,

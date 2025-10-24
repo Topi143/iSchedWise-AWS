@@ -125,11 +125,10 @@ def add():
     """Add a new curriculum"""
     try:
         curriculum_code = request.form.get('curriculum_code', '').strip().upper()
-        curriculum_name = request.form.get('curriculum_name', '').strip()
         department_id = request.form.get('department_id', '').strip()
         year_levels_count = request.form.get('year_levels', '').strip()
         
-        if not all([curriculum_code, curriculum_name, department_id, year_levels_count]):
+        if not all([curriculum_code, department_id, year_levels_count]):
             flash('Please fill in all required fields.', 'error')
             return redirect(url_for('curriculum.index'))
         
@@ -157,17 +156,16 @@ def add():
             flash('Selected department not found.', 'error')
             return redirect(url_for('curriculum.index'))
         
-        # Auto-generate degree program
+        # Auto-generate degree program from department and curriculum code
         if department.department_code.startswith('BS'):
-            degree_program = f"Bachelor of Science in {curriculum_name}"
+            degree_program = f"Bachelor of Science in {curriculum_code}"
         elif department.department_code.startswith('BA') or department.department_code.startswith('AB'):
-            degree_program = f"Bachelor of Arts in {curriculum_name}"
+            degree_program = f"Bachelor of Arts in {curriculum_code}"
         else:
-            degree_program = f"{department.department_code} - {curriculum_name}"
+            degree_program = f"{department.department_code} - {curriculum_code}"
         
         new_curriculum = Curriculum(
             curriculum_code=curriculum_code,
-            curriculum_name=curriculum_name,
             department_id=department.id,
             degree_program=degree_program,
             is_active=True,
@@ -179,7 +177,6 @@ def add():
         
         # Log activity
         log_create('curriculum', new_curriculum.id, new_curriculum.curriculum_code, {
-            'name': curriculum_name,
             'department': department.department_code,
             'year_levels': year_levels_count
         })
@@ -241,11 +238,10 @@ def edit():
     try:
         curriculum_id = request.form.get('curriculum_id', '').strip()
         curriculum_code = request.form.get('curriculum_code', '').strip().upper()
-        curriculum_name = request.form.get('curriculum_name', '').strip()
         department_id = request.form.get('department_id', '').strip()
         year_levels_count = request.form.get('year_levels', '').strip()
         
-        if not all([curriculum_id, curriculum_code, curriculum_name, department_id, year_levels_count]):
+        if not all([curriculum_id, curriculum_code, department_id, year_levels_count]):
             flash('Please fill in all required fields.', 'error')
             return redirect(url_for('curriculum.index'))
         
@@ -273,16 +269,15 @@ def edit():
             flash('Selected department not found.', 'error')
             return redirect(url_for('curriculum.index'))
         
-        # Auto-generate degree program
+        # Auto-generate degree program from department and curriculum code
         if department.department_code.startswith('BS'):
-            degree_program = f"Bachelor of Science in {curriculum_name}"
+            degree_program = f"Bachelor of Science in {curriculum_code}"
         elif department.department_code.startswith('BA') or department.department_code.startswith('AB'):
-            degree_program = f"Bachelor of Arts in {curriculum_name}"
+            degree_program = f"Bachelor of Arts in {curriculum_code}"
         else:
-            degree_program = f"{department.department_code} - {curriculum_name}"
+            degree_program = f"{department.department_code} - {curriculum_code}"
         
         curriculum.curriculum_code = curriculum_code
-        curriculum.curriculum_name = curriculum_name
         curriculum.department_id = int(department_id)
         curriculum.degree_program = degree_program
         
@@ -370,7 +365,6 @@ def edit():
         
         # Log activity
         log_edit('curriculum', curriculum.id, curriculum.curriculum_code, {
-            'name': curriculum.curriculum_name,
             'department': curriculum.department.department_code
         })
         
@@ -706,6 +700,21 @@ def edit_subject():
             flash('Subject not found.', 'error')
             return redirect(url_for('curriculum.index'))
         
+        # Track changes
+        changes = {}
+        if subject.subject_code != subject_code:
+            changes['code'] = f'{subject.subject_code} → {subject_code}'
+        if subject.course_description != course_description:
+            changes['description'] = f'{subject.course_description} → {course_description}'
+        if subject.lec_units != lec_units:
+            changes['lec_units'] = f'{subject.lec_units} → {lec_units}'
+        if subject.lab_units != lab_units:
+            changes['lab_units'] = f'{subject.lab_units} → {lab_units}'
+        if subject.prerequisite != (prerequisite if prerequisite else None):
+            old_prereq = subject.prerequisite or 'None'
+            new_prereq = prerequisite if prerequisite else 'None'
+            changes['prerequisite'] = f'{old_prereq} → {new_prereq}'
+        
         # Update subject fields directly
         subject.subject_code = subject_code
         subject.course_description = course_description
@@ -713,8 +722,8 @@ def edit_subject():
         subject.lab_units = lab_units
         subject.prerequisite = prerequisite if prerequisite else None
         
-        # Log activity
-        log_edit('subject', subject.id, subject_code, {'description': course_description})
+        # Log activity with changes
+        log_edit('subject', subject.id, subject_code, changes if changes else None)
         
         db.session.commit()
         
@@ -799,7 +808,7 @@ def archive():
         
         # Log activity
         log_archive('curriculum', curriculum.id, curriculum_code, {
-            'name': curriculum.curriculum_name,
+            'department': curriculum.department.department_code,
             'reason': archive_reason
         })
         
@@ -835,10 +844,11 @@ def delete():
             return redirect(url_for('curriculum.index'))
         
         curriculum_code = curriculum.curriculum_code
-        curriculum_name = curriculum.curriculum_name
         
         # Log activity before deletion
-        log_delete('curriculum', curriculum.id, curriculum_code, {'name': curriculum_name})
+        log_delete('curriculum', curriculum.id, curriculum_code, {
+            'department': curriculum.department.department_code
+        })
         
         # Delete curriculum (cascade will delete year levels, semesters, and subjects)
         db.session.delete(curriculum)
@@ -1058,7 +1068,7 @@ def download_bulk_import_template(curriculum_id):
                 '• System automatically manages subject templates - no need to worry about it!',
                 '• Identical subjects (same code & units) will be linked automatically',
                 '• Duplicate subjects in the same semester will be skipped with an error',
-                f'• This template is for curriculum: {curriculum.curriculum_code} - {curriculum.curriculum_name}',
+                f'• This template is for curriculum: {curriculum.curriculum_code}',
                 '• Upload only Excel files (.xlsx or .xls format)'
             ]
             

@@ -8,9 +8,11 @@
 - ✅ Focus on solving the specific problem
 - ✅ Show before/after diffs for clarity when needed
 - ✅ Include verification steps for critical changes
+- ✅ **ALWAYS ensure all UI/layouts are fully responsive (mobile, tablet, desktop)**
 - ❌ No verbose explanations or unnecessary commentary
 - ❌ No lengthy introductions or summaries
 - ❌ Don't assume context - always verify file paths and existing code
+- ❌ **NEVER create non-responsive layouts or fixed-width designs**
 
 ## 🔍 CRITICAL: Context Gathering Before Code Generation
 
@@ -152,14 +154,15 @@ Before generating ANY code, ask yourself:
 ## 🎯 Quick Reference
 
 ### When User Asks To...
-- **Add a feature** → Check database.sql → Update models → Update routes → Update templates
+- **Add a feature** → Check database.sql → Update models → Update routes → Update templates (MUST be responsive)
 - **Fix a bug** → Read error logs → Check related code → Test fix → Verify no side effects
 - **Archive something** → Use standard archive pattern (see below) → Don't create separate tables
 - **Change database** → Update database.sql FIRST → Then sample_data.sql → Then Python models
 - **Add a route** → Use blueprints → Add @login_required → Check user permissions
-- **Modify UI** → Check base.html → Use Tailwind classes → Keep mobile-responsive
+- **Modify UI** → Check base.html → Use Tailwind responsive classes → Test on mobile/tablet/desktop
+- **Create new page** → MUST be responsive from the start → Use mobile-first approach → Test all breakpoints
 - **Clean workspace** → Delete old templates (*_old.html, *.backup) → Move obsolete test files → Archive outdated docs
-- **Test changes** → Drop DB → Import database.sql → Import sample_data.sql → Run app
+- **Test changes** → Drop DB → Import database.sql → Import sample_data.sql → Run app → Test responsive layout
 
 ## 🔴 CRITICAL: Database Management Approach
 
@@ -351,10 +354,11 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 - **AI Integration**: Google Gemini API (optional, for schedule suggestions)
 
 ### Frontend
-- **CSS Framework**: Tailwind CSS
+- **CSS Framework**: Tailwind CSS (REQUIRED for responsive design)
 - **Templates**: Jinja2 with server-side rendering
-- **Responsive Design**: Mobile-first approach
+- **Responsive Design**: Mobile-first approach (MANDATORY - always test mobile, tablet, desktop)
 - **JavaScript**: Vanilla JS for dynamic interactions
+- **Breakpoints**: Mobile (320px+), Tablet (768px+), Desktop (1024px+)
 
 ### Key Dependencies
 - Flask-SQLAlchemy 3.1.1
@@ -665,19 +669,21 @@ def delete_resource(id):
 - All pages extend `base.html`
 - Include navigation sidebar
 - Use Tailwind CSS utility classes
-- Mobile-responsive design
+- **MANDATORY: Mobile-responsive design - use responsive Tailwind classes (sm:, md:, lg:, xl:)**
 
 ### Forms
 - Use CSRF token: `{{ form.hidden_tag() }}`
 - Display flash messages prominently
 - Use proper form validation and error display
 - Include cancel/back buttons
+- **MANDATORY: Forms must be responsive and usable on mobile devices**
 
 ### Data Tables
 - Use responsive tables with Tailwind
 - Include search/filter functionality
 - Add edit/delete action buttons
 - Handle empty states gracefully
+- **MANDATORY: Tables must be responsive - use overflow-x-auto, horizontal scroll, or card layout on mobile**
 
 ## Common Tasks
 
@@ -1055,22 +1061,130 @@ return render_template('folder/template.html')
 
 ## 🎨 UI/UX Guidelines
 
-### Tailwind CSS Classes
-- **Buttons**: `bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded`
-- **Cards**: `bg-white rounded-lg shadow p-6`
-- **Inputs**: `border border-gray-300 rounded px-3 py-2 w-full`
-- **Alerts**: `bg-green-100 border-l-4 border-green-500 text-green-700 p-4`
+### 🔴 CRITICAL: Responsive Design Requirements
 
-### Responsive Design
-- Use `hidden md:block` for desktop-only elements
-- Use `block md:hidden` for mobile-only elements
-- Test on mobile (320px), tablet (768px), desktop (1024px+)
+**EVERY UI component, page, and layout MUST be fully responsive!**
+
+#### Mandatory Responsive Principles
+- ✅ **Mobile-First Approach**: Start with mobile design, then enhance for larger screens
+- ✅ **Test All Breakpoints**: Mobile (320px), Tablet (768px), Desktop (1024px+)
+- ✅ **Tailwind Responsive Classes**: Always use `sm:`, `md:`, `lg:`, `xl:` prefixes
+- ✅ **Flexible Layouts**: Use `flex`, `grid`, and percentage-based widths
+- ✅ **Touch-Friendly**: Minimum 44px touch targets on mobile
+- ❌ **NEVER use fixed widths** without responsive alternatives
+- ❌ **NEVER create desktop-only layouts**
+- ❌ **NEVER assume screen size** - always provide responsive variants
+
+#### Responsive Breakpoints
+```css
+/* Tailwind CSS Breakpoints */
+sm: 640px   /* Small devices (landscape phones) */
+md: 768px   /* Medium devices (tablets) */
+lg: 1024px  /* Large devices (desktops) */
+xl: 1280px  /* Extra large devices (large desktops) */
+2xl: 1536px /* 2X Extra large devices */
+```
+
+### Tailwind CSS Classes
+- **Buttons**: `bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full sm:w-auto`
+- **Cards**: `bg-white rounded-lg shadow p-4 sm:p-6`
+- **Inputs**: `border border-gray-300 rounded px-3 py-2 w-full text-base`
+- **Alerts**: `bg-green-100 border-l-4 border-green-500 text-green-700 p-4`
+- **Containers**: `container mx-auto px-4 sm:px-6 lg:px-8`
+- **Grid**: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`
+- **Flex**: `flex flex-col md:flex-row items-center gap-4`
+
+### Responsive Design Patterns
+
+#### Navigation
+```html
+<!-- Mobile: Hamburger menu / Desktop: Full sidebar -->
+<nav class="hidden md:block">Desktop Navigation</nav>
+<button class="block md:hidden">Mobile Menu Toggle</button>
+```
+
+#### Tables
+```html
+<!-- Mobile: Card layout / Desktop: Table -->
+<div class="block md:hidden">
+  <!-- Card layout for mobile -->
+</div>
+<table class="hidden md:table">
+  <!-- Table for desktop -->
+</table>
+```
+
+#### Forms
+```html
+<!-- Stack on mobile, side-by-side on desktop -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <input type="text" class="w-full">
+  <input type="text" class="w-full">
+</div>
+```
+
+#### Spacing
+```html
+<!-- Responsive padding and margins -->
+<div class="p-4 sm:p-6 lg:p-8">
+  <h1 class="text-xl sm:text-2xl lg:text-3xl">Heading</h1>
+  <div class="mt-4 sm:mt-6 lg:mt-8">Content</div>
+</div>
+```
+
+### Responsive Design Checklist
+
+Before committing ANY UI changes:
+
+- [ ] Tested on mobile (320px - 640px)
+- [ ] Tested on tablet (768px - 1024px)
+- [ ] Tested on desktop (1024px+)
+- [ ] All text is readable on small screens
+- [ ] Buttons are touch-friendly (min 44px)
+- [ ] Forms are easy to fill on mobile
+- [ ] Tables don't overflow or become unreadable
+- [ ] Images scale appropriately
+- [ ] Navigation works on all screen sizes
+- [ ] No horizontal scrolling (except intentional, like tables)
+- [ ] Modals/dialogs fit on mobile screens
+- [ ] Touch gestures work (if applicable)
+
+### Common Responsive Patterns
+
+#### Master-Detail Pattern
+```html
+<!-- Mobile: Stack vertically / Desktop: Side-by-side -->
+<div class="flex flex-col lg:flex-row gap-4">
+  <div class="w-full lg:w-1/3">Master List</div>
+  <div class="w-full lg:w-2/3">Detail View</div>
+</div>
+```
+
+#### Hide/Show Elements
+```html
+<!-- Show only on mobile -->
+<div class="block md:hidden">Mobile Only</div>
+
+<!-- Show only on tablet and up -->
+<div class="hidden md:block">Tablet & Desktop</div>
+
+<!-- Show only on desktop -->
+<div class="hidden lg:block">Desktop Only</div>
+```
+
+#### Responsive Text
+```html
+<!-- Responsive font sizes -->
+<h1 class="text-2xl md:text-3xl lg:text-4xl">Title</h1>
+<p class="text-sm md:text-base lg:text-lg">Content</p>
+```
 
 ### Accessibility
 - Use semantic HTML (`<button>`, `<nav>`, `<main>`)
 - Add `aria-label` for icon-only buttons
 - Ensure sufficient color contrast (4.5:1 minimum)
 - Make all interactive elements keyboard accessible
+- **CRITICAL: Ensure touch targets are at least 44x44px on mobile**
 
 ---
 

@@ -8,6 +8,7 @@ from app.extensions import db
 from app.models.user import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from app.utils.activity_logger import log_edit, log_password_change
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
 
@@ -45,6 +46,15 @@ def update_profile():
             if existing_user:
                 return jsonify({'success': False, 'message': 'Username already in use'}), 400
         
+        # Track changes for activity log
+        changes = {}
+        if data['full_name'] != current_user.full_name:
+            changes['full_name'] = f"{current_user.full_name} → {data['full_name']}"
+        if data['email'] != current_user.email:
+            changes['email'] = f"{current_user.email} → {data['email']}"
+        if data.get('username') and data['username'] != current_user.username:
+            changes['username'] = f"{current_user.username} → {data['username']}"
+        
         # Update profile information
         current_user.full_name = data['full_name']
         current_user.email = data['email']
@@ -53,6 +63,10 @@ def update_profile():
             current_user.username = data['username']
         
         db.session.commit()
+        
+        # Log the profile update with detailed changes
+        if changes:
+            log_edit('user_profile', current_user.id, current_user.username, changes)
         
         return jsonify({
             'success': True,
@@ -100,6 +114,9 @@ def change_password():
         # Update password
         current_user.password_hash = generate_password_hash(data['new_password'])
         db.session.commit()
+        
+        # Log password change
+        log_password_change(current_user.id, current_user.username)
         
         return jsonify({
             'success': True,

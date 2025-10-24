@@ -119,7 +119,6 @@ CREATE TABLE `user_departments` (
 CREATE TABLE `curricula` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `curriculum_code` VARCHAR(50) NOT NULL,
-  `curriculum_name` VARCHAR(200) NOT NULL,
   `department_id` INT(11) NOT NULL,
   `degree_program` VARCHAR(200) NOT NULL,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,

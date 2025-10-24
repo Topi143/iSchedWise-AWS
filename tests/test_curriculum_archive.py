@@ -19,7 +19,7 @@ with app.app_context():
     for curr in all_curricula:
         print(f"\nCurriculum ID: {curr.id}")
         print(f"  Code: {curr.curriculum_code}")
-        print(f"  Name: {curr.curriculum_name}")
+        print(f"  Degree Program: {curr.degree_program}")
         print(f"  is_active: {curr.is_active}")
         print(f"  is_archived: {curr.is_archived}")
         print(f"  archived_by: {curr.archived_by}")

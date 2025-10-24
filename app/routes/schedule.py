@@ -1034,10 +1034,9 @@ def get_curricula_for_section(section_id):
             {
                 'id': curriculum.id,
                 'curriculum_code': curriculum.curriculum_code,
-                'curriculum_name': curriculum.curriculum_name,
                 'degree_program': curriculum.degree_program,
                 'department_id': curriculum.department_id,  # Include for verification
-                'display': f"{curriculum.curriculum_code} - {curriculum.curriculum_name}"
+                'display': f"{curriculum.curriculum_code}"
             }
             for curriculum in curricula
         ]

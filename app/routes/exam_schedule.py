@@ -278,6 +278,38 @@ def edit():
                 flash('Room conflict: This room is already assigned to another exam at this time', 'danger')
                 return redirect(url_for('schedule.index', exam_section_id=section_id))
         
+        # Track changes
+        changes = {}
+        if exam_schedule.subject_id != subject_id:
+            old_subject = Subject.query.get(exam_schedule.subject_id)
+            new_subject = Subject.query.get(subject_id)
+            changes['subject'] = f'{old_subject.subject_code if old_subject else "N/A"} → {new_subject.subject_code if new_subject else "N/A"}'
+        
+        if exam_schedule.faculty_id != faculty_id:
+            old_faculty = Faculty.query.get(exam_schedule.faculty_id) if exam_schedule.faculty_id else None
+            new_faculty = Faculty.query.get(faculty_id) if faculty_id else None
+            changes['faculty'] = f'{old_faculty.full_name if old_faculty else "None"} → {new_faculty.full_name if new_faculty else "None"}'
+        
+        if exam_schedule.room_id != room_id:
+            old_room = Room.query.get(exam_schedule.room_id) if exam_schedule.room_id else None
+            new_room = Room.query.get(room_id) if room_id else None
+            changes['room'] = f'{old_room.room_number if old_room else "None"} → {new_room.room_number if new_room else "None"}'
+        
+        if exam_schedule.exam_date != exam_date:
+            changes['date'] = f'{exam_schedule.exam_date} → {exam_date}'
+        
+        if exam_schedule.start_time != start_time or exam_schedule.end_time != end_time:
+            changes['time'] = f'{exam_schedule.start_time}-{exam_schedule.end_time} → {start_time}-{end_time}'
+        
+        if exam_schedule.exam_period != exam_period:
+            changes['exam_period'] = f'{exam_schedule.exam_period} → {exam_period}'
+        
+        if exam_schedule.semester != semester:
+            changes['semester'] = f'{exam_schedule.semester} → {semester}'
+        
+        if exam_schedule.academic_year != academic_year:
+            changes['academic_year'] = f'{exam_schedule.academic_year} → {academic_year}'
+        
         # Update exam schedule
         exam_schedule.subject_id = subject_id
         exam_schedule.faculty_id = faculty_id
@@ -290,11 +322,8 @@ def edit():
         exam_schedule.academic_year = academic_year
         exam_schedule.updated_at = datetime.utcnow()
         
-        # Log activity
-        log_edit('exam_schedule', exam_schedule.id, f'{exam_schedule.subject.subject_code} - {exam_schedule.section.section_name}', {
-            'exam_date': str(exam_date),
-            'exam_period': exam_period
-        })
+        # Log activity with changes
+        log_edit('exam_schedule', exam_schedule.id, f'{exam_schedule.subject.subject_code} - {exam_schedule.section.section_name}', changes if changes else None)
         
         db.session.commit()
         

@@ -159,11 +159,11 @@ INSERT INTO `sections` (`department_id`, `section_name`, `year_level`, `is_activ
 -- Sample Curricula
 -- ============================================================================
 
-INSERT INTO `curricula` (`curriculum_code`, `curriculum_name`, `department_id`, `degree_program`, `is_active`, `is_archived`, `archived_by`, `archived_at`, `archive_reason`, `created_by`, `created_at`) VALUES
-('BSHM-2024', 'Bachelor of Science in Hospitality Management 2024', 2, 'BSHM', 1, 0, NULL, NULL, NULL, 1, NOW()),
-('CS-2024', 'Bachelor of Science in Computer Science 2024', 1, 'BSCS', 1, 0, NULL, NULL, NULL, 1, NOW()),
-('BEED-2024', 'Bachelor of Elementary Education 2024', 3, 'BEED', 1, 0, NULL, NULL, NULL, 1, NOW()),
-('CS-2020', 'Bachelor of Science in Computer Science 2020 (OLD)', 1, 'BSCS', 0, 1, 1, '2024-01-15 10:30:00', 'Outdated curriculum replaced by 2024 version', 1, '2020-06-01 00:00:00');
+INSERT INTO `curricula` (`curriculum_code`, `department_id`, `degree_program`, `is_active`, `is_archived`, `archived_by`, `archived_at`, `archive_reason`, `created_by`, `created_at`) VALUES
+('BSHM-2024', 2, 'Bachelor of Science in Hospitality Management', 1, 0, NULL, NULL, NULL, 1, NOW()),
+('CS-2024', 1, 'Bachelor of Science in Computer Science', 1, 0, NULL, NULL, NULL, 1, NOW()),
+('BEED-2024', 3, 'Bachelor of Elementary Education', 1, 0, NULL, NULL, NULL, 1, NOW()),
+('CS-2020', 1, 'Bachelor of Science in Computer Science', 0, 1, 1, '2024-01-15 10:30:00', 'Outdated curriculum replaced by 2024 version', 1, '2020-06-01 00:00:00');
 
 -- ============================================================================
 -- Year Levels and Semesters for BSHM 2024

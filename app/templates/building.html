@@ -4,45 +4,65 @@
 
 {% block extra_css %}
 <style>
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with settings.html */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 3px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
+    }
+    
+    /* Card Styles - Consistent with settings design */
+    .building-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .building-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     
     /* Building List Item Styles */
     .building-list-item {
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        border-left: 3px solid transparent;
     }
     
     .building-list-item:hover {
-        background: #f8fafc;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+        transform: translateX(2px);
     }
     
     .building-list-item.selected {
-        background: #eff6ff;
-        border-left: 3px solid #3b82f6;
-        border-bottom: none;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-left: 3px solid #2563eb;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
     }
     
     .building-list-item.selected:hover {
-        background: #dbeafe;
+        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
     }
     
     .room-row {
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* Toast Notifications */
+    .room-row:hover {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%);
+        transform: translateX(2px);
+    }
+    
+    /* Toast Notifications - Enhanced design */
     .toast-container {
         position: fixed;
         top: 1rem;
@@ -59,15 +79,16 @@
         align-items: center;
         padding: 1rem;
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         transform: translateX(400px);
-        animation: slideIn 0.3s ease forwards;
+        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         min-width: 300px;
+        border: 1px solid #e5e7eb;
     }
     
     .toast.removing {
-        animation: slideOut 0.3s ease forwards;
+        animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
     
     @keyframes slideIn {
@@ -85,14 +106,17 @@
     
     .toast-success {
         border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
     }
     
     .toast-error {
         border-left: 4px solid #ef4444;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
     }
     
     .toast-info {
         border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
     }
     
     .toast-progress {
@@ -103,12 +127,24 @@
         background: currentColor;
         opacity: 0.3;
         animation: progress 5s linear forwards;
+        border-radius: 0 0 0.75rem 0.75rem;
     }
     
     @keyframes progress {
         to {
             width: 0;
         }
+    }
+    
+    /* Button Styles - Consistent with base */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
     }
     
     /* Responsive Layout - Master-Detail Pattern */
@@ -172,6 +208,38 @@
     
     /* Mobile optimizations */
     @media (max-width: 640px) {
+        /* Ultra-compact mobile layout */
+        .bg-gray-50 {
+            padding: 0.5rem !important;
+        }
+        
+        /* Page header compact */
+        .page-header {
+            padding: 0.75rem !important;
+        }
+        
+        .page-header h1 {
+            font-size: 1rem !important;
+            line-height: 1.25rem !important;
+        }
+        
+        .page-header p {
+            font-size: 0.625rem !important;
+            line-height: 1rem !important;
+        }
+        
+        .page-header .h-10,
+        .page-header .w-10 {
+            width: 2rem !important;
+            height: 2rem !important;
+        }
+        
+        .page-header .h-10 svg,
+        .page-header .w-10 svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
         /* Compact building list items */
         .building-list-item {
             padding: 0.75rem !important;
@@ -181,17 +249,43 @@
         .room-row {
             font-size: 0.875rem;
         }
+        
+        .building-card {
+            padding: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+        }
     }
     
     /* Disable hover effects on touch devices */
     @media (hover: none) {
         .building-list-item:hover {
             background: inherit;
+            transform: none;
         }
         
         .building-list-item.selected:hover {
-            background: #eff6ff;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
         }
+        
+        .room-row:hover {
+            background: inherit;
+            transform: none;
+        }
+    }
+    
+    /* Slide-in animation - Consistent with settings */
+    @keyframes slide-in {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    .animate-slide-in {
+        animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 </style>
 {% endblock %}
@@ -200,7 +294,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col p-3 sm:p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         <div id="flashMessages" class="hidden">
@@ -214,22 +308,17 @@
         </div>
 
         <!-- Page Header -->
-        <div class="mb-3 flex-shrink-0 animate-slide-in">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div class="flex items-center gap-2 sm:gap-3">
-                        <div class="page-header-icon w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
-                                Buildings Management
-                                <span class="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ buildings|length }}</span>
-                            </h1>
-                            <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Manage campus buildings and rooms</p>
-                        </div>
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Buildings Management</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Manage campus buildings and rooms</p>
                     </div>
                 </div>
             </div>
@@ -239,7 +328,7 @@
         <div id="building-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 sm:gap-3">
             {% if buildings %}
             <!-- Master Panel: Building List -->
-            <div class="master-panel building-list-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col left-sidebar">
+            <div class="master-panel building-list-panel w-full lg:w-80 flex-shrink-0 building-card overflow-hidden flex flex-col left-sidebar">
                 <div class="bg-white p-3 sm:p-4 flex-shrink-0 border-b border-gray-200">
                     <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-3">
                         <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
@@ -250,7 +339,7 @@
                         <span class="text-sm sm:text-base">Buildings</span>
                         <span id="building-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ buildings|length }}</span>
                     </h3>
-                    <button onclick="openAddBuildingModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-md text-xs sm:text-sm transition-all">
+                    <button onclick="openAddBuildingModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
@@ -288,7 +377,7 @@
             </div>
 
             <!-- Detail Panel: Building Detail View -->
-            <div class="detail-panel building-detail-panel flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" id="buildingDetailPanel">
+            <div class="detail-panel building-detail-panel flex-1 building-card overflow-hidden flex flex-col" id="buildingDetailPanel">
                 <!-- Mobile Back Button -->
                 <button onclick="closeMobileDetailView()" class="mobile-back-btn w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +494,7 @@
             {% else %}
             <!-- Empty State: No Buildings -->
             <!-- Left Panel: Empty List -->
-            <div class="building-list-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+            <div class="building-list-panel w-full lg:w-80 flex-shrink-0 building-card overflow-hidden flex flex-col">
                 <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
                     <h3 class="text-base font-bold text-gray-900 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +513,7 @@
                             </svg>
                         </div>
                         <p class="text-sm text-gray-600 mb-4">No buildings yet</p>
-                        <button onclick="openAddBuildingModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-xs">
+                        <button onclick="openAddBuildingModal()" class="btn-primary inline-flex items-center px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
@@ -435,7 +524,7 @@
             </div>
 
             <!-- Right Panel: Getting Started -->
-            <div class="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+            <div class="flex-1 building-card overflow-hidden flex flex-col">
                 <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -453,7 +542,7 @@
                         </div>
                         <h3 class="text-2xl font-bold text-gray-900 mb-3">No Buildings Yet</h3>
                         <p class="text-sm text-gray-600 mb-8 leading-relaxed">Start organizing your campus by adding buildings and their rooms.</p>
-                        <button onclick="openAddBuildingModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm">
+                        <button onclick="openAddBuildingModal()" class="btn-primary inline-flex items-center px-6 py-3 text-white font-medium rounded-lg shadow-md transition-all text-sm min-h-[44px]">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>

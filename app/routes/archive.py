@@ -629,7 +629,6 @@ def get_archived_curricula():
             query = query.filter(
                 or_(
                     Curriculum.curriculum_code.ilike(search_term),
-                    Curriculum.curriculum_name.ilike(search_term),
                     Curriculum.degree_program.ilike(search_term)
                 )
             )

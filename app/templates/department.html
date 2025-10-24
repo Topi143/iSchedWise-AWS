@@ -4,38 +4,51 @@
 
 {% block extra_css %}
 <style>
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Consistent with settings */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #d1d5db;
         border-radius: 3px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
+    }
+    
+    /* Card Styles - Consistent with building and faculty */
+    .department-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .department-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     
     /* Department List Item Styles */
     .department-list-item {
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .department-list-item:hover {
-        background: #f8fafc;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%);
+        transform: translateX(2px);
     }
     
     .department-list-item.selected {
-        background: #eff6ff;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
         border-left: 3px solid #3b82f6;
         border-bottom: none;
     }
     
     .department-list-item.selected:hover {
-        background: #dbeafe;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%);
     }
     
     /* Responsive Layout - Master-Detail Pattern */
@@ -122,10 +135,18 @@
     @media (hover: none) {
         .department-list-item:hover {
             background: inherit;
+            transform: none;
         }
         
         .department-list-item.selected:hover {
-            background: #eff6ff;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+            transform: none;
+        }
+        
+        .subject-row:hover {
+            background: inherit;
+            transform: none;
+            border-color: #e5e7eb;
         }
     }
     
@@ -141,7 +162,13 @@
     }
     
     .subject-row {
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .subject-row:hover {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%);
+        transform: translateX(2px);
+        border-color: #3b82f6;
     }
     
     .accordion-toggle {
@@ -157,6 +184,17 @@
     }
     .accordion-content.open {
         max-height: 2000px;
+    }
+    
+    /* Button Styles - Consistent with base */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
     }
     
     /* Toast Notifications */
@@ -176,11 +214,12 @@
         align-items: center;
         padding: 1rem;
         background: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
         transform: translateX(400px);
         animation: slideIn 0.3s ease forwards;
         min-width: 300px;
+        border: 1px solid rgba(229, 231, 235, 0.8);
     }
     
     .toast.removing {
@@ -202,14 +241,17 @@
     
     .toast-success {
         border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 150, 105, 0.01) 100%);
     }
     
     .toast-error {
         border-left: 4px solid #ef4444;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(220, 38, 38, 0.01) 100%);
     }
     
     .toast-info {
         border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(37, 99, 235, 0.01) 100%);
     }
     
     .toast-progress {
@@ -234,7 +276,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col p-3 sm:p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -248,42 +290,39 @@
         {% endwith %}
 
         <!-- Page Header -->
-        <div class="mb-3 sm:mb-4 flex-shrink-0 animate-slide-in">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div class="flex items-center gap-2 sm:gap-3">
-                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl shadow-sm flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                Department Management
-                                <span class="px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ departments|length }}</span>
-                            </h1>
-                            <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Manage departments and sections</p>
-                        </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Department Management</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Manage departments and sections</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Two-Panel Layout: Department List + Detail View -->
-        <div id="department-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-3">
+        <div id="department-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 sm:gap-3">
             {% if departments %}
             <!-- Master Panel: Department List -->
-            <div class="master-panel department-list-panel w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col left-sidebar">
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+            <div class="master-panel department-list-panel w-full lg:w-80 flex-shrink-0 department-card overflow-hidden flex flex-col left-sidebar">
+                <div class="bg-white p-3 sm:p-4 flex-shrink-0 border-b border-gray-200">
                     <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-3">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                        </svg>
-                        Departments
-                        <span id="department-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ departments|length }}</span>
+                        <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <span class="text-sm sm:text-base">Departments</span>
+                        <span id="department-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ departments|length }}</span>
                     </h3>
-                    <button onclick="openAddDepartmentModal()" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all text-xs sm:text-sm">
-                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="openAddDepartmentModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                         Add Department
@@ -323,7 +362,7 @@
             </div>
 
             <!-- Detail Panel: Department Detail View -->
-            <div class="detail-panel department-detail-panel flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col" id="departmentDetailPanel">
+            <div class="detail-panel department-detail-panel flex-1 department-card overflow-hidden flex flex-col" id="departmentDetailPanel">
                 <!-- Mobile Back Button -->
                 <button onclick="closeMobileDepartmentView()" class="mobile-back-btn w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,13 +373,13 @@
                 
                 {% if selected_department %}
                 {% set display_department = selected_department %}
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="bg-white p-2 sm:p-3 flex-shrink-0 border-b border-gray-200">
+                    <div class="flex items-center justify-between gap-2">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base sm:text-lg font-bold text-gray-900" id="detailDepartmentCode">{{ display_department.department_code }}</h3>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900 truncate" id="detailDepartmentCode">{{ display_department.department_code }}</h3>
                             <p class="text-xs sm:text-sm text-gray-600" id="detailDepartmentName">{{ display_department.department_name }}</p>
                         </div>
-                        <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto justify-end">
+                        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                             <button onclick="openAddSectionModal({{ display_department.id }})" class="p-1.5 sm:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Add Section">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -414,11 +453,11 @@
                 </div>
                 {% else %}
                 <!-- Empty State when no department is selected -->
-                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
-                    <div class="flex items-center justify-between">
+                <div class="bg-white border-b border-gray-200 p-2 sm:p-3 flex-shrink-0">
+                    <div class="flex items-center justify-between gap-2">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-base sm:text-lg font-bold text-gray-900">Department Details</h3>
-                            <p class="text-xs sm:text-sm text-gray-600">Select a department to view information</p>
+                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Department Details</h3>
+                            <p class="text-xs sm:text-sm text-gray-600">Select a department to view sections</p>
                         </div>
                     </div>
                 </div>
@@ -439,26 +478,26 @@
             {% else %}
             <!-- Empty State: No Departments -->
             <!-- Left Panel: Empty List -->
-            <div class="w-80 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+            <div class="department-list-panel w-full lg:w-80 flex-shrink-0 department-card overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
                     <h3 class="text-base font-bold text-gray-900 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                         Departments
+                        <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
                     </h3>
                 </div>
                 
-                <!-- Empty List Message -->
-                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
+                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
                     <div class="text-center">
                         <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                             <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">No departments created yet</p>
-                        <button onclick="openAddDepartmentModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-xs">
+                        <p class="text-sm text-gray-600 mb-4">No departments yet</p>
+                        <button onclick="openAddDepartmentModal()" class="btn-primary inline-flex items-center px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
@@ -469,18 +508,17 @@
             </div>
 
             <!-- Right Panel: Getting Started -->
-            <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+            <div class="flex-1 department-card overflow-hidden flex flex-col">
+                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
                             <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
-                            <p class="text-sm text-gray-600">Create your first department</p>
+                            <p class="text-sm text-gray-600">Add your first department to begin</p>
                         </div>
                     </div>
                 </div>
-                
                 <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center max-w-md">
+                    <div class="text-center max-w-md px-8">
                         <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                             <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>

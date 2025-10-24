@@ -11,7 +11,6 @@ class Curriculum(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     curriculum_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    curriculum_name = db.Column(db.String(200), nullable=False)
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
     degree_program = db.Column(db.String(200), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
@@ -52,7 +51,6 @@ class Curriculum(db.Model):
         return {
             'id': self.id,
             'curriculum_code': self.curriculum_code,
-            'curriculum_name': self.curriculum_name,
             'degree_program': self.degree_program,
             'department_name': self.department.department_name if self.department else None,
             'year_levels_count': len(self.year_levels),

@@ -85,7 +85,7 @@ def index():
     
     # Get all subjects grouped by curriculum for assignment
     # Filter subjects to only show those in semesters matching the current active semester
-    curricula = Curriculum.query.filter_by(is_active=True).order_by(Curriculum.curriculum_name).all()
+    curricula = Curriculum.query.filter_by(is_active=True).order_by(Curriculum.curriculum_code).all()
     
     # Filter curricula to only include those with subjects in the current semester
     filtered_curricula = []
@@ -166,8 +166,13 @@ def add():
         db.session.add(new_faculty)
         db.session.flush()
         
-        # Log activity
-        log_create('faculty', new_faculty.id, new_faculty.full_name)
+        # Log activity with details
+        details = {}
+        if dept_id:
+            dept = Department.query.get(dept_id)
+            if dept:
+                details['department'] = dept.department_code
+        log_create('faculty', new_faculty.id, new_faculty.full_name, details if details else None)
         
         db.session.commit()
         
@@ -201,22 +206,33 @@ def edit():
         
         # Validate department if provided
         dept_id = None
+        old_dept = faculty.department.department_code if faculty.department else 'None'
         if department_id:
             try:
                 dept_id = int(department_id)
-                if not Department.query.get(dept_id):
+                dept = Department.query.get(dept_id)
+                if not dept:
                     flash('Selected department not found.', 'error')
                     return redirect(url_for('faculty.index'))
             except ValueError:
                 flash('Invalid department selected.', 'error')
                 return redirect(url_for('faculty.index'))
         
+        # Track changes
+        changes = {}
+        if full_name != faculty.full_name:
+            changes['name'] = f"{faculty.full_name} → {full_name}"
+        if dept_id != faculty.department_id:
+            new_dept = dept.department_code if dept_id else 'None'
+            if old_dept != new_dept:
+                changes['department'] = f"{old_dept} → {new_dept}"
+        
         # Update faculty
         faculty.full_name = full_name
         faculty.department_id = dept_id
         
-        # Log activity
-        log_edit('faculty', faculty.id, faculty.full_name)
+        # Log activity with details
+        log_edit('faculty', faculty.id, faculty.full_name, changes if changes else None)
         
         db.session.commit()
         
@@ -289,8 +305,11 @@ def delete():
         
         faculty_name = faculty.full_name
         
-        # Log activity before deletion
-        log_delete('faculty', faculty.id, faculty_name)
+        # Log activity before deletion with details
+        details = {}
+        if faculty.department:
+            details['department'] = faculty.department.department_code
+        log_delete('faculty', faculty.id, faculty_name, details if details else None)
         
         db.session.delete(faculty)
         db.session.commit()
