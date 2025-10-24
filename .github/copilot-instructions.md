@@ -9,10 +9,12 @@
 - ✅ Show before/after diffs for clarity when needed
 - ✅ Include verification steps for critical changes
 - ✅ **ALWAYS ensure all UI/layouts are fully responsive (mobile, tablet, desktop)**
+- ✅ **CRITICAL: Ensure changes do NOT break existing functionality - test all related features**
 - ❌ No verbose explanations or unnecessary commentary
 - ❌ No lengthy introductions or summaries
 - ❌ Don't assume context - always verify file paths and existing code
 - ❌ **NEVER create non-responsive layouts or fixed-width designs**
+- ❌ **NEVER modify code without understanding its full impact on existing features**
 
 ## 🔍 CRITICAL: Context Gathering Before Code Generation
 
@@ -151,18 +153,209 @@ Before generating ANY code, ask yourself:
 
 **If you answered NO to any of these, STOP and gather more context!**
 
+## 🛡️ CRITICAL: Preventing Breaking Changes
+
+**BEFORE making ANY code changes, you MUST verify the change won't break existing functionality!**
+
+### Pre-Code Generation Safety Checklist
+
+**MANDATORY checks before generating code:**
+
+1. **Identify All Consumers**
+   - [ ] Use `grep_search` to find where this function/class/route is called
+   - [ ] Use `list_code_usages` to find all references
+   - [ ] Check templates that use this route endpoint
+   - [ ] Find JavaScript files that call this API
+
+2. **Understand Current Behavior**
+   - [ ] Read the COMPLETE existing function/class
+   - [ ] Understand input parameters and return values
+   - [ ] Note any side effects (database writes, file operations, etc.)
+   - [ ] Check error handling and edge cases
+
+3. **Analyze Dependencies**
+   - [ ] What other functions does this code call?
+   - [ ] What database tables/models are affected?
+   - [ ] Are there foreign key relationships that could cascade?
+   - [ ] What templates/JavaScript depend on this data structure?
+
+4. **Verify Backward Compatibility**
+   - [ ] Will existing function callers still work?
+   - [ ] Are you changing function signatures (parameters, return types)?
+   - [ ] Will existing database queries still work?
+   - [ ] Are you removing fields that templates expect?
+
+5. **Test Related Features**
+   - [ ] Identify features that use this code
+   - [ ] List test scenarios to verify after changes
+   - [ ] Check both happy path and error paths
+   - [ ] Verify cascading effects won't break other features
+
+### Breaking Change Warning Signs
+
+**STOP and reconsider if you're about to:**
+
+- ❌ Remove or rename a function/method that's called elsewhere
+- ❌ Change function parameters without checking all call sites
+- ❌ Modify database schema without updating all queries
+- ❌ Remove template variables that JavaScript relies on
+- ❌ Change API response structure without checking consumers
+- ❌ Delete database columns without checking model usage
+- ❌ Modify foreign key relationships without understanding cascades
+- ❌ Change route URLs without updating all links/forms
+- ❌ Remove CSS classes that JavaScript selects
+- ❌ Modify global JavaScript variables that other scripts use
+
+### Safe Code Modification Workflow
+
+```
+1. READ COMPLETE FILE CONTEXT
+   ↓
+2. GREP SEARCH FOR ALL USAGES
+   ↓
+3. UNDERSTAND DEPENDENCIES
+   ↓
+4. PLAN BACKWARD-COMPATIBLE CHANGES
+   ↓
+5. UPDATE ALL CONSUMERS IF NEEDED
+   ↓
+6. GENERATE CODE WITH SAFETY IN MIND
+   ↓
+7. VERIFY NO BREAKING CHANGES
+   ↓
+8. TEST RELATED FEATURES
+```
+
+### Example: Safe Function Modification
+
+**❌ WRONG - Breaking Change:**
+```python
+# Original function
+def get_faculty_assignments(faculty_id):
+    return FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+
+# Breaking change - changed return type without checking consumers
+def get_faculty_assignments(faculty_id):
+    assignments = FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+    return [a.subject_id for a in assignments]  # Now returns list of IDs, not objects!
+```
+
+**✅ CORRECT - Backward Compatible:**
+```python
+# Original function preserved
+def get_faculty_assignments(faculty_id):
+    return FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+
+# New function with clear purpose
+def get_faculty_subject_ids(faculty_id):
+    assignments = FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+    return [a.subject_id for a in assignments]
+```
+
+### Example: Safe Route Modification
+
+**❌ WRONG - Breaking Frontend:**
+```python
+# Original route returns full object
+@faculty_bp.route('/get-assignments/<int:faculty_id>')
+def get_assignments(faculty_id):
+    assignments = FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+    return jsonify([{
+        'subject_id': a.subject_id,
+        'subject_name': a.subject.course_description,
+        'subject_code': a.subject.subject_code
+    } for a in assignments])
+
+# Breaking change - removed fields that JavaScript expects
+@faculty_bp.route('/get-assignments/<int:faculty_id>')
+def get_assignments(faculty_id):
+    assignments = FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+    return jsonify([a.subject_id for a in assignments])  # JavaScript breaks!
+```
+
+**✅ CORRECT - Maintains API Contract:**
+```python
+# Keep existing API response structure
+@faculty_bp.route('/get-assignments/<int:faculty_id>')
+def get_assignments(faculty_id):
+    assignments = FacultySubjectAssignment.query.filter_by(faculty_id=faculty_id).all()
+    return jsonify([{
+        'subject_id': a.subject_id,
+        'subject_name': a.subject.course_description,
+        'subject_code': a.subject.subject_code,
+        'curriculum': a.subject.curriculum.curriculum_code  # Added new field safely
+    } for a in assignments])
+```
+
+### Testing for Breaking Changes
+
+**After making changes, VERIFY:**
+
+1. **Database Operations:**
+   - [ ] All existing queries still work
+   - [ ] Foreign keys remain intact
+   - [ ] Cascade deletes work as expected
+
+2. **API Endpoints:**
+   - [ ] Response format unchanged (or backward compatible)
+   - [ ] Status codes consistent
+   - [ ] Error handling preserved
+
+3. **Templates:**
+   - [ ] All template variables still available
+   - [ ] Forms submit correctly
+   - [ ] JavaScript can access expected data
+
+4. **JavaScript:**
+   - [ ] Global variables still exist
+   - [ ] Event handlers still work
+   - [ ] AJAX calls receive expected responses
+
+5. **Related Features:**
+   - [ ] Navigate through affected UI flows
+   - [ ] Test CRUD operations
+   - [ ] Verify filtering, sorting, pagination still work
+
+### When Breaking Changes Are Necessary
+
+If you MUST make a breaking change:
+
+1. **Document the impact:**
+   - List all affected files/features
+   - Explain why breaking change is necessary
+   - Provide migration path
+
+2. **Update ALL consumers:**
+   - Update every call site
+   - Update all templates
+   - Update JavaScript code
+   - Update documentation
+
+3. **Test exhaustively:**
+   - Test every affected feature
+   - Check error scenarios
+   - Verify edge cases
+
+4. **Communicate clearly:**
+   - Add clear commit messages
+   - Document in changelog
+   - Add code comments explaining change
+
 ## 🎯 Quick Reference
 
 ### When User Asks To...
-- **Add a feature** → Check database.sql → Update models → Update routes → Update templates (MUST be responsive)
-- **Fix a bug** → Read error logs → Check related code → Test fix → Verify no side effects
-- **Archive something** → Use standard archive pattern (see below) → Don't create separate tables
-- **Change database** → Update database.sql FIRST → Then sample_data.sql → Then Python models
-- **Add a route** → Use blueprints → Add @login_required → Check user permissions
-- **Modify UI** → Check base.html → Use Tailwind responsive classes → Test on mobile/tablet/desktop
-- **Create new page** → MUST be responsive from the start → Use mobile-first approach → Test all breakpoints
+- **Add a feature** → Check database.sql → Update models → Update routes → Update templates (MUST be responsive) → **Verify no breaking changes**
+- **Fix a bug** → Read error logs → Check related code → **Grep search for all usages** → Test fix → **Verify no side effects on other features**
+- **Archive something** → Use standard archive pattern (see below) → Don't create separate tables → **Check foreign key dependencies**
+- **Change database** → Update database.sql FIRST → Then sample_data.sql → Then Python models → **Update ALL queries using changed tables**
+- **Add a route** → Use blueprints → Add @login_required → Check user permissions → **Verify URL doesn't conflict with existing routes**
+- **Modify UI** → Check base.html → Use Tailwind responsive classes → Test on mobile/tablet/desktop → **Ensure JavaScript still works**
+- **Create new page** → MUST be responsive from the start → Use mobile-first approach → Test all breakpoints → **Check navigation links**
 - **Clean workspace** → Delete old templates (*_old.html, *.backup) → Move obsolete test files → Archive outdated docs
-- **Test changes** → Drop DB → Import database.sql → Import sample_data.sql → Run app → Test responsive layout
+- **Test changes** → Drop DB → Import database.sql → Import sample_data.sql → Run app → Test responsive layout → **Test ALL related features**
+- **Modify function** → **Grep search for ALL call sites** → Check return type usage → Update all consumers → Verify backward compatibility
+- **Change model** → **Find all queries using this model** → Update routes → Update templates → Verify foreign keys → Test cascades
+- **Update JavaScript** → **Check what templates include it** → Verify global variables → Test event handlers → Check AJAX endpoints
 
 ## 🔴 CRITICAL: Database Management Approach
 

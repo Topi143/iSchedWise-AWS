@@ -202,6 +202,22 @@
         }
     }
     
+    /* Modal Scale-In Animation */
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-scale-in {
+        animation: scaleIn 0.2s ease-out forwards;
+    }
+    
     /* Responsive Layout - Master-Detail Pattern */
     .master-panel,
     .detail-panel {
@@ -213,16 +229,19 @@
         display: none;
     }
     
-    @media (max-width: 768px) {
-        /* Mobile: Show master panel by default, hide detail panel */
+    /* Mobile & Tablet: Combined responsive layout (up to 1024px) */
+    @media (max-width: 1024px) {
+        /* Show master panel by default, hide detail panel */
         .master-panel {
             display: flex !important;
             width: 100% !important;
-            max-height: none !important;
+            height: 100% !important;
+            max-height: 100% !important;
         }
         
         .detail-panel {
             display: none !important;
+            height: 100% !important;
         }
         
         /* When mobile-detail-view is active, swap visibility */
@@ -233,23 +252,20 @@
         .mobile-detail-view .detail-panel {
             display: flex !important;
             width: 100% !important;
+            height: 100% !important;
         }
         
-        /* Show back button on mobile detail view */
+        /* Show back button on mobile/tablet detail view */
         .mobile-back-btn {
             display: flex !important;
         }
-    }
-    
-    /* Desktop: Hide back button */
-    @media (min-width: 769px) {
-        .mobile-back-btn {
-            display: none !important;
+        
+        /* Ensure panels fill the container */
+        #faculty-container {
+            height: 100% !important;
         }
-    }
-    
-    /* Tablet optimizations */
-    @media (max-width: 768px) {
+        
+        /* Page header icon sizing */
         .page-header-icon {
             width: 2.5rem !important;
             height: 2.5rem !important;
@@ -261,9 +277,16 @@
         }
     }
     
-    /* Mobile optimizations */
+    /* Desktop: Hide back button */
+    @media (min-width: 1025px) {
+        .mobile-back-btn {
+            display: none !important;
+        }
+    }
+    
+    /* Ultra-compact mobile layout (phones) */
     @media (max-width: 640px) {
-        /* Ultra-compact mobile layout */
+        /* Tighter spacing on very small screens */
         .bg-gray-50 {
             padding: 0.5rem !important;
         }
@@ -276,11 +299,6 @@
         /* Stack workload badges vertically on very small screens */
         .faculty-list-item .flex.items-center.gap-2 {
             flex-wrap: wrap;
-        }
-        
-        .faculty-card {
-            padding: 0.75rem !important;
-            margin-bottom: 0.5rem !important;
         }
     }
     
@@ -301,8 +319,8 @@
         }
     }
     
-    /* Mobile Modal Optimizations */
-    @media (max-width: 640px) {
+    /* Mobile & Tablet Modal Optimizations */
+    @media (max-width: 1024px) {
         #assignSubjectModal .bg-white.rounded-xl {
             max-height: 100vh !important;
             height: 100vh !important;
@@ -343,42 +361,58 @@
             padding: 0.75rem !important;
         }
         
-        /* Hide selected subjects panel on mobile, show as bottom sheet instead */
+        /* Selected subjects panel as bottom sheet on mobile/tablet */
         #selected_subjects_section {
             position: fixed !important;
             bottom: 0 !important;
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
-            max-height: 40vh !important;
+            max-height: 60vh !important;
             border-left: none !important;
             border-top: 2px solid #10b981 !important;
             border-radius: 1rem 1rem 0 0 !important;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
             z-index: 10 !important;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        /* Hide state - collapsed to just toggle button */
+        #selected_subjects_section.collapsed {
+            transform: translateY(calc(100% - 50px)) !important;
         }
         
         /* Adjust selected list height on mobile */
         #selected_subjects_list {
-            max-height: calc(40vh - 140px) !important;
+            max-height: calc(60vh - 160px) !important;
             padding: 0.75rem !important;
         }
         
-        /* Hide sidebar when empty on mobile */
-        #selected_subjects_section.empty-mobile {
-            transform: translateY(100%) !important;
-            transition: transform 0.3s ease !important;
-        }
-    }
-    
-    /* Tablet Modal Optimizations */
-    @media (min-width: 641px) and (max-width: 1024px) {
-        #assignSubjectModal .bg-white.rounded-xl {
-            max-width: 95vw !important;
+        /* Toggle button for mobile/tablet */
+        .mobile-toggle-selected {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            cursor: pointer;
+            border-radius: 1rem 1rem 0 0;
+            position: relative;
         }
         
-        #selected_subjects_section {
-            width: 280px !important;
+        .mobile-toggle-selected::before {
+            content: '';
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2px;
+            position: absolute;
+            top: 8px;
+        }
+        
+        /* Hide when no subjects selected */
+        #selected_subjects_section.empty-mobile {
+            transform: translateY(100%) !important;
         }
     }
 </style>
@@ -388,7 +422,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
+<div class="bg-gray-50 h-screen overflow-hidden flex flex-col p-2 sm:p-4">
     <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -411,8 +445,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Faculty Management</h1>
-                        <p class="text-xs sm:text-sm text-gray-600">Manage faculty members and their subject assignments</p>
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Faculties Management</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Manage faculties and their subject assignments</p>
                     </div>
                 </div>
             </div>
@@ -430,8 +464,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
-                        <span class="text-sm sm:text-base">Faculty</span>
-                        <span id="faculty-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ faculties|length }}</span>
+                        <span class="text-sm sm:text-base">Faculties</span>
+                        <span id="faculty-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
                     </h3>
                     <button onclick="openAddFacultyModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -444,15 +478,41 @@
                 <!-- Department Filter -->
                 <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0">
                     <select id="departmentFilter" onchange="filterByDepartment(this.value)" class="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">All Departments</option>
+                        <option value="">Select Department...</option>
                         {% for dept in departments %}
                         <option value="{{ dept.id }}">{{ dept.department_code }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 
+                <!-- Empty State: No Filter Selected -->
+                <div id="noFilterState" class="flex-1 flex items-center justify-center p-3 sm:p-6">
+                    <div class="text-center max-w-xs px-2">
+                        <div class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-50 flex items-center justify-center mb-3 sm:mb-4">
+                            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">Select a Department</h3>
+                        <p class="text-[10px] sm:text-xs text-gray-500 leading-relaxed">Please select a department from the dropdown above to view faculties.</p>
+                    </div>
+                </div>
+                
+                <!-- Empty State: No Faculties in Department -->
+                <div id="noFacultyState" class="flex-1 hidden items-center justify-center p-3 sm:p-6">
+                    <div class="text-center max-w-xs px-2">
+                        <div class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-50 flex items-center justify-center mb-3 sm:mb-4">
+                            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">No Faculties Found</h3>
+                        <p class="text-[10px] sm:text-xs text-gray-500 leading-relaxed">There are no faculties in this department.</p>
+                    </div>
+                </div>
+                
                 <!-- Faculty List -->
-                <div class="flex-1 overflow-y-auto" id="facultyList">
+                <div class="flex-1 overflow-y-auto hidden" id="facultyList">
                     {% for faculty in faculties %}
                     <div class="faculty-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer {% if selected_faculty and selected_faculty.id == faculty.id %}selected{% endif %}" 
                          data-department-id="{{ faculty.department_id if faculty.department_id else '' }}"
@@ -468,9 +528,9 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2 text-xs">
-                                <span class="flex items-center text-gray-500">
-                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center flex-wrap gap-2 text-xs">
+                                <span class="flex items-center text-gray-600">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                     </svg>
                                     {% if faculty.id in faculty_workloads %}
@@ -479,11 +539,19 @@
                                         0 Subjects
                                     {% endif %}
                                 </span>
-                                {% if faculty.id in faculty_workloads %}
-                                <span class="px-2 py-1 font-semibold rounded-full {% if faculty_workloads[faculty.id].total_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ faculty_workloads[faculty.id].total_units }} units
+                                {% if faculty.id in faculty_workloads and faculty_workloads[faculty.id].assigned_units > 0 %}
+                                <span class="flex items-center {% if faculty_workloads[faculty.id].assigned_units > 18 %}text-red-600 font-semibold{% else %}text-gray-600{% endif %}">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                    {{ "%.1f"|format(faculty_workloads[faculty.id].assigned_units) }} units
                                 </span>
-                                <span class="text-gray-500">
+                                {% endif %}
+                                {% if faculty.id in faculty_workloads and faculty_workloads[faculty.id].class_count > 0 %}
+                                <span class="flex items-center text-gray-600">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
                                     {{ faculty_workloads[faculty.id].class_count }} {{ 'class' if faculty_workloads[faculty.id].class_count == 1 else 'classes' }}
                                 </span>
                                 {% endif %}
@@ -517,7 +585,7 @@
                             {% endif %}
                         </div>
                         <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                            <button onclick="openAssignSubjectModal({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}')" class="p-1.5 sm:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
+                            <button onclick="openAssignSubjectModal({{ selected_faculty.id }}, '{{ selected_faculty.full_name }}', [{% for assignment in selected_faculty_assignments %}'{{ assignment.subject_id }}'{% if not loop.last %},{% endif %}{% endfor %}])" class="p-1.5 sm:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Assign Subject">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
@@ -538,7 +606,7 @@
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex-1 min-w-0">
                             <h3 class="text-sm sm:text-base font-bold text-gray-900">Faculty Details</h3>
-                            <p class="text-xs sm:text-sm text-gray-600">Select a faculty member to view details</p>
+                            <p class="text-xs sm:text-sm text-gray-600">Select a faculty to view details</p>
                         </div>
                     </div>
                     {% endif %}
@@ -557,8 +625,8 @@
                                     </svg>
                                     Teaching Workload
                                 </h3>
-                                <span class="px-2.5 py-1 text-sm font-bold rounded-full {% if faculty_workloads[selected_faculty.id].total_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ faculty_workloads[selected_faculty.id].total_units }} Units
+                                <span class="px-2.5 py-1 text-sm font-bold rounded-full {% if faculty_workloads[selected_faculty.id].assigned_units > 18 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ "%.1f"|format(faculty_workloads[selected_faculty.id].assigned_units) }} Units
                                 </span>
                             </div>
                             
@@ -568,8 +636,8 @@
                                     <p class="text-lg font-bold text-blue-600">{{ faculty_workloads[selected_faculty.id].class_count }}</p>
                                 </div>
                                 <div class="bg-white rounded-lg p-2 shadow-sm">
-                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-0.5">Assigned Units</p>
-                                    <p class="text-lg font-bold text-indigo-600">{{ faculty_workloads[selected_faculty.id].assigned_units }}</p>
+                                    <p class="text-xs text-gray-500 uppercase font-semibold mb-0.5">Total Subjects</p>
+                                    <p class="text-lg font-bold text-indigo-600">{{ faculty_workloads[selected_faculty.id].assigned_count }}</p>
                                 </div>
                             </div>
                         </div>
@@ -629,11 +697,12 @@
                                             </div>
                                         </div>
                                         <button onclick="unassignSubject({{ assignment.id }}, '{{ assignment.subject_code }}')" 
-                                                class="ml-2 p-1.5 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex-shrink-0" 
-                                                title="Remove Assignment">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="ml-2 px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex-shrink-0 font-medium flex items-center gap-1" 
+                                                title="Unassign Subject">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                             </svg>
+                                            Unassign
                                         </button>
                                     </div>
                                 </div>
@@ -657,44 +726,44 @@
                     {% else %}
                         <!-- No Faculty Selected -->
                         <div class="h-full flex items-center justify-center">
-                            <div class="text-center px-4">
-                                <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="text-center px-3 sm:px-4">
+                                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                    <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                     </svg>
                                 </div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Faculty Selected</h3>
-                                <p class="text-sm text-gray-500">Select a faculty member to view details</p>
+                                <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">No Faculty Selected</h3>
+                                <p class="text-xs sm:text-sm text-gray-500">Select a faculty to view details</p>
                             </div>
                         </div>
                     {% endif %}
                 </div>
             </div>
             {% else %}
-            <!-- Empty State: No Faculty Members -->
+            <!-- Empty State: No Faculties -->
             <!-- Left Panel: Empty List -->
             <div class="faculty-list-panel w-full lg:w-80 flex-shrink-0 faculty-card overflow-hidden flex flex-col">
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
-                    <h3 class="text-base font-bold text-gray-900 flex items-center">
+                <div class="bg-white p-3 sm:p-4 flex-shrink-0 border-b border-gray-200">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center">
                         <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
-                        <span>Faculty</span>
-                        <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
+                        <span class="text-sm sm:text-base">Faculty</span>
+                        <span class="ml-auto px-2 sm:px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
                     </h3>
                 </div>
                 
-                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center">
-                        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="h-full flex items-center justify-center p-4 sm:p-8 bg-gray-50">
+                    <div class="text-center px-2">
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">No faculty yet</p>
-                        <button onclick="openAddFacultyModal()" class="btn-primary inline-flex items-center px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
+                        <p class="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">No faculties yet</p>
+                        <button onclick="openAddFacultyModal()" class="btn-primary inline-flex items-center px-3 sm:px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
@@ -706,29 +775,29 @@
 
             <!-- Right Panel: Getting Started -->
             <div class="flex-1 faculty-card overflow-hidden flex flex-col">
-                <div class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+                <div class="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
-                            <p class="text-sm text-gray-600">Add your first faculty member to begin</p>
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900">Getting Started</h3>
+                            <p class="text-xs sm:text-sm text-gray-600">Add your first faculty to begin</p>
                         </div>
                     </div>
                 </div>
-                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center max-w-md px-8">
-                        <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex-1 flex items-center justify-center p-4 sm:p-8 bg-gray-50">
+                    <div class="text-center max-w-md px-4 sm:px-8">
+                        <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                            <svg class="w-8 h-8 sm:w-12 sm:h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Faculty Members Yet</h3>
-                        <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by adding your first faculty member. Faculty members can be assigned to subjects for scheduling.</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">No Faculties Yet</h3>
+                        <p class="text-xs sm:text-sm text-gray-600 mb-6 sm:mb-8 leading-relaxed">Get started by adding your first faculty. Faculties can be assigned to subjects for scheduling.</p>
                         
-                        <button onclick="openAddFacultyModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-sm">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="openAddFacultyModal()" class="inline-flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-xs sm:text-sm min-h-[44px]">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
-                            Create First Faculty Member
+                            Create First Faculty
                         </button>
                     </div>
                 </div>
@@ -834,17 +903,18 @@
                         Full Name <span class="text-red-500">*</span>
                     </label>
                     <input type="text" id="full_name_edit" name="full_name_edit" required 
-                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Juan Santos Dela Cruz">
                 </div>
                 
                 <!-- Department -->
                 <div>
                     <label for="department_id_edit" class="block text-sm font-semibold text-gray-700 mb-1">
-                        Department (Optional)
+                        Department <span class="text-red-500">*</span>
                     </label>
-                    <select id="department_id_edit" name="department_id_edit" 
+                    <select id="department_id_edit" name="department_id_edit" required
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- No Department --</option>
+                        <option value="">-- Select Department --</option>
                         {% for dept in departments %}
                         <option value="{{ dept.id }}">{{ dept.department_name }}</option>
                         {% endfor %}
@@ -860,6 +930,92 @@
                 <button type="submit" 
                         class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                     Update Faculty
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Archive Faculty Modal -->
+<div id="archiveFacultyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-gray-200 animate-scale-in">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-orange-500 to-red-600 p-4 rounded-t-2xl">
+            <div class="flex items-center gap-3">
+                <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-white">Archive Faculty Member</h3>
+                    <p class="text-orange-100 text-sm mt-0.5" id="archive_faculty_name_display"></p>
+                </div>
+            </div>
+        </div>
+        
+        <form id="archiveFacultyForm" method="POST" action="{{ url_for('faculty.archive') }}" class="p-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="faculty_id_archive" name="faculty_id">
+            
+            <!-- Warning Message -->
+            <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-orange-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-orange-800 mb-1">This action will:</h4>
+                        <ul class="text-sm text-orange-700 space-y-1">
+                            <li class="flex items-start">
+                                <span class="mr-2">•</span>
+                                <span>Hide the faculty from the main list</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">•</span>
+                                <span>Remove subject assignments</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">•</span>
+                                <span>Move to the Archives page</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">•</span>
+                                <span>Keep all data intact for restoration</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reason Input -->
+            <div class="mb-6">
+                <label for="archive_reason" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Reason for Archiving <span class="text-red-500">*</span>
+                </label>
+                <textarea 
+                    id="archive_reason" 
+                    name="archive_reason" 
+                    rows="3" 
+                    required
+                    placeholder="e.g., No longer active, Transferred to another department, etc."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
+                >No longer active</textarea>
+                <p class="text-xs text-gray-500 mt-1">This will be logged for future reference</p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-3">
+                <button 
+                    type="button" 
+                    onclick="closeArchiveFacultyModal()" 
+                    class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium">
+                    Cancel
+                </button>
+                <button 
+                    type="submit" 
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all font-semibold shadow-md hover:shadow-lg">
+                    Archive Faculty
                 </button>
             </div>
         </form>
@@ -919,8 +1075,57 @@
                         </div>
                     </div>
                     
-                    <!-- Search Bar -->
-                    <div class="px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200 flex-shrink-0">
+                    <!-- Filter Section -->
+                    <div class="px-3 py-3 sm:px-4 sm:py-4 bg-gradient-to-br from-blue-50 to-purple-50 border-b-2 border-blue-200 flex-shrink-0">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
+                            <h4 class="font-bold text-gray-900 text-sm">Filter Subjects</h4>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                            <!-- Curriculum Filter -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Curriculum</label>
+                                <select id="filter_curriculum" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                        onchange="loadFilteredSubjects()">
+                                    <option value="">Select Curriculum...</option>
+                                    {% for curriculum in curricula %}
+                                    <option value="{{ curriculum.id }}">{{ curriculum.curriculum_code }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Year Level Filter -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Year Level</label>
+                                <select id="filter_year_level" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                        onchange="loadFilteredSubjects()" disabled>
+                                    <option value="">Select Year...</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Semester Filter (auto-filled from active settings) -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Semester</label>
+                                <input type="text" 
+                                       value="{{ active_settings.semester }}" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-sm font-medium text-gray-700"
+                                       readonly>
+                            </div>
+                        </div>
+                        <div id="filter_status" class="mt-2 text-xs text-gray-600 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Select curriculum and year level to load subjects</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Bar (hidden until subjects are loaded) -->
+                    <div id="search_bar_section" class="hidden px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200 flex-shrink-0">
                         <div class="relative">
                             <input type="text" id="subject_search" 
                                    class="w-full px-3 py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
@@ -934,7 +1139,16 @@
                     
                     <!-- Subject List -->
                     <div id="subject_list_container" class="flex-1 overflow-y-auto p-2 sm:p-3">
-                        <div id="subject_list" class="space-y-1.5 sm:space-y-2 pb-32 sm:pb-0">
+                        <!-- Empty State: Select Filters First -->
+                        <div id="empty_state" class="flex flex-col items-center justify-center py-16">
+                            <svg class="w-20 h-20 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
+                            <p class="text-gray-500 font-semibold mb-2 text-center">Select Curriculum & Year Level</p>
+                            <p class="text-gray-400 text-sm text-center max-w-xs">Choose the filters above to load subjects for assignment</p>
+                        </div>
+                        
+                        <div id="subject_list" class="hidden space-y-1.5 sm:space-y-2 pb-32 sm:pb-0">
                             <!-- Subject items will be populated by JavaScript -->
                         </div>
                         <div id="no_subjects_found" class="hidden flex flex-col items-center justify-center py-16">
@@ -942,7 +1156,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <p class="text-gray-500 text-xs font-semibold mb-1">No subjects found</p>
-                            <p class="text-gray-400 text-xs">Try a different search term</p>
+                            <p class="text-gray-400 text-xs">Try a different search term or filter combination</p>
                         </div>
                     </div>
                     
@@ -952,6 +1166,16 @@
                 
                 <!-- Right Panel: Selected Subjects Sidebar -->
                 <div id="selected_subjects_section" class="w-full sm:w-80 bg-gradient-to-b from-green-50 to-emerald-50 border-l-0 sm:border-l-2 border-green-300 flex flex-col">
+                    <!-- Mobile/Tablet Toggle Button -->
+                    <div class="mobile-toggle-selected hidden" onclick="toggleSelectedSubjects()">
+                        <div class="flex items-center gap-2">
+                            <svg id="toggle_icon" class="w-5 h-5 text-white transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                            </svg>
+                            <span class="text-white font-bold text-sm">Selected Subjects (<span id="mobile_selected_count">0</span>)</span>
+                        </div>
+                    </div>
+                    
                     <!-- Sidebar Header -->
                     <div class="bg-gradient-to-br from-green-500 to-emerald-600 px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
                         <div class="flex items-center justify-between mb-2.5">
@@ -987,12 +1211,12 @@
                     
                     <!-- Sidebar Footer -->
                     <div class="bg-white border-t-2 border-green-300 p-2 sm:p-3 flex-shrink-0">
-                        <button type="submit" id="assignSubjectsBtn" disabled
-                                class="w-full py-2 sm:py-2.5 px-3 sm:px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                        <button type="submit" id="assignSubjectsBtn"
+                                class="w-full py-2 sm:py-2.5 px-3 sm:px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
-                            <span>Assign <span id="assign_btn_count">0</span> Subject(s)</span>
+                            <span>Update Assignments (<span id="assign_btn_count">0</span>)</span>
                         </button>
                     </div>
                 </div>
@@ -1066,19 +1290,48 @@
         // Restore department filter from URL
         const urlParams = new URLSearchParams(window.location.search);
         const departmentId = urlParams.get('department_id');
+        const facultyId = urlParams.get('faculty_id');
+        
         if (departmentId) {
             const filterSelect = document.getElementById('departmentFilter');
             if (filterSelect) {
+                // Set dropdown value
                 filterSelect.value = departmentId;
+                // Apply filter
                 filterByDepartment(departmentId);
             }
+        } else if (facultyId) {
+            // If faculty is selected but no department filter, auto-detect department
+            const selectedFacultyItem = document.querySelector(`.faculty-list-item[data-department-id]`);
+            const facultyItems = document.querySelectorAll('.faculty-list-item');
+            
+            // Find the selected faculty's department
+            let selectedDeptId = null;
+            facultyItems.forEach(item => {
+                const itemId = item.onclick?.toString().match(/selectFaculty\((\d+)/)?.[1];
+                if (itemId == facultyId) {
+                    selectedDeptId = item.getAttribute('data-department-id');
+                }
+            });
+            
+            // Auto-select the department if found
+            if (selectedDeptId) {
+                const filterSelect = document.getElementById('departmentFilter');
+                if (filterSelect) {
+                    filterSelect.value = selectedDeptId;
+                    filterByDepartment(selectedDeptId);
+                }
+            } else {
+                // No department found, show empty state
+                showNoFilterState();
+            }
+        } else {
+            // No filter selected, show empty state
+            showNoFilterState();
         }
         
         // On mobile, if a faculty is selected, show the detail panel
         if (window.innerWidth <= 768) {
-            const url = new URL(window.location.href);
-            const facultyId = url.searchParams.get('faculty_id');
-            
             if (facultyId) {
                 handleMobileSelection();
             }
@@ -1140,6 +1393,73 @@
         }
     });
 
+    // Helper function to show/hide empty state
+    function showNoFilterState() {
+        const noFilterState = document.getElementById('noFilterState');
+        const noFacultyState = document.getElementById('noFacultyState');
+        const facultyList = document.getElementById('facultyList');
+        
+        if (noFilterState) {
+            noFilterState.classList.remove('hidden');
+            noFilterState.classList.add('flex');
+        }
+        if (noFacultyState) {
+            noFacultyState.classList.add('hidden');
+            noFacultyState.classList.remove('flex');
+        }
+        if (facultyList) {
+            facultyList.classList.add('hidden');
+        }
+        
+        // Update count badge to 0
+        const badge = document.getElementById('faculty-count-badge');
+        if (badge) {
+            badge.textContent = '0';
+        }
+    }
+    
+    function showNoFacultyState() {
+        const noFilterState = document.getElementById('noFilterState');
+        const noFacultyState = document.getElementById('noFacultyState');
+        const facultyList = document.getElementById('facultyList');
+        
+        if (noFilterState) {
+            noFilterState.classList.add('hidden');
+            noFilterState.classList.remove('flex');
+        }
+        if (noFacultyState) {
+            noFacultyState.classList.remove('hidden');
+            noFacultyState.classList.add('flex');
+        }
+        if (facultyList) {
+            facultyList.classList.add('hidden');
+        }
+        
+        // Update count badge to 0
+        const badge = document.getElementById('faculty-count-badge');
+        if (badge) {
+            badge.textContent = '0';
+        }
+    }
+    
+    function showFacultyList() {
+        const noFilterState = document.getElementById('noFilterState');
+        const noFacultyState = document.getElementById('noFacultyState');
+        const facultyList = document.getElementById('facultyList');
+        
+        if (noFilterState) {
+            noFilterState.classList.add('hidden');
+            noFilterState.classList.remove('flex');
+        }
+        if (noFacultyState) {
+            noFacultyState.classList.add('hidden');
+            noFacultyState.classList.remove('flex');
+        }
+        if (facultyList) {
+            facultyList.classList.remove('hidden');
+        }
+    }
+
     // Filter by Department Function
     function filterByDepartment(departmentId) {
         // Update URL to preserve filter across page reloads
@@ -1148,6 +1468,8 @@
             url.searchParams.set('department_id', departmentId);
         } else {
             url.searchParams.delete('department_id');
+            showNoFilterState(); // Show empty state
+            return; // Exit early when no filter selected
         }
         // Keep faculty_id if present
         window.history.replaceState({}, '', url);
@@ -1161,10 +1483,7 @@
             const itemDeptId = item.getAttribute('data-department-id');
             let shouldShow = false;
             
-            if (departmentId === '') {
-                // Show all when no filter selected
-                shouldShow = true;
-            } else if (itemDeptId === departmentId) {
+            if (itemDeptId === departmentId) {
                 // Match department ID
                 shouldShow = true;
             } else if (itemDeptId === '' && departmentId === 'none') {
@@ -1185,12 +1504,28 @@
         if (badge) {
             badge.textContent = visibleCount;
         }
+        
+        // Show appropriate state based on visible count
+        if (visibleCount === 0) {
+            showNoFacultyState(); // Show "No Faculties Found" state
+        } else {
+            showFacultyList(); // Show faculty list
+        }
     }
 
     // Add Faculty Modal
     function openAddFacultyModal() {
         document.getElementById('addFacultyModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        
+        // Pre-select department if filter is active
+        const departmentFilter = document.getElementById('departmentFilter');
+        const departmentDropdown = document.getElementById('department_id');
+        
+        if (departmentFilter && departmentDropdown && departmentFilter.value) {
+            // Set the department dropdown to match the current filter
+            departmentDropdown.value = departmentFilter.value;
+        }
     }
 
     function closeAddFacultyModal() {
@@ -1218,58 +1553,122 @@
         openEditFacultyModal();
     }
 
+    // Archive Faculty Modal Functions
     function archiveFaculty(id, name) {
-        // Get reason from user
-        const reason = prompt(`Please provide a reason for archiving faculty "${name}":\n\n(This faculty member will be moved to the Archives page and can be restored later)`, 'No longer active');
-        
-        if (reason === null) {
-            // User clicked Cancel
-            return;
-        }
-        
-        if (confirm(`Are you sure you want to ARCHIVE faculty "${name}"?\n\nThis will:\n- Hide the faculty from the main list\n- Remove subject assignments\n- Move to the Archives page\n- Keep all data intact\n- Allow restoration later if needed`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("faculty.archive") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const facultyIdInput = document.createElement('input');
-            facultyIdInput.type = 'hidden';
-            facultyIdInput.name = 'faculty_id';
-            facultyIdInput.value = id;
-            
-            const reasonInput = document.createElement('input');
-            reasonInput.type = 'hidden';
-            reasonInput.name = 'archive_reason';
-            reasonInput.value = reason || 'No reason provided';
-            
-            form.appendChild(csrfToken);
-            form.appendChild(facultyIdInput);
-            form.appendChild(reasonInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
+        document.getElementById('faculty_id_archive').value = id;
+        document.getElementById('archive_faculty_name_display').textContent = name;
+        document.getElementById('archive_reason').value = 'No longer active';
+        document.getElementById('archiveFacultyModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeArchiveFacultyModal() {
+        document.getElementById('archiveFacultyModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('archiveFacultyForm').reset();
     }
 
     // Assign Subject Modal
     let selectedSubjects = new Set(); // Track selected subject IDs
+    let currentAssignments = []; // Store current assignments globally
     
-    function openAssignSubjectModal(facultyId, facultyName) {
+    // Store curriculum data globally for filtering
+    window.curriculumData = {
+        {% for curriculum in curricula %}
+        '{{ curriculum.id }}': {
+            id: '{{ curriculum.id }}',
+            code: '{{ curriculum.curriculum_code }}',
+            yearLevels: [
+                {% for year_level in curriculum.year_levels %}
+                {
+                    id: '{{ year_level.id }}',
+                    name: '{{ year_level.year_name }}',
+                    semesters: [
+                        {% for semester in year_level.semesters %}
+                        {
+                            name: '{{ semester.semester_name }}',
+                            subjects: [
+                                {% for subject in semester.subjects %}
+                                {
+                                    id: '{{ subject.id }}',
+                                    code: '{{ subject.subject_code }}',
+                                    name: '{{ subject.course_description }}',
+                                    curriculum: '{{ curriculum.curriculum_code }}',
+                                    year: '{{ year_level.year_name }}',
+                                    semester: '{{ semester.semester_name }}',
+                                    units: {{ subject.total_units }}
+                                },
+                                {% endfor %}
+                            ]
+                        },
+                        {% endfor %}
+                    ]
+                },
+                {% endfor %}
+            ]
+        },
+        {% endfor %}
+    };
+    
+    function openAssignSubjectModal(facultyId, facultyName, assignments = []) {
         document.getElementById('faculty_id_assign').value = facultyId;
         document.getElementById('faculty_name_display').textContent = facultyName;
         document.getElementById('assignSubjectModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
         
-        // Reset selection
-        selectedSubjects.clear();
-        updateSelectedSubjectsDisplay();
+        // Store current assignments globally
+        currentAssignments = assignments;
         
-        // Initialize subject list
-        initializeSubjectList();
+        // Reset filters
+        document.getElementById('filter_curriculum').value = '';
+        document.getElementById('filter_year_level').value = '';
+        document.getElementById('filter_year_level').disabled = true;
+        
+        // Reset UI to empty state
+        document.getElementById('empty_state').classList.remove('hidden');
+        document.getElementById('subject_list').classList.add('hidden');
+        document.getElementById('search_bar_section').classList.add('hidden');
+        document.getElementById('no_subjects_found').classList.add('hidden');
+        
+        // Initialize selected subjects section as collapsed on mobile/tablet
+        const selectedSection = document.getElementById('selected_subjects_section');
+        const toggleIcon = document.getElementById('toggle_icon');
+        if (window.innerWidth <= 1024) {
+            selectedSection.classList.add('collapsed');
+            if (toggleIcon) {
+                toggleIcon.style.transform = 'rotate(180deg)';
+            }
+        }
+        
+        // Pre-select already assigned subjects
+        selectedSubjects.clear();
+        if (!window.subjectData) window.subjectData = {};
+        
+        // Add currently assigned subjects to selection
+        // We need to find the subject data from curriculumData
+        assignments.forEach(subjectId => {
+            selectedSubjects.add(subjectId);
+            
+            // Try to find this subject in curriculumData to populate subjectData
+            if (!window.subjectData[subjectId]) {
+                for (const currId in window.curriculumData) {
+                    const curriculum = window.curriculumData[currId];
+                    for (const yearLevel of curriculum.yearLevels) {
+                        for (const semester of yearLevel.semesters) {
+                            const subject = semester.subjects.find(s => s.id === subjectId);
+                            if (subject) {
+                                window.subjectData[subjectId] = subject;
+                                break;
+                            }
+                        }
+                        if (window.subjectData[subjectId]) break;
+                    }
+                    if (window.subjectData[subjectId]) break;
+                }
+            }
+        });
+        
+        updateSelectedSubjectsDisplay();
     }
 
     function closeAssignSubjectModal() {
@@ -1278,56 +1677,148 @@
         document.getElementById('assignSubjectForm').reset();
         selectedSubjects.clear();
         updateSelectedSubjectsDisplay();
+        
+        // Reset filters
+        document.getElementById('filter_curriculum').value = '';
+        document.getElementById('filter_year_level').value = '';
+        document.getElementById('filter_year_level').innerHTML = '<option value="">Select Year...</option>';
+        document.getElementById('filter_year_level').disabled = true;
     }
     
-    // Subject Search and Selection Functions
-    function initializeSubjectList() {
+    // Populate year level dropdown when curriculum is selected
+    document.getElementById('filter_curriculum').addEventListener('change', function() {
+        const curriculumId = this.value;
+        const yearLevelSelect = document.getElementById('filter_year_level');
+        
+        yearLevelSelect.innerHTML = '<option value="">Select Year...</option>';
+        
+        if (!curriculumId) {
+            yearLevelSelect.disabled = true;
+            // Hide subjects and show empty state
+            document.getElementById('empty_state').classList.remove('hidden');
+            document.getElementById('subject_list').classList.add('hidden');
+            document.getElementById('search_bar_section').classList.add('hidden');
+            return;
+        }
+        
+        // Populate year levels
+        const curriculum = window.curriculumData[curriculumId];
+        if (curriculum && curriculum.yearLevels) {
+            curriculum.yearLevels.forEach(yearLevel => {
+                const option = document.createElement('option');
+                option.value = yearLevel.id;
+                option.textContent = yearLevel.name;
+                yearLevelSelect.appendChild(option);
+            });
+            yearLevelSelect.disabled = false;
+        }
+    });
+    
+    // Load filtered subjects
+    function loadFilteredSubjects() {
+        const curriculumId = document.getElementById('filter_curriculum').value;
+        const yearLevelId = document.getElementById('filter_year_level').value;
+        const activeSemester = '{{ active_settings.semester }}';
+        
+        const emptyState = document.getElementById('empty_state');
         const subjectList = document.getElementById('subject_list');
-        const searchInput = document.getElementById('subject_search');
+        const searchSection = document.getElementById('search_bar_section');
+        const filterStatus = document.getElementById('filter_status');
+        const noResultsDiv = document.getElementById('no_subjects_found');
         
-        // Get existing subject IDs from already assigned subjects
-        const alreadyAssignedIds = new Set();
-        {% if selected_faculty and selected_faculty_assignments %}
-        {% for assignment in selected_faculty_assignments %}
-        alreadyAssignedIds.add('{{ assignment.subject_id }}');
-        {% endfor %}
-        {% endif %}
+        if (!curriculumId || !yearLevelId) {
+            emptyState.classList.remove('hidden');
+            subjectList.classList.add('hidden');
+            searchSection.classList.add('hidden');
+            noResultsDiv.classList.add('hidden');
+            
+            if (!curriculumId) {
+                filterStatus.innerHTML = `
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Select curriculum and year level to load subjects</span>
+                `;
+            } else if (!yearLevelId) {
+                filterStatus.innerHTML = `
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Select year level to load subjects</span>
+                `;
+            }
+            return;
+        }
         
-        // Build subject list from template data
-        const subjects = [
-            {% for curriculum in curricula %}
-                {% for year_level in curriculum.year_levels %}
-                    {% for semester in year_level.semesters %}
-                        {% if semester.semester_name == active_settings.semester %}
-                            {% for subject in semester.subjects %}
-                            {
-                                id: '{{ subject.id }}',
-                                code: '{{ subject.subject_code }}',
-                                name: '{{ subject.course_description }}',
-                                curriculum: '{{ curriculum.curriculum_code }}',
-                                year: '{{ year_level.year_name }}',
-                                semester: '{{ semester.semester_name }}',
-                                units: {{ subject.total_units }},
-                                isAssigned: alreadyAssignedIds.has('{{ subject.id }}')
-                            },
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
-                {% endfor %}
-            {% endfor %}
-        ];
+        // Find subjects based on filters
+        const curriculum = window.curriculumData[curriculumId];
+        const yearLevel = curriculum.yearLevels.find(yl => yl.id === yearLevelId);
         
-        // Store subjects globally for filtering
-        window.allSubjects = subjects;
+        if (!yearLevel) {
+            emptyState.classList.remove('hidden');
+            subjectList.classList.add('hidden');
+            searchSection.classList.add('hidden');
+            return;
+        }
         
-        // Render all subjects initially
-        renderSubjects(subjects);
+        // Find semester matching active settings
+        const semester = yearLevel.semesters.find(s => s.name === activeSemester);
         
-        // Add search functionality
-        searchInput.addEventListener('input', function() {
-            filterSubjects(this.value);
+        if (!semester || semester.subjects.length === 0) {
+            emptyState.classList.add('hidden');
+            subjectList.classList.add('hidden');
+            searchSection.classList.add('hidden');
+            noResultsDiv.classList.remove('hidden');
+            filterStatus.innerHTML = `
+                <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span>No subjects found for this combination</span>
+            `;
+            return;
+        }
+        
+        // Show subjects
+        emptyState.classList.add('hidden');
+        subjectList.classList.remove('hidden');
+        searchSection.classList.remove('hidden');
+        noResultsDiv.classList.add('hidden');
+        
+        // Store subjects globally
+        window.allSubjects = semester.subjects.map(subject => ({
+            ...subject,
+            isAssigned: currentAssignments.includes(subject.id)
+        }));
+        
+        // Also store in subjectData for easy lookup
+        if (!window.subjectData) window.subjectData = {};
+        window.allSubjects.forEach(subject => {
+            window.subjectData[subject.id] = subject;
         });
+        
+        // Update filter status
+        filterStatus.innerHTML = `
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="font-medium text-green-700">Loaded ${semester.subjects.length} subjects</span>
+        `;
+        
+        // Render subjects
+        renderSubjects(window.allSubjects);
+        
+        // Setup search functionality
+        const searchInput = document.getElementById('subject_search');
+        searchInput.value = ''; // Clear search
+        searchInput.removeEventListener('input', handleSearch); // Remove old listener
+        searchInput.addEventListener('input', handleSearch); // Add new listener
     }
+    
+    function handleSearch(event) {
+        filterSubjects(event.target.value);
+    }
+    
+    // Subject Search and Selection Functions (Simplified - no initial load)
     
     function renderSubjects(subjects) {
         const subjectList = document.getElementById('subject_list');
@@ -1341,33 +1832,84 @@
         
         noResultsDiv.classList.add('hidden');
         
-        subjectList.innerHTML = subjects.map(subject => {
+        // Clear the list first
+        subjectList.innerHTML = '';
+        
+        // Create DOM elements instead of HTML strings to avoid escaping issues
+        subjects.forEach(subject => {
             const isSelected = selectedSubjects.has(subject.id);
             const isAssigned = subject.isAssigned;
-            const isDisabled = isAssigned;
             
-            return `
-            <div class="subject-item p-2 sm:p-3 rounded-lg bg-white border border-gray-200 shadow-sm ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}" 
-                 onclick="${isDisabled ? '' : `toggleSubject('${subject.id}', '${subject.code}', '${subject.name}', '${subject.curriculum}', '${subject.year}', '${subject.semester}', ${subject.units})`}"
-                 style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'}">
+            // Create subject item div
+            const subjectItem = document.createElement('div');
+            subjectItem.className = `subject-item p-2 sm:p-3 rounded-lg bg-white border border-gray-200 shadow-sm ${isSelected ? 'selected' : ''}`;
+            subjectItem.style.cursor = 'pointer';
+            
+            // Store subject data on the element
+            subjectItem.dataset.subjectId = subject.id;
+            subjectItem.dataset.subjectCode = subject.code;
+            subjectItem.dataset.subjectName = subject.name;
+            subjectItem.dataset.curriculum = subject.curriculum;
+            subjectItem.dataset.year = subject.year;
+            subjectItem.dataset.semester = subject.semester;
+            subjectItem.dataset.units = subject.units;
+            
+            // Add click handler
+            subjectItem.addEventListener('click', function() {
+                toggleSubject(
+                    this.dataset.subjectId,
+                    this.dataset.subjectCode,
+                    this.dataset.subjectName,
+                    this.dataset.curriculum,
+                    this.dataset.year,
+                    this.dataset.semester,
+                    parseFloat(this.dataset.units)
+                );
+            });
+            
+            // Build inner HTML
+            let checkboxHTML;
+            if (isAssigned && isSelected) {
+                // Both assigned AND selected - show green checkmark (can unselect)
+                checkboxHTML = `
+                    <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>`;
+            } else if (isAssigned) {
+                // Only assigned - show yellow checkmark (can select to unassign)
+                checkboxHTML = `
+                    <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>`;
+            } else if (isSelected) {
+                // Only selected - show green checkmark
+                checkboxHTML = `
+                    <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>`;
+            } else {
+                // Not selected - show empty circle
+                checkboxHTML = `
+                    <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-gray-300 hover:border-green-500 transition-colors"></div>`;
+            }
+            
+            // Build the complete subject item HTML
+            const assignedBadge = isAssigned ? `
+                <span class="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+                    Assigned
+                </span>` : '';
+            
+            subjectItem.innerHTML = `
                 <div class="flex items-center gap-2 sm:gap-3">
                     <!-- Checkbox/Status Icon -->
-                    <div class="flex-shrink-0 subject-checkbox ${isDisabled ? 'disabled' : ''}">
-                        ${isAssigned ? `
-                            <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-yellow-100 flex items-center justify-center">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        ` : isSelected ? `
-                            <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-600 flex items-center justify-center">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        ` : `
-                            <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-gray-300 hover:border-green-500 transition-colors"></div>
-                        `}
+                    <div class="flex-shrink-0 subject-checkbox">
+                        ${checkboxHTML}
                     </div>
                     
                     <!-- Subject Info -->
@@ -1376,11 +1918,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
                                     <h4 class="font-bold text-gray-900 text-xs sm:text-sm">${subject.code}</h4>
-                                    ${isAssigned ? `
-                                        <span class="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
-                                            Assigned
-                                        </span>
-                                    ` : ''}
+                                    ${assignedBadge}
                                 </div>
                                 <p class="text-xs text-gray-700 mb-1 sm:mb-1.5 leading-tight truncate">${subject.name}</p>
                                 <div class="flex items-center gap-1 flex-wrap">
@@ -1406,8 +1944,11 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        `}).join('');
+            `;
+            
+            // Append to list
+            subjectList.appendChild(subjectItem);
+        });
     }
     
     function filterSubjects(searchTerm) {
@@ -1434,6 +1975,7 @@
     function toggleSubject(id, code, name, curriculum, year, semester, units) {
         if (selectedSubjects.has(id)) {
             selectedSubjects.delete(id);
+            // Optionally remove from subjectData if you want to clean up
         } else {
             selectedSubjects.add(id);
             // Store full subject info
@@ -1442,7 +1984,10 @@
         }
         
         // Re-render subjects to update checkmarks
-        filterSubjects(document.getElementById('subject_search').value);
+        const searchInput = document.getElementById('subject_search');
+        if (searchInput) {
+            filterSubjects(searchInput.value || '');
+        }
         
         // Update selected subjects display
         updateSelectedSubjectsDisplay();
@@ -1452,18 +1997,22 @@
         const section = document.getElementById('selected_subjects_section');
         const list = document.getElementById('selected_subjects_list');
         const count = document.getElementById('selected_count');
+        const mobileCount = document.getElementById('mobile_selected_count');
         const btnCount = document.getElementById('assign_btn_count');
         const assignBtn = document.getElementById('assignSubjectsBtn');
         const dataContainer = document.getElementById('selected_subjects_data');
         const unitsTotal = document.getElementById('selected_units_total');
         
         if (selectedSubjects.size === 0) {
-            // Show empty state in the panel instead of hiding it
-            assignBtn.disabled = true;
+            // Show empty state in the panel
             count.textContent = '0';
+            mobileCount.textContent = '0';
             btnCount.textContent = '0';
             unitsTotal.textContent = '0';
             dataContainer.innerHTML = '';
+            
+            // Hide the section on mobile/tablet when empty
+            section.classList.add('empty-mobile');
             
             // Display empty state message
             list.innerHTML = `
@@ -1475,26 +2024,58 @@
                             </svg>
                         </div>
                         <p class="text-xs sm:text-sm font-semibold text-gray-700 mb-1">No subjects selected</p>
-                        <p class="text-xs text-gray-500 hidden sm:block">Click subjects from the list to add them here</p>
+                        <p class="text-xs text-gray-500 hidden sm:block">Select subjects to assign or unselect to unassign</p>
                     </div>
                 </div>
             `;
             return;
         }
         
-        assignBtn.disabled = false;
+        // Show the section when there are selected subjects
+        section.classList.remove('empty-mobile');
+        
         count.textContent = selectedSubjects.size;
+        mobileCount.textContent = selectedSubjects.size;
         btnCount.textContent = selectedSubjects.size;
         
         // Calculate total units
         let totalUnits = 0;
         const selectedArray = Array.from(selectedSubjects).map(id => {
             const subject = window.subjectData[id];
-            totalUnits += subject.units;
+            if (subject) {
+                totalUnits += parseFloat(subject.units) || 0;
+            }
             return subject;
-        });
+        }).filter(s => s); // Remove any undefined entries
         
-        unitsTotal.textContent = totalUnits;
+        // If no valid subjects found after filtering, show empty state
+        if (selectedArray.length === 0) {
+            count.textContent = '0';
+            mobileCount.textContent = '0';
+            btnCount.textContent = '0';
+            unitsTotal.textContent = '0';
+            dataContainer.innerHTML = '';
+            
+            // Hide the section on mobile/tablet when empty
+            section.classList.add('empty-mobile');
+            
+            list.innerHTML = `
+                <div class="h-full flex items-center justify-center p-4 sm:p-6">
+                    <div class="text-center">
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </div>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-700 mb-1">No subjects selected</p>
+                        <p class="text-xs text-gray-500 hidden sm:block">Select subjects to assign or unselect to unassign</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        unitsTotal.textContent = totalUnits.toFixed(1);
         
         // Render selected subjects
         list.innerHTML = selectedArray.map(subject => `
@@ -1531,33 +2112,59 @@
         ).join('');
     }
     
+    // Toggle Selected Subjects Section (Mobile/Tablet)
+    function toggleSelectedSubjects() {
+        const section = document.getElementById('selected_subjects_section');
+        const icon = document.getElementById('toggle_icon');
+        
+        if (section.classList.contains('collapsed')) {
+            // Expand
+            section.classList.remove('collapsed');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            // Collapse
+            section.classList.add('collapsed');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+    
     function clearAllSubjects() {
         selectedSubjects.clear();
+        if (window.subjectData) {
+            // Clear subject data for previously selected items
+            Object.keys(window.subjectData).forEach(key => {
+                if (!window.allSubjects || !window.allSubjects.find(s => s.id === key)) {
+                    delete window.subjectData[key];
+                }
+            });
+        }
         updateSelectedSubjectsDisplay();
-        filterSubjects(document.getElementById('subject_search').value);
+        const searchInput = document.getElementById('subject_search');
+        if (searchInput && window.allSubjects) {
+            filterSubjects(searchInput.value || '');
+        }
     }
 
+    // Unassign Subject - Direct submission without modal
     function unassignSubject(assignmentId, subjectCode) {
-        if (confirm(`Are you sure you want to remove "${subjectCode}" from this faculty member?`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("faculty.unassign_subject") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const assignmentIdInput = document.createElement('input');
-            assignmentIdInput.type = 'hidden';
-            assignmentIdInput.name = 'assignment_id';
-            assignmentIdInput.value = assignmentId;
-            
-            form.appendChild(csrfToken);
-            form.appendChild(assignmentIdInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("faculty.unassign_subject") }}';
+        
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrf_token';
+        csrfToken.value = '{{ csrf_token() }}';
+        
+        const assignmentIdInput = document.createElement('input');
+        assignmentIdInput.type = 'hidden';
+        assignmentIdInput.name = 'assignment_id';
+        assignmentIdInput.value = assignmentId;
+        
+        form.appendChild(csrfToken);
+        form.appendChild(assignmentIdInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 
     // Modals will only close when clicking the X button

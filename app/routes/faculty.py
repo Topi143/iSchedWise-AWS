@@ -349,32 +349,53 @@ def assign_subjects():
             flash('Faculty member is required.', 'error')
             return redirect(url_for('faculty.index'))
         
-        if not subject_ids or len(subject_ids) == 0:
-            flash('Please select at least one subject.', 'error')
-            return redirect(url_for('faculty.index'))
+        # Allow empty subject_ids - this means user wants to unassign all subjects
+        # if not subject_ids or len(subject_ids) == 0:
+        #     flash('Please select at least one subject.', 'error')
+        #     return redirect(url_for('faculty.index'))
         
         faculty = Faculty.query.get(int(faculty_id))
         if not faculty:
             flash('Faculty member not found.', 'error')
             return redirect(url_for('faculty.index'))
         
+        # Get all currently assigned subjects for this faculty in the current academic period
+        current_assignments = FacultySubjectAssignment.query.filter_by(
+            faculty_id=int(faculty_id),
+            academic_year=active_settings.academic_year,
+            semester=active_settings.semester,
+            is_archived=False
+        ).all()
+        
+        # Create a set of currently assigned subject IDs
+        currently_assigned_ids = {str(a.subject_id) for a in current_assignments}
+        
+        # Create a set of new selected subject IDs
+        selected_ids = set(subject_ids)
+        
         # Track results
         assigned_count = 0
+        unassigned_count = 0
         skipped_count = 0
-        skipped_subjects = []
         unauthorized_subjects = []
         
         # Get user's accessible department IDs
         user_department_ids = current_user.get_department_ids()
         
-        for subject_id in subject_ids:
+        # Subjects to add (in selected but not in current)
+        to_add = selected_ids - currently_assigned_ids
+        
+        # Subjects to remove (in current but not in selected)
+        to_remove = currently_assigned_ids - selected_ids
+        
+        # Add new assignments
+        for subject_id in to_add:
             subject = Subject.query.get(int(subject_id))
             if not subject:
                 skipped_count += 1
                 continue
             
-            # Check department access: Get curriculum's department through the relationship chain
-            # Subject -> Semester -> YearLevel -> Curriculum -> Department
+            # Check department access
             curriculum = subject.semester.year_level.curriculum if subject.semester and subject.semester.year_level else None
             
             # Validate user has access to this subject's department
@@ -383,20 +404,6 @@ def assign_subjects():
                     unauthorized_subjects.append(subject.subject_code)
                     skipped_count += 1
                     continue
-            
-            # Check if already assigned for current academic period (excluding archived)
-            existing = FacultySubjectAssignment.query.filter_by(
-                faculty_id=int(faculty_id),
-                subject_id=int(subject_id),
-                academic_year=active_settings.academic_year,
-                semester=active_settings.semester,
-                is_archived=False
-            ).first()
-            
-            if existing:
-                skipped_count += 1
-                skipped_subjects.append(subject.subject_code)
-                continue
             
             # Create subject assignment with academic context
             assignment = FacultySubjectAssignment(
@@ -409,38 +416,49 @@ def assign_subjects():
             db.session.add(assignment)
             assigned_count += 1
         
+        # Remove unselected assignments
+        for subject_id in to_remove:
+            assignment = FacultySubjectAssignment.query.filter_by(
+                faculty_id=int(faculty_id),
+                subject_id=int(subject_id),
+                academic_year=active_settings.academic_year,
+                semester=active_settings.semester,
+                is_archived=False
+            ).first()
+            
+            if assignment:
+                db.session.delete(assignment)
+                unassigned_count += 1
+        
         db.session.commit()
         
         # Build success message
+        actions = []
         if assigned_count > 0:
             plural = "subjects" if assigned_count > 1 else "subject"
-            message = f'Successfully assigned {assigned_count} {plural} to {faculty.full_name} for {active_settings.academic_year} - {active_settings.semester}!'
+            actions.append(f'assigned {assigned_count} {plural}')
+        
+        if unassigned_count > 0:
+            plural = "subjects" if unassigned_count > 1 else "subject"
+            actions.append(f'unassigned {unassigned_count} {plural}')
+        
+        if actions:
+            message = f'Successfully {" and ".join(actions)} for {faculty.full_name} ({active_settings.academic_year} - {active_settings.semester})'
             
-            if skipped_count > 0:
-                details = []
-                if len(skipped_subjects) > 0:
-                    skipped_list = ', '.join(skipped_subjects[:3])
-                    if len(skipped_subjects) > 3:
-                        skipped_list += f' and {len(skipped_subjects) - 3} more'
-                    details.append(f'{len(skipped_subjects)} already assigned: {skipped_list}')
-                
-                if len(unauthorized_subjects) > 0:
-                    unauthorized_list = ', '.join(unauthorized_subjects[:3])
-                    if len(unauthorized_subjects) > 3:
-                        unauthorized_list += f' and {len(unauthorized_subjects) - 3} more'
-                    details.append(f'{len(unauthorized_subjects)} not in your department: {unauthorized_list}')
-                
-                if details:
-                    message += f' ({"; ".join(details)})'
+            if len(unauthorized_subjects) > 0:
+                unauthorized_list = ', '.join(unauthorized_subjects[:3])
+                if len(unauthorized_subjects) > 3:
+                    unauthorized_list += f' and {len(unauthorized_subjects) - 3} more'
+                message += f'. Skipped {len(unauthorized_subjects)} unauthorized: {unauthorized_list}'
             
-            flash(message, 'success')
+            flash(message + '!', 'success')
         elif skipped_count > 0:
             if len(unauthorized_subjects) > 0:
                 flash(f'Cannot assign subjects from other departments. You can only assign subjects from your department.', 'error')
             else:
-                flash(f'All selected subjects ({skipped_count}) were already assigned to {faculty.full_name}.', 'error')
+                flash('No changes were made.', 'info')
         else:
-            flash('No subjects were assigned.', 'error')
+            flash('No changes were made.', 'info')
         
         params = build_redirect_params(faculty_id=faculty.id)
         return redirect(url_for('faculty.index', **params))
@@ -448,94 +466,6 @@ def assign_subjects():
     except Exception as e:
         db.session.rollback()
         flash(f'An error occurred while assigning subjects: {str(e)}', 'error')
-        return redirect(url_for('faculty.index'))
-
-
-@faculty_bp.route('/assign-subject', methods=['POST'])
-@login_required
-def assign_subject():
-    """Assign a single subject to a faculty member (kept for backwards compatibility)"""
-    try:
-        # Get current academic settings
-        active_settings = AcademicSettings.query.filter_by(is_active=True).first()
-        if not active_settings:
-            flash('No active academic settings found. Please configure settings first.', 'error')
-            return redirect(url_for('faculty.index'))
-        
-        faculty_id = request.form.get('faculty_id_assign', '').strip()
-        subject_id = request.form.get('subject_id', '').strip()
-        
-        if not faculty_id:
-            flash('Faculty member is required.', 'error')
-            return redirect(url_for('faculty.index'))
-        
-        if not subject_id:
-            flash('Please select a subject.', 'error')
-            return redirect(url_for('faculty.index'))
-        
-        faculty = Faculty.query.get(int(faculty_id))
-        if not faculty:
-            flash('Faculty member not found.', 'error')
-            return redirect(url_for('faculty.index'))
-        
-        subject = Subject.query.get(int(subject_id))
-        if not subject:
-            flash('Subject not found.', 'error')
-            return redirect(url_for('faculty.index'))
-        
-        # Check department access: Get curriculum's department through the relationship chain
-        # Subject -> Semester -> YearLevel -> Curriculum -> Department
-        curriculum = subject.semester.year_level.curriculum if subject.semester and subject.semester.year_level else None
-        
-        # Validate user has access to this subject's department
-        user_department_ids = current_user.get_department_ids()
-        if user_department_ids is not None:  # None means admin (access to all)
-            if not curriculum or curriculum.department_id not in user_department_ids:
-                flash(f'You do not have permission to assign subjects from other departments. Subject "{subject.subject_code}" is not in your department.', 'error')
-                params = build_redirect_params(faculty_id=faculty.id)
-                return redirect(url_for('faculty.index', **params))
-        
-        # Check if already assigned for current academic period (excluding archived)
-        existing = FacultySubjectAssignment.query.filter_by(
-            faculty_id=int(faculty_id),
-            subject_id=int(subject_id),
-            academic_year=active_settings.academic_year,
-            semester=active_settings.semester,
-            is_archived=False
-        ).first()
-        
-        if existing:
-            flash(f'Subject "{subject.subject_code}" is already assigned to {faculty.full_name} for {active_settings.academic_year} - {active_settings.semester}.', 'error')
-            params = build_redirect_params(faculty_id=faculty.id)
-            return redirect(url_for('faculty.index', **params))
-        
-        # Create subject assignment with academic context
-        assignment = FacultySubjectAssignment(
-            faculty_id=int(faculty_id),
-            subject_id=int(subject_id),
-            academic_year=active_settings.academic_year,
-            semester=active_settings.semester
-        )
-        
-        db.session.add(assignment)
-        db.session.commit()
-        
-        # Get curriculum context
-        context = ""
-        if subject.semester and subject.semester.year_level and subject.semester.year_level.curriculum:
-            curriculum = subject.semester.year_level.curriculum
-            year_level = subject.semester.year_level
-            semester = subject.semester
-            context = f" ({curriculum.curriculum_code} - {year_level.year_name}, {semester.semester_name})"
-        
-        flash(f'Subject "{subject.subject_code}"{context} has been assigned to {faculty.full_name} for {active_settings.academic_year} - {active_settings.semester}!', 'success')
-        
-        params = build_redirect_params(faculty_id=faculty.id)
-        return redirect(url_for('faculty.index', **params))
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'An error occurred while assigning the subject: {str(e)}', 'error')
         return redirect(url_for('faculty.index'))
 
 
