@@ -133,45 +133,108 @@ function loadCurriculaForEdit(sectionId, scheduleData, mode = 'edit') {
     subjectSelect.innerHTML = '<option value="">Loading...</option>';
     subjectSelect.disabled = true;
     
-    // Fetch curricula for this section
-    fetch(`/schedule/get-curricula/${sectionId}`)
-        .then(response => response.json())
-        .then(data => {
-            curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
-            
-            if (data.curricula && data.curricula.length > 0) {
-                data.curricula.forEach(curriculum => {
-                    const option = document.createElement('option');
-                    option.value = curriculum.id;
-                    option.textContent = curriculum.display;
-                    curriculumSelect.appendChild(option);
-                });
+    // First, get the curriculum for the current subject
+    if (scheduleData.subject_id) {
+        fetch(`/schedule/get-curriculum-for-subject/${scheduleData.subject_id}`)
+            .then(response => response.json())
+            .then(curriculumData => {
+                const subjectCurriculumId = curriculumData.curriculum_id;
                 
-                // Pre-select the curriculum that contains the current subject
-                if (scheduleData.curriculum_id) {
-                    curriculumSelect.value = scheduleData.curriculum_id;
-                } else if (data.curricula.length === 1) {
+                // Now fetch all curricula for this section
+                return fetch(`/schedule/get-curricula/${sectionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
+                        
+                        if (data.curricula && data.curricula.length > 0) {
+                            data.curricula.forEach(curriculum => {
+                                const option = document.createElement('option');
+                                option.value = curriculum.id;
+                                option.textContent = curriculum.display;
+                                
+                                // Pre-select the curriculum that contains the subject
+                                if (curriculum.id === subjectCurriculumId) {
+                                    option.selected = true;
+                                }
+                                
+                                curriculumSelect.appendChild(option);
+                            });
+                            
+                            // Load subjects for the selected curriculum
+                            loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
+                        } else {
+                            curriculumSelect.innerHTML = '<option value="">No curricula available</option>';
+                            subjectSelect.innerHTML = '<option value="">No subjects available</option>';
+                        }
+                        
+                        curriculumSelect.disabled = false;
+                    });
+            })
+            .catch(error => {
+                console.error('Error loading curriculum for subject:', error);
+                // Fallback: load curricula without pre-selection
+                fetch(`/schedule/get-curricula/${sectionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
+                        
+                        if (data.curricula && data.curricula.length > 0) {
+                            data.curricula.forEach(curriculum => {
+                                const option = document.createElement('option');
+                                option.value = curriculum.id;
+                                option.textContent = curriculum.display;
+                                curriculumSelect.appendChild(option);
+                            });
+                            
+                            // Auto-select if only one curriculum
+                            if (data.curricula.length === 1) {
+                                curriculumSelect.value = data.curricula[0].id;
+                            }
+                            
+                            loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
+                        }
+                        
+                        curriculumSelect.disabled = false;
+                    });
+            });
+    } else {
+        // No subject selected, just load curricula
+        fetch(`/schedule/get-curricula/${sectionId}`)
+            .then(response => response.json())
+            .then(data => {
+                curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
+                
+                if (data.curricula && data.curricula.length > 0) {
+                    data.curricula.forEach(curriculum => {
+                        const option = document.createElement('option');
+                        option.value = curriculum.id;
+                        option.textContent = curriculum.display;
+                        curriculumSelect.appendChild(option);
+                    });
+                    
                     // Auto-select first curriculum if only one exists
-                    curriculumSelect.value = data.curricula[0].id;
+                    if (data.curricula.length === 1) {
+                        curriculumSelect.value = data.curricula[0].id;
+                    }
+                    
+                    // Load subjects for selected curriculum
+                    loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
+                } else {
+                    curriculumSelect.innerHTML = '<option value="">No curricula available</option>';
+                    subjectSelect.innerHTML = '<option value="">No subjects available</option>';
                 }
                 
-                // Load subjects for selected curriculum
-                loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
-            } else {
-                curriculumSelect.innerHTML = '<option value="">No curricula available</option>';
-                subjectSelect.innerHTML = '<option value="">No subjects available</option>';
-            }
-            
-            curriculumSelect.disabled = false;
-        })
-        .catch(error => {
-            console.error('Error loading curricula:', error);
-            curriculumSelect.innerHTML = '<option value="">Error loading curricula</option>';
-            curriculumSelect.disabled = false;
-            if (typeof showToast === 'function') {
-                showToast('Error loading curricula. Please try again.', 'error');
-            }
-        });
+                curriculumSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error loading curricula:', error);
+                curriculumSelect.innerHTML = '<option value="">Error loading curricula</option>';
+                curriculumSelect.disabled = false;
+                if (typeof showToast === 'function') {
+                    showToast('Error loading curricula. Please try again.', 'error');
+                }
+            });
+    }
 }
 
 /**
@@ -247,11 +310,6 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                         showScheduleTypeOptions('edit', subjectData);
                     }
                     
-                    // Load faculty for the selected subject
-                    if (typeof loadFacultyForSubject === 'function') {
-                        loadFacultyForSubject(subjectData.id, 'edit', scheduleData.faculty_id);
-                    }
-                    
                     // Set the schedule type after options are populated
                     setTimeout(() => {
                         if (scheduleData.schedule_type) {
@@ -269,6 +327,11 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                             calculateEndTime('edit');
                         }
                     }, 100);
+                    
+                    // Load faculty for the selected subject and preserve the selected faculty
+                    if (typeof loadFacultyForSubject === 'function') {
+                        loadFacultyForSubject(scheduleData.subject_id, 'edit', scheduleData.faculty_id);
+                    }
                 }
             } else {
                 subjectSelect.innerHTML = '<option value="">No subjects available</option>';

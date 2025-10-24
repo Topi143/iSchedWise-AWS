@@ -147,10 +147,8 @@
                             </label>
                             <select id="faculty_id_add" name="faculty_id" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
                                 <option value="">TBA (To Be Assigned)</option>
-                                {% for faculty in faculties %}
-                                <option value="{{ faculty.id }}">{{ faculty.full_name }}{% if faculty.department %} - {{ faculty.department.department_code }}{% endif %}</option>
-                                {% endfor %}
                             </select>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Faculty assigned to the selected subject</p>
                         </div>
                         
                         <!-- Day of Week -->
@@ -503,11 +501,9 @@
                                 Faculty
                             </label>
                             <select id="faculty_id_edit" name="faculty_id" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
-                                <option value="">TBA (To Be Assigned)</option>
-                                {% for faculty in faculties %}
-                                <option value="{{ faculty.id }}">{{ faculty.full_name }}{% if faculty.department %} - {{ faculty.department.department_code }}{% endif %}</option>
-                                {% endfor %}
+                                <option value="">Loading faculty...</option>
                             </select>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Faculty assigned to the selected subject</p>
                         </div>
                         
                         <!-- Day of Week -->

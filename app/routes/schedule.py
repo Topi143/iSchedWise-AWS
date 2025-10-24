@@ -1209,6 +1209,33 @@ def get_all_faculties():
         return jsonify({'error': str(e)}), 500
 
 
+@schedule_bp.route('/get-curriculum-for-subject/<int:subject_id>')
+@login_required
+def get_curriculum_for_subject(subject_id):
+    """Get the curriculum that contains this subject"""
+    from flask import jsonify
+    from app.models.curriculum import Curriculum, YearLevel, Semester
+    
+    try:
+        # Get the subject
+        subject = Subject.query.get_or_404(subject_id)
+        
+        # Navigate: Subject -> Semester -> YearLevel -> Curriculum
+        if subject.semester and subject.semester.year_level:
+            curriculum = subject.semester.year_level.curriculum
+            
+            return jsonify({
+                'curriculum_id': curriculum.id,
+                'curriculum_code': curriculum.curriculum_code,
+                'degree_program': curriculum.degree_program
+            })
+        else:
+            return jsonify({'error': 'Curriculum not found for this subject'}), 404
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @schedule_bp.route('/ai-check-conflicts', methods=['POST'])
 @login_required
 @csrf.exempt  # Exempt CSRF for AJAX endpoints
