@@ -36,6 +36,11 @@ class Schedule(db.Model):
 
     def to_dict(self):
         """Convert schedule to dictionary"""
+        # Get curriculum_id by traversing relationships: subject -> semester -> year_level -> curriculum
+        curriculum_id = None
+        if self.subject and self.subject.semester and self.subject.semester.year_level:
+            curriculum_id = self.subject.semester.year_level.curriculum_id
+        
         return {
             'id': self.id,
             'section_id': self.section_id,
@@ -43,6 +48,7 @@ class Schedule(db.Model):
             'subject_id': self.subject_id,
             'subject_code': self.subject.subject_code if self.subject else None,
             'course_description': self.subject.course_description if self.subject else None,
+            'curriculum_id': curriculum_id,
             'faculty_id': self.faculty_id,
             'faculty_name': self.faculty.full_name if self.faculty else 'TBA',
             'room_id': self.room_id,

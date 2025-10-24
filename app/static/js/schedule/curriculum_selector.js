@@ -147,8 +147,11 @@ function loadCurriculaForEdit(sectionId, scheduleData, mode = 'edit') {
                     curriculumSelect.appendChild(option);
                 });
                 
-                // Auto-select first curriculum if only one exists
-                if (data.curricula.length === 1) {
+                // Pre-select the curriculum that contains the current subject
+                if (scheduleData.curriculum_id) {
+                    curriculumSelect.value = scheduleData.curriculum_id;
+                } else if (data.curricula.length === 1) {
+                    // Auto-select first curriculum if only one exists
                     curriculumSelect.value = data.curricula[0].id;
                 }
                 
@@ -242,6 +245,11 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                     // Show schedule type options if the function exists
                     if (typeof showScheduleTypeOptions === 'function') {
                         showScheduleTypeOptions('edit', subjectData);
+                    }
+                    
+                    // Load faculty for the selected subject
+                    if (typeof loadFacultyForSubject === 'function') {
+                        loadFacultyForSubject(subjectData.id, 'edit', scheduleData.faculty_id);
                     }
                     
                     // Set the schedule type after options are populated
