@@ -85,7 +85,15 @@ def index():
     
     # Get all subjects grouped by curriculum for assignment
     # Filter subjects to only show those in semesters matching the current active semester
-    curricula = Curriculum.query.filter_by(is_active=True).order_by(Curriculum.curriculum_code).all()
+    # AND filter by user's department access (Deans can only see their department's curricula)
+    curricula_query = Curriculum.query.filter_by(is_active=True)
+    
+    # Apply department filter for non-admin users (Deans)
+    user_department_ids = current_user.get_department_ids()
+    if user_department_ids is not None:  # None means admin (access to all)
+        curricula_query = curricula_query.filter(Curriculum.department_id.in_(user_department_ids))
+    
+    curricula = curricula_query.order_by(Curriculum.curriculum_code).all()
     
     # Filter curricula to only include those with subjects in the current semester
     filtered_curricula = []
@@ -354,12 +362,27 @@ def assign_subjects():
         assigned_count = 0
         skipped_count = 0
         skipped_subjects = []
+        unauthorized_subjects = []
+        
+        # Get user's accessible department IDs
+        user_department_ids = current_user.get_department_ids()
         
         for subject_id in subject_ids:
             subject = Subject.query.get(int(subject_id))
             if not subject:
                 skipped_count += 1
                 continue
+            
+            # Check department access: Get curriculum's department through the relationship chain
+            # Subject -> Semester -> YearLevel -> Curriculum -> Department
+            curriculum = subject.semester.year_level.curriculum if subject.semester and subject.semester.year_level else None
+            
+            # Validate user has access to this subject's department
+            if user_department_ids is not None:  # None means admin (access to all)
+                if not curriculum or curriculum.department_id not in user_department_ids:
+                    unauthorized_subjects.append(subject.subject_code)
+                    skipped_count += 1
+                    continue
             
             # Check if already assigned for current academic period (excluding archived)
             existing = FacultySubjectAssignment.query.filter_by(
@@ -394,14 +417,28 @@ def assign_subjects():
             message = f'Successfully assigned {assigned_count} {plural} to {faculty.full_name} for {active_settings.academic_year} - {active_settings.semester}!'
             
             if skipped_count > 0:
-                skipped_list = ', '.join(skipped_subjects[:3])
-                if len(skipped_subjects) > 3:
-                    skipped_list += f' and {len(skipped_subjects) - 3} more'
-                message += f' ({skipped_count} already assigned: {skipped_list})'
+                details = []
+                if len(skipped_subjects) > 0:
+                    skipped_list = ', '.join(skipped_subjects[:3])
+                    if len(skipped_subjects) > 3:
+                        skipped_list += f' and {len(skipped_subjects) - 3} more'
+                    details.append(f'{len(skipped_subjects)} already assigned: {skipped_list}')
+                
+                if len(unauthorized_subjects) > 0:
+                    unauthorized_list = ', '.join(unauthorized_subjects[:3])
+                    if len(unauthorized_subjects) > 3:
+                        unauthorized_list += f' and {len(unauthorized_subjects) - 3} more'
+                    details.append(f'{len(unauthorized_subjects)} not in your department: {unauthorized_list}')
+                
+                if details:
+                    message += f' ({"; ".join(details)})'
             
             flash(message, 'success')
         elif skipped_count > 0:
-            flash(f'All selected subjects ({skipped_count}) were already assigned to {faculty.full_name}.', 'error')
+            if len(unauthorized_subjects) > 0:
+                flash(f'Cannot assign subjects from other departments. You can only assign subjects from your department.', 'error')
+            else:
+                flash(f'All selected subjects ({skipped_count}) were already assigned to {faculty.full_name}.', 'error')
         else:
             flash('No subjects were assigned.', 'error')
         
@@ -446,6 +483,18 @@ def assign_subject():
             flash('Subject not found.', 'error')
             return redirect(url_for('faculty.index'))
         
+        # Check department access: Get curriculum's department through the relationship chain
+        # Subject -> Semester -> YearLevel -> Curriculum -> Department
+        curriculum = subject.semester.year_level.curriculum if subject.semester and subject.semester.year_level else None
+        
+        # Validate user has access to this subject's department
+        user_department_ids = current_user.get_department_ids()
+        if user_department_ids is not None:  # None means admin (access to all)
+            if not curriculum or curriculum.department_id not in user_department_ids:
+                flash(f'You do not have permission to assign subjects from other departments. Subject "{subject.subject_code}" is not in your department.', 'error')
+                params = build_redirect_params(faculty_id=faculty.id)
+                return redirect(url_for('faculty.index', **params))
+        
         # Check if already assigned for current academic period (excluding archived)
         existing = FacultySubjectAssignment.query.filter_by(
             faculty_id=int(faculty_id),
@@ -457,7 +506,8 @@ def assign_subject():
         
         if existing:
             flash(f'Subject "{subject.subject_code}" is already assigned to {faculty.full_name} for {active_settings.academic_year} - {active_settings.semester}.', 'error')
-            return redirect(url_for('faculty.index', faculty_id=faculty.id))
+            params = build_redirect_params(faculty_id=faculty.id)
+            return redirect(url_for('faculty.index', **params))
         
         # Create subject assignment with academic context
         assignment = FacultySubjectAssignment(
