@@ -353,6 +353,8 @@
     function loadFacultyForSubject(subjectId, mode = 'add', selectedFacultyId = null) {
         const facultySelect = document.getElementById(`faculty_id_${mode}`);
         
+        console.log(`[FACULTY] Loading faculty for subject ${subjectId}, mode: ${mode}, pre-select: ${selectedFacultyId}`);
+        
         if (!subjectId) {
             // Reset to TBA when no subject selected
             facultySelect.innerHTML = '<option value="">TBA</option>';
@@ -372,6 +374,8 @@
                 
                 let facultyFound = false;
                 
+                console.log(`[FACULTY] Received ${data.faculty ? data.faculty.length : 0} faculty members`);
+                
                 if (data.faculty && data.faculty.length > 0) {
                     data.faculty.forEach(faculty => {
                         const option = document.createElement('option');
@@ -382,6 +386,7 @@
                         if (selectedFacultyId && faculty.id == selectedFacultyId) {
                             option.selected = true;
                             facultyFound = true;
+                            console.log(`[FACULTY] Found and selected faculty: ${faculty.id}`);
                         }
                         
                         facultySelect.appendChild(option);
@@ -398,6 +403,7 @@
                 // If selected faculty wasn't in the subject-specific list, 
                 // we need to fetch ALL faculties and add the selected one
                 if (selectedFacultyId && !facultyFound && mode === 'edit') {
+                    console.log(`[FACULTY] Faculty ${selectedFacultyId} not found in subject list, fetching all faculties`);
                     // For edit mode, if the faculty isn't in the subject list,
                     // we need to preserve it by fetching all faculties
                     fetch('/schedule/get-all-faculties')
@@ -406,6 +412,7 @@
                             if (allData.faculties && allData.faculties.length > 0) {
                                 const selectedFaculty = allData.faculties.find(f => f.id == selectedFacultyId);
                                 if (selectedFaculty) {
+                                    console.log(`[FACULTY] Adding currently assigned faculty: ${selectedFaculty.id}`);
                                     // Add the selected faculty to the dropdown with a note
                                     const option = document.createElement('option');
                                     option.value = selectedFaculty.id;
@@ -413,18 +420,21 @@
                                     option.selected = true;
                                     // Insert after TBA option
                                     facultySelect.insertBefore(option, facultySelect.children[1]);
+                                    console.log(`[FACULTY] Faculty dropdown value is now: ${facultySelect.value}`);
                                 }
                             }
                         })
                         .catch(error => {
-                            console.error('Error loading all faculties:', error);
+                            console.error('[FACULTY] Error loading all faculties:', error);
                         });
+                } else if (facultyFound) {
+                    console.log(`[FACULTY] Faculty dropdown value is: ${facultySelect.value}`);
                 }
                 
                 facultySelect.disabled = false;
             })
             .catch(error => {
-                console.error('Error loading faculty:', error);
+                console.error('[FACULTY] Error loading faculty:', error);
                 facultySelect.innerHTML = '<option value="">TBA</option>';
                 facultySelect.disabled = false;
                 showToast('Error loading faculty. Please try again.', 'error');
@@ -454,6 +464,8 @@
     }
 
     function editSchedule(id, scheduleData) {
+        console.log('[EDIT SCHEDULE] Starting edit for schedule ID:', id, 'Data:', scheduleData);
+        
         document.getElementById('schedule_id_edit').value = id;
         document.getElementById('section_id_edit').value = scheduleData.section_id;
         
@@ -473,10 +485,10 @@
         
         // Load curricula and subjects for the schedule's section first (using new curriculum-based approach)
         const sectionId = scheduleData.section_id;
+        console.log('[EDIT SCHEDULE] Calling loadCurriculaForEdit with section:', sectionId);
         loadCurriculaForEdit(sectionId, scheduleData);
         
-        // Set other fields immediately
-        document.getElementById('faculty_id_edit').value = scheduleData.faculty_id || '';
+        // Set other fields immediately (except faculty - it will be loaded after subject is selected)
         document.getElementById('day_of_week_edit').value = scheduleData.day_of_week || '';
         document.getElementById('start_time_edit').value = scheduleData.start_time || '';
         document.getElementById('end_time_edit').value = scheduleData.end_time || '';
@@ -485,6 +497,7 @@
         // Store the schedule type to set it after subject loads
         window.editScheduleType = scheduleData.schedule_type || 'lecture';
         
+        console.log('[EDIT SCHEDULE] Opening modal...');
         openEditScheduleModal();
     }
     
