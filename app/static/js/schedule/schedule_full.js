@@ -225,9 +225,11 @@
         
         // Show loading state
         const rightPanel = document.querySelector('#content-class .flex-1.bg-white.rounded-xl');
+        let contentArea = null; // Declare outside to be accessible in catch block
+        
         if (rightPanel) {
             // Find the content area (the scrollable div after the header)
-            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
             if (contentArea) {
                 contentArea.innerHTML = `
                     <div class="flex items-center justify-center h-full">
@@ -260,16 +262,18 @@
         })
         .catch(error => {
             console.error('Error loading schedules:', error);
-            contentArea.innerHTML = `
-                <div class="flex items-center justify-center h-full">
-                    <div class="text-center text-red-600">
-                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p>Error loading schedules. Please try again.</p>
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center text-red-600">
+                            <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p>Error loading schedules. Please try again.</p>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         });
     }
 
@@ -878,9 +882,11 @@
         
         // Show loading state
         const rightPanel = document.querySelector('#content-faculty .flex-1.bg-white.rounded-xl');
+        let contentArea = null; // Declare outside to be accessible in catch block
+        
         if (rightPanel) {
             // Find the content area (the scrollable div after the header)
-            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
             if (contentArea) {
                 contentArea.innerHTML = `
                     <div class="flex items-center justify-center h-full">
@@ -913,16 +919,18 @@
         })
         .catch(error => {
             console.error('Error loading schedules:', error);
-            contentArea.innerHTML = `
-                <div class="flex items-center justify-center h-full">
-                    <div class="text-center text-red-600">
-                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p>Error loading schedules. Please try again.</p>
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center text-red-600">
+                            <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p>Error loading schedules. Please try again.</p>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         });
     }
 
@@ -956,9 +964,11 @@
         
         // Show loading state
         const rightPanel = document.querySelector('#content-room .flex-1.bg-white.rounded-xl');
+        let contentArea = null; // Declare outside to be accessible in catch block
+        
         if (rightPanel) {
             // Find the content area (the scrollable div after the header)
-            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
             if (contentArea) {
                 contentArea.innerHTML = `
                     <div class="flex items-center justify-center h-full">
@@ -991,16 +1001,18 @@
         })
         .catch(error => {
             console.error('Error loading schedules:', error);
-            contentArea.innerHTML = `
-                <div class="flex items-center justify-center h-full">
-                    <div class="text-center text-red-600">
-                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p>Error loading schedules. Please try again.</p>
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center text-red-600">
+                            <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p>Error loading schedules. Please try again.</p>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         });
     }
 
@@ -1112,9 +1124,11 @@
         
         // Show loading state
         const rightPanel = document.querySelector('#content-exam .flex-1.bg-white.rounded-xl');
+        let contentArea = null; // Declare outside to be accessible in catch block
+        
         if (rightPanel) {
             // Find the content area (the scrollable div after the header)
-            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
             if (contentArea) {
                 contentArea.innerHTML = `
                     <div class="flex items-center justify-center h-full">
@@ -1147,16 +1161,18 @@
         })
         .catch(error => {
             console.error('Error loading exam schedules:', error);
-            contentArea.innerHTML = `
-                <div class="flex items-center justify-center h-full">
-                    <div class="text-center text-red-600">
-                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p>Error loading exam schedules. Please try again.</p>
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center text-red-600">
+                            <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p>Error loading exam schedules. Please try again.</p>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         });
     }
 
