@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Department Management - iSchedWise{% endblock %}
+{% block title %}Program Management - iSchedWise{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -269,6 +269,22 @@
             width: 0;
         }
     }
+    
+    /* Modal animations */
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-scale-in {
+        animation: scaleIn 0.2s ease-out forwards;
+    }
 </style>
 {% endblock %}
 
@@ -299,8 +315,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Department Management</h1>
-                        <p class="text-xs sm:text-sm text-gray-600">Manage departments and sections</p>
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Program Management</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Manage programs and sections</p>
                     </div>
                 </div>
             </div>
@@ -318,14 +334,14 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <span class="text-sm sm:text-base">Departments</span>
+                        <span class="text-sm sm:text-base">Programs</span>
                         <span id="department-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ departments|length }}</span>
                     </h3>
                     <button onclick="openAddDepartmentModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
-                        Add Department
+                        Add Program
                     </button>
                 </div>
                 
@@ -368,7 +384,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
-                    <span>Back to Departments</span>
+                    <span>Back to Programs</span>
                 </button>
                 
                 {% if selected_department %}
@@ -385,12 +401,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
                             </button>
-                            <button onclick="editDepartment({{ display_department.id }}, '{{ display_department.department_code }}', '{{ display_department.department_name }}')" class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Department">
+                            <button onclick="editDepartment({{ display_department.id }}, '{{ display_department.department_code }}', '{{ display_department.department_name }}')" class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Program">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
-                            <button onclick="archiveDepartment({{ display_department.id }}, '{{ display_department.department_code }}')" class="p-1.5 sm:p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Department">
+                            <button onclick="archiveDepartment({{ display_department.id }}, '{{ display_department.department_code }}')" class="p-1.5 sm:p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Program">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                 </svg>
@@ -476,7 +492,7 @@
                 {% endif %}
             </div>
             {% else %}
-            <!-- Empty State: No Departments -->
+            <!-- Empty State: No Programs -->
             <!-- Left Panel: Empty List -->
             <div class="department-list-panel w-full lg:w-80 flex-shrink-0 department-card overflow-hidden flex flex-col">
                 <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
@@ -484,7 +500,7 @@
                         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        Departments
+                        Programs
                         <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
                     </h3>
                 </div>
@@ -496,12 +512,12 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">No departments yet</p>
+                        <p class="text-sm text-gray-600 mb-4">No programs yet</p>
                         <button onclick="openAddDepartmentModal()" class="btn-primary inline-flex items-center px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
-                            Add Department
+                            Add Program
                         </button>
                     </div>
                 </div>
@@ -524,14 +540,14 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Departments Yet</h3>
-                        <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by creating your first department. Departments organize your academic programs and sections.</p>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Programs Yet</h3>
+                        <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by creating your first program. Programs organize your academic courses and sections.</p>
                         
                         <button onclick="openAddDepartmentModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-sm">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
-                            Create First Department
+                            Create First Program
                         </button>
                     </div>
                 </div>
@@ -541,7 +557,7 @@
     </div>
 </div>
 
-<!-- Add Department Modal -->
+<!-- Add Program Modal -->
 <div id="addDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
         <div class="bg-white border-b border-gray-200 p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl sticky top-0 z-10">
@@ -552,7 +568,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
                     </div>
-                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Add New Department</h3>
+                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Add New Program</h3>
                 </div>
                 <button onclick="closeAddDepartmentModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
                     <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -600,7 +616,7 @@
     </div>
 </div>
 
-<!-- Edit Department Modal -->
+<!-- Edit Program Modal -->
 <div id="editDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
         <div class="bg-white border-b border-gray-200 p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl sticky top-0 z-10">
@@ -611,7 +627,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Edit Department</h3>
+                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Edit Program</h3>
                 </div>
                 <button onclick="closeEditDepartmentModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
                     <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -772,6 +788,133 @@
                 <button type="submit"
                     class="w-full sm:w-auto px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md">
                     Update Section
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Archive Department Modal -->
+<div id="archiveDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-orange-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Archive Department</h3>
+                </div>
+                <button onclick="closeArchiveDepartmentModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="archiveDepartmentForm" method="POST" action="{{ url_for('department.archive') }}" class="p-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="archive_department_id" name="department_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    You are about to archive department: <span class="font-bold text-orange-600" id="archive_department_code"></span>
+                </p>
+                
+                <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded">
+                    <p class="text-sm text-orange-800 font-medium mb-2">⚠️ This will:</p>
+                    <ul class="text-sm text-orange-700 space-y-1 ml-4">
+                        <li>• Hide the department from the main list</li>
+                        <li>• Automatically archive ALL active curricula in this department</li>
+                        <li>• Move everything to the Archives page</li>
+                        <li>• Keep all data intact (sections, curricula, subjects)</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <p class="text-sm text-blue-800">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        You can restore this department later from the Archives page.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label for="archive_reason" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Archive Reason <span class="text-red-500">*</span>
+                </label>
+                <textarea id="archive_reason" name="archive_reason" required rows="3"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    placeholder="Please provide a reason for archiving this department...">Department reorganization</textarea>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeArchiveDepartmentModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Archive Department
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Section Modal -->
+<div id="deleteSectionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Delete Section</h3>
+                </div>
+                <button onclick="closeDeleteSectionModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <form id="deleteSectionForm" method="POST" action="{{ url_for('department.delete_section') }}" class="p-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="delete_section_id" name="section_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Are you sure you want to delete section: <span class="font-bold text-red-600" id="delete_section_name"></span>?
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                    <p class="text-sm text-red-800 font-semibold">
+                        ⚠️ This action cannot be undone!
+                    </p>
+                    <p class="text-sm text-red-700 mt-2">
+                        This will permanently delete the section and all associated data.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteSectionModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Delete Section
                 </button>
             </div>
         </form>
@@ -1031,40 +1174,16 @@
     }
 
     function archiveDepartment(id, code) {
-        // Get reason from user
-        const reason = prompt(`Please provide a reason for archiving department "${code}":\n\n(This department will be moved to the Archives page and can be restored later)`, 'Department reorganization');
-        
-        if (reason === null) {
-            // User clicked Cancel
-            return;
-        }
-        
-        if (confirm(`Are you sure you want to ARCHIVE department "${code}"?\n\nThis will:\n- Hide the department from the main list\n- Automatically archive ALL active curricula in this department\n- Move everything to the Archives page\n- Keep all data intact (sections, curricula, subjects)\n- Allow restoration later if needed`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("department.archive") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const deptIdInput = document.createElement('input');
-            deptIdInput.type = 'hidden';
-            deptIdInput.name = 'department_id';
-            deptIdInput.value = id;
-            
-            const reasonInput = document.createElement('input');
-            reasonInput.type = 'hidden';
-            reasonInput.name = 'archive_reason';
-            reasonInput.value = reason || 'No reason provided';
-            
-            form.appendChild(csrfToken);
-            form.appendChild(deptIdInput);
-            form.appendChild(reasonInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
+        document.getElementById('archive_department_id').value = id;
+        document.getElementById('archive_department_code').textContent = code;
+        document.getElementById('archiveDepartmentModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeArchiveDepartmentModal() {
+        document.getElementById('archiveDepartmentModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('archiveDepartmentForm').reset();
     }
 
     // Helper function to find which department is currently open
@@ -1120,26 +1239,16 @@
     }
 
     function deleteSection(id, name, departmentId) {
-        if (confirm(`Are you sure you want to delete section "${name}"?`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("department.delete_section") }}';
-            
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
-            const sectionId = document.createElement('input');
-            sectionId.type = 'hidden';
-            sectionId.name = 'section_id';
-            sectionId.value = id;
-            
-            form.appendChild(csrfToken);
-            form.appendChild(sectionId);
-            document.body.appendChild(form);
-            form.submit();
-        }
+        document.getElementById('delete_section_id').value = id;
+        document.getElementById('delete_section_name').textContent = name;
+        document.getElementById('deleteSectionModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteSectionModal() {
+        document.getElementById('deleteSectionModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        document.getElementById('deleteSectionForm').reset();
     }
 
     // Modals will only close when clicking the X button

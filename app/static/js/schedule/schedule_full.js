@@ -217,16 +217,21 @@
         event.currentTarget.classList.add('selected');
         
         // Show loading state
-        const rightPanel = document.querySelector('#content-class .flex-1.bg-white.rounded-2xl');
-        const contentArea = rightPanel.querySelector('.flex-1');
-        contentArea.innerHTML = `
-            <div class="flex items-center justify-center h-full">
-                <div class="text-center">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading schedules...</p>
-                </div>
-            </div>
-        `;
+        const rightPanel = document.querySelector('#content-class .flex-1.bg-white.rounded-xl');
+        if (rightPanel) {
+            // Find the content area (the scrollable div after the header)
+            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Loading schedules...</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
         
         // Fetch schedules for selected section via AJAX
         fetch(`/schedule?section_id=${id}`, {
@@ -241,7 +246,7 @@
             const doc = parser.parseFromString(html, 'text/html');
             
             // Extract the right panel content from the response
-            const newRightPanel = doc.querySelector('#content-class .flex-1.bg-white.rounded-2xl');
+            const newRightPanel = doc.querySelector('#content-class .flex-1.bg-white.rounded-xl');
             if (newRightPanel && rightPanel) {
                 rightPanel.innerHTML = newRightPanel.innerHTML;
             }
@@ -587,30 +592,28 @@
 
 
     function deleteSchedule(id, subjectCode) {
-        if (confirm(`Are you sure you want to delete the schedule for "${subjectCode}"?\n\nThis action cannot be undone.`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/schedule/delete';  // Fixed: Use direct URL instead of Jinja2 template
-            
-            // Get CSRF token from meta tag or form in page
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrf_token';
-            // Get CSRF token from page meta or hidden input
-            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-            const tokenInput = document.querySelector('input[name="csrf_token"]');
-            csrfToken.value = tokenMeta ? tokenMeta.content : (tokenInput ? tokenInput.value : '');
-            
-            const scheduleIdInput = document.createElement('input');
-            scheduleIdInput.type = 'hidden';
-            scheduleIdInput.name = 'schedule_id';
-            scheduleIdInput.value = id;
-            
-            form.appendChild(csrfToken);
-            form.appendChild(scheduleIdInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/schedule/delete';  // Fixed: Use direct URL instead of Jinja2 template
+        
+        // Get CSRF token from meta tag or form in page
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrf_token';
+        // Get CSRF token from page meta or hidden input
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const tokenInput = document.querySelector('input[name="csrf_token"]');
+        csrfToken.value = tokenMeta ? tokenMeta.content : (tokenInput ? tokenInput.value : '');
+        
+        const scheduleIdInput = document.createElement('input');
+        scheduleIdInput.type = 'hidden';
+        scheduleIdInput.name = 'schedule_id';
+        scheduleIdInput.value = id;
+        
+        form.appendChild(csrfToken);
+        form.appendChild(scheduleIdInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 
     // ============================================================================
@@ -860,16 +863,21 @@
         event.currentTarget.classList.add('selected');
         
         // Show loading state
-        const rightPanel = document.querySelector('#content-faculty .flex-1.bg-white.rounded-2xl');
-        const contentArea = rightPanel.querySelector('.flex-1');
-        contentArea.innerHTML = `
-            <div class="flex items-center justify-center h-full">
-                <div class="text-center">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading schedules...</p>
-                </div>
-            </div>
-        `;
+        const rightPanel = document.querySelector('#content-faculty .flex-1.bg-white.rounded-xl');
+        if (rightPanel) {
+            // Find the content area (the scrollable div after the header)
+            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Loading schedules...</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
         
         // Fetch schedules for selected faculty via AJAX
         fetch(`/schedule?faculty_id=${id}`, {
@@ -884,7 +892,7 @@
             const doc = parser.parseFromString(html, 'text/html');
             
             // Extract the right panel content from the response
-            const newRightPanel = doc.querySelector('#content-faculty .flex-1.bg-white.rounded-2xl');
+            const newRightPanel = doc.querySelector('#content-faculty .flex-1.bg-white.rounded-xl');
             if (newRightPanel && rightPanel) {
                 rightPanel.innerHTML = newRightPanel.innerHTML;
             }
@@ -926,16 +934,21 @@
         event.currentTarget.classList.add('selected');
         
         // Show loading state
-        const rightPanel = document.querySelector('#content-room .flex-1.bg-white.rounded-2xl');
-        const contentArea = rightPanel.querySelector('.flex-1');
-        contentArea.innerHTML = `
-            <div class="flex items-center justify-center h-full">
-                <div class="text-center">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading schedules...</p>
-                </div>
-            </div>
-        `;
+        const rightPanel = document.querySelector('#content-room .flex-1.bg-white.rounded-xl');
+        if (rightPanel) {
+            // Find the content area (the scrollable div after the header)
+            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Loading schedules...</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
         
         // Fetch schedules for selected room via AJAX
         fetch(`/schedule?room_id=${id}`, {
@@ -950,7 +963,7 @@
             const doc = parser.parseFromString(html, 'text/html');
             
             // Extract the right panel content from the response
-            const newRightPanel = doc.querySelector('#content-room .flex-1.bg-white.rounded-2xl');
+            const newRightPanel = doc.querySelector('#content-room .flex-1.bg-white.rounded-xl');
             if (newRightPanel && rightPanel) {
                 rightPanel.innerHTML = newRightPanel.innerHTML;
             }
@@ -1070,16 +1083,21 @@
         event.currentTarget.classList.add('selected');
         
         // Show loading state
-        const rightPanel = document.querySelector('#content-exam .flex-1.bg-white.rounded-2xl');
-        const contentArea = rightPanel.querySelector('.flex-1');
-        contentArea.innerHTML = `
-            <div class="flex items-center justify-center h-full">
-                <div class="text-center">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p class="text-gray-600">Loading exam schedules...</p>
-                </div>
-            </div>
-        `;
+        const rightPanel = document.querySelector('#content-exam .flex-1.bg-white.rounded-xl');
+        if (rightPanel) {
+            // Find the content area (the scrollable div after the header)
+            const contentArea = rightPanel.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Loading exam schedules...</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
         
         // Fetch exam schedules for selected section via AJAX
         fetch(`/schedule?exam_section_id=${id}`, {
@@ -1094,7 +1112,7 @@
             const doc = parser.parseFromString(html, 'text/html');
             
             // Extract the right panel content from the response
-            const newRightPanel = doc.querySelector('#content-exam .flex-1.bg-white.rounded-2xl');
+            const newRightPanel = doc.querySelector('#content-exam .flex-1.bg-white.rounded-xl');
             if (newRightPanel && rightPanel) {
                 rightPanel.innerHTML = newRightPanel.innerHTML;
             }
@@ -1198,29 +1216,27 @@
     }
 
     function deleteExamSchedule(id, subjectCode) {
-        if (confirm(`Are you sure you want to delete the exam schedule for "${subjectCode}"?\n\nThis action cannot be undone.`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/exam-schedule/delete`;
-            
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
-            if (csrfToken) {
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken;
-                form.appendChild(csrfInput);
-            }
-            
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'exam_schedule_id';
-            idInput.value = id;
-            form.appendChild(idInput);
-            
-            document.body.appendChild(form);
-            form.submit();
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/exam-schedule/delete`;
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
         }
+        
+        const idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'exam_schedule_id';
+        idInput.value = id;
+        form.appendChild(idInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     }
 
     // Load subjects for exam section

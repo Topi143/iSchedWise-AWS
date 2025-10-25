@@ -25,31 +25,30 @@
 
         <!-- Page Header -->
         <div class="mb-2 sm:mb-3 flex-shrink-0">
-            <div class="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-200 p-2.5 sm:p-3 md:p-4">
-                <div class="flex items-center gap-2.5 md:gap-3">
-                    <div class="w-10 h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl shadow-md flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-base sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">
-                            Schedule Management
-                        </h1>
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Schedule Management</h1>
                         {% if current_settings %}
-                        <div class="flex items-center gap-1.5 mb-1">
-                            <span class="text-xs sm:text-xs md:text-sm font-medium bg-blue-100 text-blue-700 px-2 py-0.5 sm:px-2 sm:py-1 rounded-full border border-blue-200">{{ current_settings.academic_year }} • {{ current_settings.semester }}</span>
-                        </div>
+                        <p class="text-xs sm:text-sm text-gray-600">
+                            {{ current_settings.academic_year }} • {{ current_settings.semester }} • Manage class, faculty, room, and exam schedules
+                        </p>
+                        {% else %}
+                        <p class="text-xs sm:text-sm text-gray-600">Manage class, faculty, room, and exam schedules</p>
                         {% endif %}
-                        <p class="text-xs sm:text-xs md:text-sm text-gray-600 leading-snug">Manage class, faculty, room, and exam schedules</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Tab Navigation -->
-        <div class="mb-2 sm:mb-3 md:mb-4 flex-shrink-0">
-            <div class="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-1 md:p-1.5 grid grid-cols-4 gap-1 card-hover">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-1 md:p-1.5 grid grid-cols-4 gap-1">
                 <button onclick="switchTab('class')" id="tab-class" class="tab-button px-1.5 py-1.5 sm:px-2 sm:py-2 md:px-4 md:py-2.5 rounded-lg font-semibold text-[10px] sm:text-xs md:text-sm transition-all flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 md:gap-2 whitespace-nowrap">
                     <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>

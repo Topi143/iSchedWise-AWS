@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import Department, Section
 from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
-department_bp = Blueprint('department', __name__, url_prefix='/department')
+department_bp = Blueprint('department', __name__, url_prefix='/program')
 
 
 @department_bp.route('/')
@@ -40,7 +40,7 @@ def index():
             if selected_department.id not in user_department_ids:
                 selected_department = None
     
-    return render_template('department.html', 
+    return render_template('programs.html', 
                          user=current_user, 
                          departments=departments,
                          selected_department=selected_department)

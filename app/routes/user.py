@@ -39,8 +39,9 @@ def index():
 @login_required
 @admin_required
 def get_users():
-    """Get all users as JSON"""
-    users = User.query.order_by(User.created_at.desc()).all()
+    """Get all users as JSON (excluding current user)"""
+    # Exclude the current logged-in user from the list
+    users = User.query.filter(User.id != current_user.id).order_by(User.created_at.desc()).all()
     
     users_data = []
     for user in users:

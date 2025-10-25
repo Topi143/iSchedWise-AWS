@@ -79,6 +79,22 @@
         to { transform: translateX(400px); opacity: 0; }
     }
     
+    /* Modal animations */
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-scale-in {
+        animation: scaleIn 0.2s ease-out forwards;
+    }
+    
     .toast-success { border-left: 4px solid #10b981; }
     .toast-error { border-left: 4px solid #ef4444; }
     .toast-info { border-left: 4px solid #3b82f6; }
@@ -170,22 +186,27 @@
         transform: translateY(-2px);
     }
     
-    /* Mobile Responsive Styles */
+    /* Tablet and Mobile Responsive Styles - Unified for Consistency */
     @media (max-width: 1024px) {
-        .two-column-layout {
-            flex-direction: column !important;
-        }
-        .left-sidebar {
-            width: 100% !important;
-            max-height: 250px;
-            min-height: 200px;
-        }
-    }
-    
-    @media (max-width: 768px) {
-        /* Adjust main container padding for mobile */
+        /* Main container */
         .bg-gray-50 {
             padding: 0.5rem !important;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Two-column layout becomes vertical */
+        .two-column-layout {
+            flex-direction: column !important;
+            height: 100%;
+        }
+        
+        /* Left sidebar sizing */
+        .left-sidebar {
+            width: 100% !important;
+            max-height: 35vh;
+            min-height: 200px;
+            flex-shrink: 0;
         }
         
         /* Toast positioning */
@@ -206,43 +227,34 @@
             margin-bottom: 0.5rem !important;
         }
         
-        /* Tab buttons - make them more compact */
+        /* Tab buttons - more compact */
         .main-tab-button,
         .schedule-tab-button {
-            font-size: 0.7rem;
-            padding: 0.5rem 0.5rem;
-            gap: 0.25rem;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            gap: 0.375rem;
         }
         
         .main-tab-button svg,
         .schedule-tab-button svg {
-            width: 0.875rem;
-            height: 0.875rem;
+            width: 1rem;
+            height: 1rem;
         }
         
-        .main-tab-button span,
-        .schedule-tab-button span {
-            font-size: 0.7rem;
-        }
-        
-        /* Left sidebar adjustments */
-        .left-sidebar {
-            max-height: 200px !important;
-            min-height: 180px;
+        /* Left sidebar content */
+        .left-sidebar h3 {
+            font-size: 0.875rem;
         }
         
         /* Override for master panel in mobile master-detail layout */
         .tab-content.active .master-panel.left-sidebar {
             max-height: none !important;
-            min-height: 400px !important;
+            min-height: 100%;
             height: 100%;
+            flex: 1;
         }
         
-        .left-sidebar h3 {
-            font-size: 0.875rem;
-        }
-        
-        /* Archive cards - more compact on mobile */
+        /* Archive cards - compact */
         .archive-card {
             padding: 0.75rem !important;
             margin-bottom: 0.5rem !important;
@@ -269,7 +281,7 @@
         
         /* Filter dropdowns */
         select {
-            font-size: 0.8rem !important;
+            font-size: 0.875rem !important;
             padding: 0.5rem !important;
         }
         
@@ -278,14 +290,14 @@
         .faculty-item,
         .room-item,
         .exam-section-item {
-            padding: 0.5rem !important;
-            font-size: 0.8rem !important;
+            padding: 0.75rem !important;
+            font-size: 0.875rem;
         }
         
         /* Badge adjustments */
         .badge, [class*="-badge"] {
-            font-size: 0.65rem !important;
-            padding: 0.125rem 0.5rem !important;
+            font-size: 0.7rem !important;
+            padding: 0.125rem 0.375rem !important;
         }
         
         /* Reduce spacing in flex containers */
@@ -296,10 +308,31 @@
         .gap-3 {
             gap: 0.5rem !important;
         }
+        
+        /* Detail panel - full remaining height */
+        .detail-panel {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
     }
     
     @media (max-width: 640px) {
-        /* Extra small screens */
+        /* Extra small screens - additional adjustments */
+        .main-tab-button,
+        .schedule-tab-button {
+            font-size: 0.7rem;
+            padding: 0.5rem 0.5rem;
+            gap: 0.25rem;
+        }
+        
+        .main-tab-button svg,
+        .schedule-tab-button svg {
+            width: 0.875rem;
+            height: 0.875rem;
+        }
+        
+        /* Archive cards */
         .archive-card {
             padding: 0.5rem !important;
         }
@@ -319,15 +352,6 @@
         .main-tab-button {
             min-width: calc(50% - 0.25rem);
             flex: 1 1 calc(50% - 0.25rem);
-        }
-        
-        /* Hide some labels on very small screens */
-        .main-tab-button .label-full {
-            display: none;
-        }
-        
-        .main-tab-button .label-short {
-            display: inline;
         }
         
         /* Adjust filter container */
@@ -397,24 +421,27 @@
         }
     }
     
-    /* Master-Detail Mobile Layout */
+    /* Master-Detail Mobile and Tablet Layout - Unified */
     .master-panel,
     .detail-panel {
         transition: transform 0.3s ease, opacity 0.3s ease;
     }
     
-    @media (max-width: 768px) {
-        /* Force the tab content to maintain flex layout */
+    @media (max-width: 1024px) {
+        /* Unified tablet and mobile master-detail behavior */
         .tab-content.active {
             display: flex !important;
-            flex-direction: column;
+            flex-direction: column !important;
+            height: 100%;
         }
         
-        /* Mobile: Show master panel by default, hide detail panel */
+        /* Mobile/Tablet: Show master panel by default, hide detail panel */
         .tab-content.active .master-panel {
             display: flex !important;
+            flex-direction: column !important;
             width: 100% !important;
             max-height: none !important;
+            height: auto;
         }
         
         .tab-content.active .detail-panel {
@@ -428,25 +455,34 @@
         
         .tab-content.active.mobile-detail-view .detail-panel {
             display: flex !important;
+            flex-direction: column !important;
             width: 100% !important;
+            height: 100%;
+            max-height: none !important;
         }
         
-        /* Override two-column layout on mobile */
+        /* Override two-column layout */
         .tab-content.active .two-column-layout {
             display: flex !important;
             flex-direction: column !important;
             height: 100%;
+            gap: 0 !important;
+        }
+        
+        /* Ensure full height for content */
+        .tab-content.active .two-column-layout > * {
+            width: 100% !important;
         }
     }
     
-    /* Back button for mobile detail view */
+    /* Back button for mobile and tablet detail view - HIDDEN on desktop (lg and up) */
     .mobile-back-button {
-        display: none;
+        display: none !important;
     }
     
-    @media (max-width: 768px) {
+    @media (max-width: 1023px) {
         .mobile-back-button {
-            display: flex;
+            display: flex !important;
         }
     }
     
@@ -489,8 +525,8 @@
         {% endwith %}
         
         <!-- Page Header -->
-        <div class="mb-2 sm:mb-4 flex-shrink-0 page-header-container">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-2 sm:p-4">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                         <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,15 +534,15 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-xl sm:text-2xl font-bold flex items-center text-gray-900">Archives</h1>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-1">View and restore archived records</p>
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Archives</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">View and restore archived records</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Category Tabs -->
-        <div class="mb-2 sm:mb-4 flex-shrink-0">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-2">
                 <div class="flex flex-wrap gap-2">
                     <button onclick="switchMainTab('schedules')" class="main-tab-button active flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-schedules">
@@ -544,7 +580,7 @@
         </div>
 
         <!-- Schedule Sub-Tabs (only visible when Schedules is selected) -->
-        <div id="schedule-subtabs" class="mb-2 sm:mb-4 flex-shrink-0">
+        <div id="schedule-subtabs" class="mb-2 sm:mb-3 flex-shrink-0">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-2 overflow-hidden">
                 <div class="flex gap-2 overflow-x-auto tab-scroll-container">
                     <button onclick="switchScheduleTab('class')" class="schedule-tab-button active flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-2 border border-transparent whitespace-nowrap" id="schedule-tab-class">
@@ -557,7 +593,7 @@
                         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
-                        <span>Faculty Schedule</span>
+                        <span>Faculty</span>
                     </button>
                     <button onclick="switchScheduleTab('rooms')" class="schedule-tab-button flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-medium flex items-center justify-center gap-2 border border-transparent whitespace-nowrap" id="schedule-tab-rooms">
                         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -648,12 +684,14 @@
                         
                         <div class="flex-1 overflow-y-auto p-2 sm:p-4">
                             <div id="class-archives-container" class="space-y-2 sm:space-y-3">
-                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
-                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                                    </svg>
-                                    <p class="text-lg font-medium text-gray-900 mb-2">No section selected</p>
-                                    <p class="text-sm text-gray-500">Choose a section from the left to view archived schedules</p>
+                                <div class="text-center py-8 sm:py-12 px-4">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-lg font-semibold text-blue-900 mb-2">No section selected</p>
+                                    <p class="text-sm text-blue-600">Choose a section from the left to view archived schedules</p>
                                 </div>
                             </div>
                         </div>
@@ -732,12 +770,14 @@
                         
                         <div class="flex-1 overflow-y-auto p-2 sm:p-4">
                             <div id="faculty-archives-container" class="space-y-2 sm:space-y-3">
-                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
-                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                    </svg>
-                                    <p class="text-lg font-medium text-gray-900 mb-2">No faculty selected</p>
-                                    <p class="text-sm text-gray-500">Choose a faculty member from the left to view archived schedules</p>
+                                <div class="text-center py-8 sm:py-12 px-4">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-lg font-semibold text-blue-900 mb-2">No faculty selected</p>
+                                    <p class="text-sm text-blue-600">Choose a faculty member from the left to view archived schedules</p>
                                 </div>
                             </div>
                         </div>
@@ -816,12 +856,14 @@
                         
                         <div class="flex-1 overflow-y-auto p-2 sm:p-4">
                             <div id="rooms-archives-container" class="space-y-2 sm:space-y-3">
-                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
-                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                    </svg>
-                                    <p class="text-lg font-medium text-gray-900 mb-2">No room selected</p>
-                                    <p class="text-sm text-gray-500">Choose a room from the left to view archived schedules</p>
+                                <div class="text-center py-8 sm:py-12 px-4">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-lg font-semibold text-blue-900 mb-2">No room selected</p>
+                                    <p class="text-sm text-blue-600">Choose a room from the left to view archived schedules</p>
                                 </div>
                             </div>
                         </div>
@@ -907,12 +949,14 @@
                         
                         <div class="flex-1 overflow-y-auto p-2 sm:p-4">
                             <div id="exam-archives-container" class="space-y-2 sm:space-y-3">
-                                <div class="text-center py-8 sm:py-12 text-gray-500 px-4">
-                                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <p class="text-lg font-medium text-gray-900 mb-2">No section selected</p>
-                                    <p class="text-sm text-gray-500">Choose a section from the left to view archived exam schedules</p>
+                                <div class="text-center py-8 sm:py-12 px-4">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-lg font-semibold text-blue-900 mb-2">No section selected</p>
+                                    <p class="text-sm text-blue-600">Choose a section from the left to view archived exam schedules</p>
                                 </div>
                             </div>
                         </div>
@@ -947,12 +991,14 @@
                     <!-- Curricula List -->
                     <div class="flex-1 overflow-y-auto p-4">
                         <div id="curricula-container" class="space-y-3">
-                            <div class="text-center py-12 text-gray-500">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                </svg>
-                                <p class="text-lg font-medium text-gray-900 mb-2">Loading archived curricula...</p>
-                                <p class="text-sm text-gray-500">Please wait while we fetch the data</p>
+                            <div class="text-center py-12">
+                                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-50 mb-4">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Loading archived curricula...</p>
+                                <p class="text-sm text-blue-600">Please wait while we fetch the data</p>
                             </div>
                         </div>
                     </div>
@@ -986,12 +1032,14 @@
                     <!-- Departments List -->
                     <div class="flex-1 overflow-y-auto p-4">
                         <div id="departments-container" class="space-y-3">
-                            <div class="text-center py-12 text-gray-500">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                                <p class="text-lg font-medium text-gray-900 mb-2">Loading archived departments...</p>
-                                <p class="text-sm text-gray-500">Please wait while we fetch the data</p>
+                            <div class="text-center py-12">
+                                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-50 mb-4">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Loading archived departments...</p>
+                                <p class="text-sm text-blue-600">Please wait while we fetch the data</p>
                             </div>
                         </div>
                     </div>
@@ -1023,12 +1071,14 @@
                     <!-- Faculty List -->
                     <div class="flex-1 overflow-y-auto p-4">
                         <div id="faculty-archive-container" class="space-y-4">
-                            <div class="text-center py-12 text-gray-500">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                                <p class="text-lg font-medium text-gray-900 mb-2">Loading archived faculty...</p>
-                                <p class="text-sm text-gray-500">Please wait while we fetch the data</p>
+                            <div class="text-center py-12">
+                                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-50 mb-4">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Loading archived faculty...</p>
+                                <p class="text-sm text-blue-600">Please wait while we fetch the data</p>
                             </div>
                         </div>
                     </div>
@@ -1062,16 +1112,526 @@
                     <!-- Buildings List -->
                     <div class="flex-1 overflow-y-auto p-4">
                         <div id="buildings-archive-container" class="space-y-4">
-                            <div class="text-center py-12 text-gray-500">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                                <p class="text-lg font-medium text-gray-900 mb-2">Loading archived buildings...</p>
-                                <p class="text-sm text-gray-500">Please wait while we fetch the data</p>
+                            <div class="text-center py-12">
+                                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-50 mb-4">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Loading archived buildings...</p>
+                                <p class="text-sm text-blue-600">Please wait while we fetch the data</p>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Schedule Archive Modal -->
+<div id="deleteArchiveModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Delete Archive</h3>
+                </div>
+                <button onclick="closeDeleteArchiveModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="delete_archive_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Are you sure you want to permanently delete this archived schedule?
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                    <p class="text-sm text-red-800 font-semibold">
+                        ⚠️ This action cannot be undone!
+                    </p>
+                    <p class="text-sm text-red-700 mt-2">
+                        This will permanently remove the archive from the system.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteArchiveModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDeleteArchive()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Curriculum Modal -->
+<div id="restoreCurriculumModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Restore Curriculum</h3>
+                </div>
+                <button onclick="closeRestoreCurriculumModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="restore_curriculum_id">
+            <input type="hidden" id="restore_curriculum_code">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Restore curriculum: <span class="font-bold text-blue-600" id="restore_curriculum_display"></span>?
+                </p>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <p class="text-sm text-blue-800">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        This curriculum will be moved back to the active curricula list.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeRestoreCurriculumModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmRestoreCurriculum()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-md">
+                    Restore Curriculum
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Curriculum Permanently Modal -->
+<div id="deleteCurriculumModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Permanent Delete</h3>
+                </div>
+                <button onclick="closeDeleteCurriculumModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="delete_curriculum_id">
+            <input type="hidden" id="delete_curriculum_code">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Are you sure you want to <span class="font-bold text-red-600">PERMANENTLY DELETE</span> curriculum: <span class="font-bold" id="delete_curriculum_display"></span>?
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4">
+                    <p class="text-sm text-red-800 font-semibold mb-2">
+                        ⚠️ This will also delete:
+                    </p>
+                    <ul class="text-sm text-red-700 space-y-1 ml-4">
+                        <li>• All year levels</li>
+                        <li>• All semesters</li>
+                        <li>• All subjects</li>
+                        <li>• All related schedules</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                    <p class="text-sm text-yellow-800 font-bold">
+                        ⚠️ This action CANNOT be undone!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteCurriculumModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDeleteCurriculum()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Department Modal -->
+<div id="restoreDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Restore Department</h3>
+                </div>
+                <button onclick="closeRestoreDepartmentModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="restore_department_id">
+            <input type="hidden" id="restore_department_code">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Restore department: <span class="font-bold text-blue-600" id="restore_department_display"></span>?
+                </p>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <p class="text-sm text-blue-800">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        This department will be moved back to the active departments list.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeRestoreDepartmentModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmRestoreDepartment()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-md">
+                    Restore Department
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Department Permanently Modal -->
+<div id="deleteDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Permanent Delete</h3>
+                </div>
+                <button onclick="closeDeleteDepartmentModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="delete_department_id">
+            <input type="hidden" id="delete_department_code">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Are you sure you want to <span class="font-bold text-red-600">PERMANENTLY DELETE</span> department: <span class="font-bold" id="delete_department_display"></span>?
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4">
+                    <p class="text-sm text-red-800 font-semibold mb-2">
+                        ⚠️ This will also delete:
+                    </p>
+                    <ul class="text-sm text-red-700 space-y-1 ml-4">
+                        <li>• All sections</li>
+                        <li>• All curricula (if any)</li>
+                        <li>• All related data</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                    <p class="text-sm text-yellow-800 font-bold">
+                        ⚠️ This action CANNOT be undone!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteDepartmentModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDeleteDepartment()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Faculty Modal -->
+<div id="restoreFacultyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Restore Faculty</h3>
+                </div>
+                <button onclick="closeRestoreFacultyModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="restore_faculty_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Restore faculty: <span class="font-bold text-blue-600" id="restore_faculty_display"></span>?
+                </p>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <p class="text-sm text-blue-800">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        This faculty member will be moved back to the active faculty list.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeRestoreFacultyModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmRestoreFaculty()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-md">
+                    Restore Faculty
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Faculty Permanently Modal -->
+<div id="deleteFacultyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Permanent Delete</h3>
+                </div>
+                <button onclick="closeDeleteFacultyModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="delete_faculty_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Are you sure you want to <span class="font-bold text-red-600">PERMANENTLY DELETE</span> faculty: <span class="font-bold" id="delete_faculty_display"></span>?
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4">
+                    <p class="text-sm text-red-800 font-semibold mb-2">
+                        ⚠️ This will also delete:
+                    </p>
+                    <ul class="text-sm text-red-700 space-y-1 ml-4">
+                        <li>• All subject assignments</li>
+                        <li>• All related data</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                    <p class="text-sm text-yellow-800 font-bold">
+                        ⚠️ This action CANNOT be undone!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteFacultyModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDeleteFaculty()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Building Modal -->
+<div id="restoreBuildingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Restore Building</h3>
+                </div>
+                <button onclick="closeRestoreBuildingModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="restore_building_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Restore building: <span class="font-bold text-blue-600" id="restore_building_display"></span>?
+                </p>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <p class="text-sm text-blue-800">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        This building will be moved back to the active buildings list.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeRestoreBuildingModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmRestoreBuilding()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-md">
+                    Restore Building
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Building Permanently Modal -->
+<div id="deleteBuildingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Permanent Delete</h3>
+                </div>
+                <button onclick="closeDeleteBuildingModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="delete_building_id">
+            
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    Are you sure you want to <span class="font-bold text-red-600">PERMANENTLY DELETE</span> building: <span class="font-bold" id="delete_building_display"></span>?
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4">
+                    <p class="text-sm text-red-800 font-semibold">
+                        ⚠️ This will also delete all rooms in this building!
+                    </p>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                    <p class="text-sm text-yellow-800 font-bold">
+                        ⚠️ This action CANNOT be undone!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteBuildingModal()"
+                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDeleteBuilding()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
+                    Delete Permanently
+                </button>
             </div>
         </div>
     </div>
@@ -1131,6 +1691,9 @@
     
     // Main Tab Switching
     function switchMainTab(mainTab) {
+        // Save selected main tab to localStorage
+        localStorage.setItem('selectedMainTab', mainTab);
+        
         // Update main tab buttons
         document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`main-tab-${mainTab}`).classList.add('active');
@@ -1139,8 +1702,9 @@
         const scheduleSubtabs = document.getElementById('schedule-subtabs');
         if (mainTab === 'schedules') {
             scheduleSubtabs.style.display = 'block';
-            // Load the first schedule tab (class)
-            switchScheduleTab('class');
+            // Restore previously selected schedule sub-tab or default to 'class'
+            const savedSubTab = localStorage.getItem('selectedScheduleSubTab') || 'class';
+            switchScheduleTab(savedSubTab);
         } else {
             scheduleSubtabs.style.display = 'none';
             // Hide all schedule content
@@ -1164,6 +1728,9 @@
     // Schedule Sub-Tab Switching
     function switchScheduleTab(scheduleTab) {
         currentTab = scheduleTab;
+        
+        // Save selected sub-tab to localStorage
+        localStorage.setItem('selectedScheduleSubTab', scheduleTab);
         
         // Update schedule tab buttons
         document.querySelectorAll('.schedule-tab-button').forEach(btn => btn.classList.remove('active'));
@@ -1254,13 +1821,14 @@
         
         if (sections.length === 0) {
             listContainer.innerHTML = `
-                <div class="text-center py-12 text-gray-500 text-sm px-4">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
-                    <p class="font-medium text-gray-700 mb-1">No sections found</p>
-                    <p class="text-xs text-gray-500">No archived class schedules match the selected filters.</p>
-                    <p class="text-xs text-gray-500 mt-1">Try changing the academic year or semester filter.</p>
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No sections found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -1313,11 +1881,14 @@
         
         if (faculty.length === 0) {
             listContainer.innerHTML = `
-                <div class="text-center py-12 text-gray-500 text-sm">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    No archived faculty schedules found
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived faculty found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -1371,11 +1942,14 @@
         
         if (rooms.length === 0) {
             listContainer.innerHTML = `
-                <div class="text-center py-12 text-gray-500 text-sm">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                    No archived room schedules found
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived room schedules found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -1429,11 +2003,14 @@
         
         if (sections.length === 0) {
             listContainer.innerHTML = `
-                <div class="text-center py-12 text-gray-500 text-sm">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    No archived exam schedules found
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived exam schedules found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -1552,11 +2129,14 @@
         
         if (archives.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-gray-500">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-900 mb-2">No archives found</p>
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archives found</p>
+                    <p class="text-sm text-blue-600">Select an item from the left to view archived schedules</p>
                 </div>
             `;
             return;
@@ -1664,9 +2244,18 @@
     
     // Delete archive
     async function deleteArchive(archiveId) {
-        if (!confirm('Are you sure you want to permanently delete this archive? This action cannot be undone.')) {
-            return;
-        }
+        document.getElementById('delete_archive_id').value = archiveId;
+        document.getElementById('deleteArchiveModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteArchiveModal() {
+        document.getElementById('deleteArchiveModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmDeleteArchive() {
+        const archiveId = document.getElementById('delete_archive_id').value;
         
         try {
             // Get CSRF token from meta tag or cookie
@@ -1683,6 +2272,8 @@
             
             const data = await response.json();
             
+            closeDeleteArchiveModal();
+            
             if (data.success) {
                 showToast('Archive deleted successfully', 'success');
                 // Reload current tab
@@ -1692,6 +2283,7 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeDeleteArchiveModal();
             showToast('Error deleting archive', 'error');
         }
     }
@@ -1847,9 +2439,20 @@
     }
     
     async function unarchiveCurriculum(curriculumId, curriculumCode) {
-        if (!confirm(`Are you sure you want to restore the curriculum "${curriculumCode}"?`)) {
-            return;
-        }
+        document.getElementById('restore_curriculum_id').value = curriculumId;
+        document.getElementById('restore_curriculum_code').value = curriculumCode;
+        document.getElementById('restore_curriculum_display').textContent = curriculumCode;
+        document.getElementById('restoreCurriculumModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeRestoreCurriculumModal() {
+        document.getElementById('restoreCurriculumModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmRestoreCurriculum() {
+        const curriculumId = document.getElementById('restore_curriculum_id').value;
         
         try {
             // Get CSRF token from meta tag or cookie
@@ -1866,6 +2469,8 @@
             
             const data = await response.json();
             
+            closeRestoreCurriculumModal();
+            
             if (data.success) {
                 showToast(data.message, 'success');
                 loadArchivedCurricula();
@@ -1874,25 +2479,30 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeRestoreCurriculumModal();
             showToast('Error restoring curriculum', 'error');
         }
     }
     
     async function deleteCurriculumPermanent(curriculumId, curriculumCode) {
-        if (!confirm(`⚠️ PERMANENT DELETE WARNING ⚠️\n\nAre you sure you want to PERMANENTLY delete the curriculum "${curriculumCode}"?\n\nThis will also delete:\n- All year levels\n- All semesters\n- All subjects\n- All related schedules\n\nThis action CANNOT be undone!`)) {
-            return;
-        }
-        
-        // Second confirmation
-        if (!confirm(`Final confirmation: Type YES in your mind and click OK to permanently delete "${curriculumCode}"`)) {
-            return;
-        }
+        document.getElementById('delete_curriculum_id').value = curriculumId;
+        document.getElementById('delete_curriculum_code').value = curriculumCode;
+        document.getElementById('delete_curriculum_display').textContent = curriculumCode;
+        document.getElementById('deleteCurriculumModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteCurriculumModal() {
+        document.getElementById('deleteCurriculumModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmDeleteCurriculum() {
+        const curriculumId = document.getElementById('delete_curriculum_id').value;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                        getCookie('csrf_token');
         
         try {
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
-                            getCookie('csrf_token');
-            
             const formData = new FormData();
             formData.append('curriculum_id', curriculumId);
             formData.append('csrf_token', csrfToken);
@@ -1906,6 +2516,7 @@
             window.location.reload();
         } catch (error) {
             console.error('Error:', error);
+            closeDeleteCurriculumModal();
             showToast('Error deleting curriculum', 'error');
         }
     }
@@ -2025,9 +2636,20 @@
     }
     
     async function unarchiveDepartment(departmentId, departmentCode) {
-        if (!confirm(`Are you sure you want to restore the department "${departmentCode}"?`)) {
-            return;
-        }
+        document.getElementById('restore_department_id').value = departmentId;
+        document.getElementById('restore_department_code').value = departmentCode;
+        document.getElementById('restore_department_display').textContent = departmentCode;
+        document.getElementById('restoreDepartmentModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeRestoreDepartmentModal() {
+        document.getElementById('restoreDepartmentModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmRestoreDepartment() {
+        const departmentId = document.getElementById('restore_department_id').value;
         
         try {
             // Get CSRF token from meta tag or cookie
@@ -2044,6 +2666,8 @@
             
             const data = await response.json();
             
+            closeRestoreDepartmentModal();
+            
             if (data.success) {
                 showToast(data.message, 'success');
                 loadArchivedDepartments();
@@ -2052,25 +2676,30 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeRestoreDepartmentModal();
             showToast('Error restoring department', 'error');
         }
     }
     
     async function deleteDepartmentPermanent(departmentId, departmentCode) {
-        if (!confirm(`⚠️ PERMANENT DELETE WARNING ⚠️\n\nAre you sure you want to PERMANENTLY delete the department "${departmentCode}"?\n\nThis will also delete:\n- All sections\n- All curricula (if any)\n- All related data\n\nThis action CANNOT be undone!`)) {
-            return;
-        }
-        
-        // Second confirmation
-        if (!confirm(`Final confirmation: Type YES in your mind and click OK to permanently delete "${departmentCode}"`)) {
-            return;
-        }
+        document.getElementById('delete_department_id').value = departmentId;
+        document.getElementById('delete_department_code').value = departmentCode;
+        document.getElementById('delete_department_display').textContent = departmentCode;
+        document.getElementById('deleteDepartmentModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteDepartmentModal() {
+        document.getElementById('deleteDepartmentModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmDeleteDepartment() {
+        const departmentId = document.getElementById('delete_department_id').value;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                        getCookie('csrf_token');
         
         try {
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
-                            getCookie('csrf_token');
-            
             const formData = new FormData();
             formData.append('department_id', departmentId);
             formData.append('csrf_token', csrfToken);
@@ -2084,6 +2713,7 @@
             window.location.reload();
         } catch (error) {
             console.error('Error:', error);
+            closeDeleteDepartmentModal();
             showToast('Error deleting department', 'error');
         }
     }
@@ -2189,9 +2819,19 @@
     }
     
     async function unarchiveFaculty(facultyId, facultyName) {
-        if (!confirm(`Restore ${facultyName}?\n\nThis faculty member will be moved back to the active faculty list.`)) {
-            return;
-        }
+        document.getElementById('restore_faculty_id').value = facultyId;
+        document.getElementById('restore_faculty_display').textContent = facultyName;
+        document.getElementById('restoreFacultyModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeRestoreFacultyModal() {
+        document.getElementById('restoreFacultyModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmRestoreFaculty() {
+        const facultyId = document.getElementById('restore_faculty_id').value;
         
         try {
             // Get CSRF token
@@ -2208,6 +2848,8 @@
             
             const data = await response.json();
             
+            closeRestoreFacultyModal();
+            
             if (data.success) {
                 showToast(data.message, 'success');
                 loadArchivedFaculty();
@@ -2216,19 +2858,25 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeRestoreFacultyModal();
             showToast('Error restoring faculty', 'error');
         }
     }
     
     async function deleteFacultyPermanent(facultyId, facultyName) {
-        if (!confirm(`⚠️ PERMANENT DELETE WARNING ⚠️\n\nAre you sure you want to PERMANENTLY delete ${facultyName}?\n\nThis will also delete:\n- All subject assignments\n- All related data\n\nThis action CANNOT be undone!`)) {
-            return;
-        }
-        
-        // Second confirmation
-        if (!confirm(`Final confirmation: Type YES in your mind and click OK to permanently delete ${facultyName}`)) {
-            return;
-        }
+        document.getElementById('delete_faculty_id').value = facultyId;
+        document.getElementById('delete_faculty_display').textContent = facultyName;
+        document.getElementById('deleteFacultyModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteFacultyModal() {
+        document.getElementById('deleteFacultyModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmDeleteFaculty() {
+        const facultyId = document.getElementById('delete_faculty_id').value;
         
         try {
             // Get CSRF token
@@ -2245,6 +2893,8 @@
             
             const data = await response.json();
             
+            closeDeleteFacultyModal();
+            
             if (data.success) {
                 showToast(data.message, 'success');
                 loadArchivedFaculty();
@@ -2253,6 +2903,7 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeDeleteFacultyModal();
             showToast('Error deleting faculty', 'error');
         }
     }
@@ -2346,9 +2997,19 @@
     }
     
     async function unarchiveBuilding(buildingId, buildingName) {
-        if (!confirm(`Are you sure you want to restore "${buildingName}"?`)) {
-            return;
-        }
+        document.getElementById('restore_building_id').value = buildingId;
+        document.getElementById('restore_building_display').textContent = buildingName;
+        document.getElementById('restoreBuildingModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeRestoreBuildingModal() {
+        document.getElementById('restoreBuildingModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmRestoreBuilding() {
+        const buildingId = document.getElementById('restore_building_id').value;
         
         try {
             // Get CSRF token
@@ -2365,6 +3026,8 @@
             
             const data = await response.json();
             
+            closeRestoreBuildingModal();
+            
             if (data.success) {
                 showToast(data.message, 'success');
                 loadArchivedBuildings();
@@ -2373,14 +3036,25 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeRestoreBuildingModal();
             showToast('Error restoring building', 'error');
         }
     }
     
     async function deleteBuildingPermanent(buildingId, buildingName) {
-        if (!confirm(`⚠️ WARNING: This will permanently delete "${buildingName}" and all its rooms!\n\nThis action CANNOT be undone. Are you absolutely sure?`)) {
-            return;
-        }
+        document.getElementById('delete_building_id').value = buildingId;
+        document.getElementById('delete_building_display').textContent = buildingName;
+        document.getElementById('deleteBuildingModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDeleteBuildingModal() {
+        document.getElementById('deleteBuildingModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    async function confirmDeleteBuilding() {
+        const buildingId = document.getElementById('delete_building_id').value;
         
         try {
             // Get CSRF token
@@ -2397,6 +3071,8 @@
             
             const data = await response.json();
             
+            closeDeleteBuildingModal();
+            
             if (data.success) {
                 showToast(data.message, 'success');
                 loadArchivedBuildings();
@@ -2405,17 +3081,18 @@
             }
         } catch (error) {
             console.error('Error:', error);
+            closeDeleteBuildingModal();
             showToast('Error deleting building', 'error');
         }
     }
     
-    // Master-Detail View Switching for Mobile
+    // Master-Detail View Switching for Mobile and Tablet
     function showMasterView(tabName) {
         const container = document.getElementById(`content-${tabName}`);
         
         if (container) {
             container.classList.remove('mobile-detail-view');
-            // Master view is default on mobile, no special class needed
+            // Master view is default on mobile/tablet, no special class needed
         }
     }
     
@@ -2428,8 +3105,8 @@
     }
     
     function handleMobileSelection(tabName) {
-        // Only switch views on mobile screens
-        if (window.innerWidth <= 768) {
+        // Switch to detail view on mobile/tablet screens (≤1024px)
+        if (window.innerWidth <= 1024) {
             showDetailView(tabName);
         }
     }
@@ -2449,8 +3126,9 @@
             }
         }
         
-        // Load first main tab (Schedules) and first schedule sub-tab (Class)
-        switchMainTab('schedules');
+        // Restore previously selected main tab or default to 'schedules'
+        const savedMainTab = localStorage.getItem('selectedMainTab') || 'schedules';
+        switchMainTab(savedMainTab);
     });
 </script>
 {% endblock %}

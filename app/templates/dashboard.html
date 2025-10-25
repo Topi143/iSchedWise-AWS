@@ -40,28 +40,19 @@
         background: #9ca3af;
     }
     
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    .animate-fade-in {
-        animation: fadeIn 0.3s ease-out;
-    }
-    
-    @keyframes slideIn {
+    /* Slide-in animation - Consistent with building.html */
+    @keyframes slide-in {
         from {
-            opacity: 0;
             transform: translateY(20px);
+            opacity: 0;
         }
         to {
-            opacity: 1;
             transform: translateY(0);
+            opacity: 1;
         }
     }
-    
     .animate-slide-in {
-        animation: slideIn 0.4s ease forwards;
+        animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
     
     .stat-icon {
@@ -109,11 +100,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-6 md:h-screen md:overflow-hidden">
-    <div class="h-full flex flex-col p-2 sm:p-4">
+<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
+    <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Page Header -->
-        <div class="mb-2 sm:mb-4 flex-shrink-0 animate-slide-in">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-2 sm:p-4">
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
                         <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,8 +112,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-xl sm:text-2xl font-bold flex items-center text-gray-900">Dashboard</h1>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-1">Overview of your academic management system</p>
+                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Dashboard</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">Overview of your academic management system</p>
                     </div>
                 </div>
             </div>

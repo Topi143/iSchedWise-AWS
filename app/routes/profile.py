@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from app.utils.activity_logger import log_edit, log_password_change
 
-profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
+profile_bp = Blueprint('profile', __name__, url_prefix='/account')
 
 
 @profile_bp.route('/')

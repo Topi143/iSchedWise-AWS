@@ -662,12 +662,13 @@ WEEKLY PATTERN:
 {self._format_weekly_distribution(stats.get('schedule_by_day', {}))}
 
 Provide a BRIEF analysis:
-1. Summary: 2-3 sentences highlighting overall status and utilization rates
-2. Key Insights: 3-4 bullet points (one sentence each) about critical patterns
-3. Recommendations: 3-4 bullet points (one sentence each) with specific actions
+- Summary: 2-3 sentences highlighting overall status and utilization rates
+- Key Insights: 3-4 bullet points (one sentence each) about critical patterns
+- Recommendations: 3-4 bullet points (one sentence each) with specific actions
 
 Be direct, specific, and actionable. Use numbers. No fluff.
-DO NOT use markdown formatting (no **, *, or #). Use plain text only."""
+DO NOT use markdown formatting (no **, *, or #). Use plain text only.
+DO NOT number the sections (no "1.", "2.", "3."). Just use section headers."""
             
             # Generate AI response
             response = self.model.generate_content(context)
