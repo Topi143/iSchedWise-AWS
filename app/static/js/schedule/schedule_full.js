@@ -214,7 +214,14 @@
         document.querySelectorAll('.section-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        event.currentTarget.classList.add('selected');
+        // Find and highlight the clicked item by matching the onclick content
+        const sectionItems = document.querySelectorAll('.section-list-item');
+        sectionItems.forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (onclick && onclick.includes(`selectSection(${id}`)) {
+                item.classList.add('selected');
+            }
+        });
         
         // Show loading state
         const rightPanel = document.querySelector('#content-class .flex-1.bg-white.rounded-xl');
@@ -860,7 +867,14 @@
         document.querySelectorAll('.faculty-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        event.currentTarget.classList.add('selected');
+        // Find and highlight the clicked item by matching the onclick content
+        const facultyItems = document.querySelectorAll('.faculty-list-item');
+        facultyItems.forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (onclick && onclick.includes(`selectFaculty(${id}`)) {
+                item.classList.add('selected');
+            }
+        });
         
         // Show loading state
         const rightPanel = document.querySelector('#content-faculty .flex-1.bg-white.rounded-xl');
@@ -931,7 +945,14 @@
         document.querySelectorAll('.room-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        event.currentTarget.classList.add('selected');
+        // Find and highlight the clicked item by matching the onclick content
+        const roomItems = document.querySelectorAll('.room-list-item');
+        roomItems.forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (onclick && onclick.includes(`selectRoom(${id}`)) {
+                item.classList.add('selected');
+            }
+        });
         
         // Show loading state
         const rightPanel = document.querySelector('#content-room .flex-1.bg-white.rounded-xl');
@@ -1080,7 +1101,14 @@
         document.querySelectorAll('#examSectionList .section-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        event.currentTarget.classList.add('selected');
+        // Find and highlight the clicked item by matching the onclick content
+        const examSectionItems = document.querySelectorAll('#examSectionList .section-list-item');
+        examSectionItems.forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (onclick && onclick.includes(`selectExamSection(${id}`)) {
+                item.classList.add('selected');
+            }
+        });
         
         // Show loading state
         const rightPanel = document.querySelector('#content-exam .flex-1.bg-white.rounded-xl');
