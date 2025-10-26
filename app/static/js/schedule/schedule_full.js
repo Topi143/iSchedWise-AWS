@@ -373,6 +373,357 @@
         }
     }
 
+    // Filter Faculty by Department Function
+    function filterFacultyByDepartment(departmentId) {
+        const url = new URL(window.location.href);
+        if (departmentId) {
+            url.searchParams.set('faculty_department_id', departmentId);
+        } else {
+            url.searchParams.delete('faculty_department_id');
+        }
+        // Reload page with new filter
+        window.location.href = url.toString();
+    }
+
+    // Filter Exam by Department Function
+    function filterExamByDepartment(departmentId) {
+        const url = new URL(window.location.href);
+        if (departmentId) {
+            url.searchParams.set('exam_department_id', departmentId);
+        } else {
+            url.searchParams.delete('exam_department_id');
+        }
+        window.history.replaceState({}, '', url);
+        
+        const sectionItems = document.querySelectorAll('#examSectionList .section-list-item');
+        const sectionList = document.getElementById('examSectionList');
+        let visibleCount = 0;
+        
+        sectionItems.forEach(item => {
+            const itemDeptId = item.getAttribute('data-department-id');
+            let shouldShow = false;
+            
+            if (departmentId === '') {
+                shouldShow = true;
+            } else if (itemDeptId === departmentId) {
+                shouldShow = true;
+            } else if (itemDeptId === '' && departmentId === 'none') {
+                shouldShow = true;
+            }
+            
+            if (shouldShow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        const badge = document.getElementById('exam-section-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount;
+        }
+    }
+
+    // Search Faculty by Name
+    function searchFaculty(searchTerm) {
+        const facultyItems = document.querySelectorAll('#facultyList .faculty-list-item');
+        const searchLower = searchTerm.toLowerCase().trim();
+        let visibleCount = 0;
+        
+        facultyItems.forEach(item => {
+            const facultyName = item.querySelector('h4').textContent.toLowerCase();
+            const departmentName = item.querySelector('p')?.textContent.toLowerCase() || '';
+            
+            if (searchLower === '' || facultyName.includes(searchLower) || departmentName.includes(searchLower)) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Update the count badge
+        const badge = document.getElementById('faculty-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount;
+        }
+    }
+
+    // Search Room by Number or Building
+    function searchRoom(searchTerm) {
+        const roomItems = document.querySelectorAll('#roomList .room-list-item');
+        const searchLower = searchTerm.toLowerCase().trim();
+        let visibleCount = 0;
+        
+        roomItems.forEach(item => {
+            const roomNumber = item.querySelector('h4').textContent.toLowerCase();
+            const buildingName = item.querySelector('p')?.textContent.toLowerCase() || '';
+            
+            if (searchLower === '' || roomNumber.includes(searchLower) || buildingName.includes(searchLower)) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Update the count badge
+        const badge = document.getElementById('room-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount;
+        }
+    }
+
+    // ============================================================================
+    // Room Search and Select for Modals
+    // ============================================================================
+    
+    function showRoomDropdownModal(mode) {
+        const dropdown = document.getElementById(`room_dropdown_${mode}`);
+        if (dropdown) {
+            dropdown.classList.remove('hidden');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function closeDropdown(e) {
+            const searchInput = document.getElementById(`room_search_${mode}`);
+            const dropdown = document.getElementById(`room_dropdown_${mode}`);
+            if (dropdown && searchInput && !dropdown.contains(e.target) && e.target !== searchInput) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }
+    
+    function filterRoomsModal(mode, searchTerm) {
+        const dropdown = document.getElementById(`room_dropdown_${mode}`);
+        const options = dropdown.querySelectorAll('.room-option');
+        const searchLower = searchTerm.toLowerCase().trim();
+        
+        if (!dropdown.classList.contains('hidden')) {
+            dropdown.classList.remove('hidden');
+        }
+        
+        let visibleCount = 0;
+        options.forEach(option => {
+            const roomNumber = option.dataset.roomNumber.toLowerCase();
+            const building = option.dataset.building.toLowerCase();
+            
+            if (searchLower === '' || roomNumber.includes(searchLower) || building.includes(searchLower)) {
+                option.style.display = '';
+                visibleCount++;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+        
+        // Show "No results" message if no rooms match
+        if (visibleCount === 0 && !dropdown.querySelector('.no-results-message')) {
+            const noResults = document.createElement('div');
+            noResults.className = 'no-results-message px-3 py-4 text-center text-xs sm:text-sm text-gray-500';
+            noResults.textContent = 'No rooms found';
+            dropdown.appendChild(noResults);
+        } else if (visibleCount > 0) {
+            const noResults = dropdown.querySelector('.no-results-message');
+            if (noResults) {
+                noResults.remove();
+            }
+        }
+    }
+    
+    function selectRoomModal(mode, roomId, roomNumber, building) {
+        const searchInput = document.getElementById(`room_search_${mode}`);
+        const hiddenInput = document.getElementById(`room_id_${mode}`);
+        const dropdown = document.getElementById(`room_dropdown_${mode}`);
+        
+        // Update the display text
+        searchInput.value = building ? `${roomNumber} - ${building}` : roomNumber;
+        
+        // Update the hidden input value
+        hiddenInput.value = roomId;
+        
+        // Hide dropdown
+        dropdown.classList.add('hidden');
+        
+        // Trigger auto-check if available
+        if (typeof triggerAutoCheck === 'function') {
+            triggerAutoCheck(mode);
+        }
+    }
+
+    // ============================================================================
+    // Faculty and Room Search for Exam Modals
+    // ============================================================================
+    
+    function showFacultyDropdownModalExam(mode) {
+        const dropdown = document.getElementById(`faculty_dropdown_${mode}`);
+        if (dropdown) {
+            dropdown.classList.remove('hidden');
+            // Add outside click listener
+            setTimeout(() => {
+                document.addEventListener('click', function closeFacultyDropdown(e) {
+                    const searchInput = document.getElementById(`faculty_search_${mode}`);
+                    if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput) {
+                        dropdown.classList.add('hidden');
+                        document.removeEventListener('click', closeFacultyDropdown);
+                    }
+                });
+            }, 100);
+        }
+    }
+    
+    function filterFacultyModalExam(mode, searchTerm) {
+        const dropdown = document.getElementById(`faculty_dropdown_${mode}`);
+        if (!dropdown) return;
+        
+        const options = dropdown.querySelectorAll('.faculty-option');
+        const lowerSearch = searchTerm.toLowerCase();
+        let visibleCount = 0;
+        
+        options.forEach(option => {
+            const facultyName = option.dataset.facultyName.toLowerCase();
+            if (facultyName.includes(lowerSearch)) {
+                option.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                option.classList.add('hidden');
+            }
+        });
+        
+        // Show "no results" message if needed
+        let noResultsMsg = dropdown.querySelector('.no-results-message');
+        if (visibleCount === 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'no-results-message px-3 py-4 text-center text-xs text-gray-500';
+                noResultsMsg.textContent = 'No faculty found';
+                dropdown.appendChild(noResultsMsg);
+            }
+        } else if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+    }
+    
+    function selectFacultyModalExam(mode, facultyId, facultyName) {
+        console.log('[SELECT FACULTY EXAM] Called with mode:', mode, 'facultyId:', facultyId);
+        
+        const searchField = document.getElementById(`faculty_search_${mode}`);
+        const idField = document.getElementById(`faculty_id_${mode}`);
+        const dropdown = document.getElementById(`faculty_dropdown_${mode}`);
+        
+        console.log('[SELECT FACULTY EXAM] Elements found:', {
+            searchField: searchField ? 'YES' : 'NO',
+            idField: idField ? 'YES' : 'NO',
+            dropdown: dropdown ? 'YES' : 'NO'
+        });
+        
+        if (searchField) searchField.value = facultyName;
+        if (idField) {
+            idField.value = facultyId;
+            console.log('[SELECT FACULTY EXAM] Set faculty_id_' + mode + ' to:', facultyId, '(actual value:', idField.value, ')');
+        }
+        if (dropdown) dropdown.classList.add('hidden');
+        
+        // Trigger auto-check for exam conflicts with a small delay to ensure value is set
+        if (typeof scheduleAutoExamConflictCheck === 'function') {
+            const modeClean = mode.replace('exam_', '');
+            console.log('[SELECT FACULTY EXAM] Scheduling auto-check with mode:', modeClean);
+            // Use setTimeout to ensure the DOM is updated before validation
+            setTimeout(() => {
+                console.log('[SELECT FACULTY EXAM] Now triggering auto-check');
+                scheduleAutoExamConflictCheck(modeClean);
+            }, 50); // 50ms delay
+        } else {
+            console.warn('[SELECT FACULTY EXAM] scheduleAutoExamConflictCheck function not found!');
+        }
+    }
+    
+    function showRoomDropdownModalExam(mode) {
+        const dropdown = document.getElementById(`room_dropdown_${mode}`);
+        if (dropdown) {
+            dropdown.classList.remove('hidden');
+            // Add outside click listener
+            setTimeout(() => {
+                document.addEventListener('click', function closeRoomDropdown(e) {
+                    const searchInput = document.getElementById(`room_search_${mode}`);
+                    if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput) {
+                        dropdown.classList.add('hidden');
+                        document.removeEventListener('click', closeRoomDropdown);
+                    }
+                });
+            }, 100);
+        }
+    }
+    
+    function filterRoomsModalExam(mode, searchTerm) {
+        const dropdown = document.getElementById(`room_dropdown_${mode}`);
+        if (!dropdown) return;
+        
+        const options = dropdown.querySelectorAll('.room-option');
+        const lowerSearch = searchTerm.toLowerCase();
+        let visibleCount = 0;
+        
+        options.forEach(option => {
+            const roomNumber = option.dataset.roomNumber.toLowerCase();
+            const building = option.dataset.building ? option.dataset.building.toLowerCase() : '';
+            if (roomNumber.includes(lowerSearch) || building.includes(lowerSearch)) {
+                option.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                option.classList.add('hidden');
+            }
+        });
+        
+        // Show "no results" message if needed
+        let noResultsMsg = dropdown.querySelector('.no-results-message');
+        if (visibleCount === 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'no-results-message px-3 py-4 text-center text-xs text-gray-500';
+                noResultsMsg.textContent = 'No rooms found';
+                dropdown.appendChild(noResultsMsg);
+            }
+        } else if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+    }
+    
+    function selectRoomModalExam(mode, roomId, roomNumber, building) {
+        console.log('[SELECT ROOM EXAM] Called with mode:', mode, 'roomId:', roomId);
+        
+        const displayText = building ? `${roomNumber} - ${building}` : roomNumber;
+        const searchField = document.getElementById(`room_search_${mode}`);
+        const idField = document.getElementById(`room_id_${mode}`);
+        const dropdown = document.getElementById(`room_dropdown_${mode}`);
+        
+        console.log('[SELECT ROOM EXAM] Elements found:', {
+            searchField: searchField ? 'YES' : 'NO',
+            idField: idField ? 'YES' : 'NO',
+            dropdown: dropdown ? 'YES' : 'NO'
+        });
+        
+        if (searchField) searchField.value = displayText;
+        if (idField) {
+            idField.value = roomId;
+            console.log('[SELECT ROOM EXAM] Set room_id_' + mode + ' to:', roomId, '(actual value:', idField.value, ')');
+        }
+        if (dropdown) dropdown.classList.add('hidden');
+        
+        // Trigger auto-check for exam conflicts with a small delay to ensure value is set
+        if (typeof scheduleAutoExamConflictCheck === 'function') {
+            const modeClean = mode.replace('exam_', '');
+            console.log('[SELECT ROOM EXAM] Scheduling auto-check with mode:', modeClean);
+            // Use setTimeout to ensure the DOM is updated before validation
+            setTimeout(() => {
+                console.log('[SELECT ROOM EXAM] Now triggering auto-check');
+                scheduleAutoExamConflictCheck(modeClean);
+            }, 50); // 50ms delay
+        } else {
+            console.warn('[SELECT ROOM EXAM] scheduleAutoExamConflictCheck function not found!');
+        }
+    }
+
     // Add Schedule Modal
     function openAddScheduleModal(sectionId) {
         // Close edit modal if it's open
@@ -576,7 +927,16 @@
         document.getElementById('day_of_week_edit').value = scheduleData.day_of_week || '';
         document.getElementById('start_time_edit').value = scheduleData.start_time || '';
         document.getElementById('end_time_edit').value = scheduleData.end_time || '';
+        
+        // Set room (hidden input and search display)
         document.getElementById('room_id_edit').value = scheduleData.room_id || '';
+        if (scheduleData.room_number && scheduleData.building_name) {
+            document.getElementById('room_search_edit').value = `${scheduleData.room_number} - ${scheduleData.building_name}`;
+        } else if (scheduleData.room_number) {
+            document.getElementById('room_search_edit').value = scheduleData.room_number;
+        } else {
+            document.getElementById('room_search_edit').value = '';
+        }
         
         // Store the schedule type to set it after subject loads
         window.editScheduleType = scheduleData.schedule_type || 'lecture';
@@ -1332,6 +1692,24 @@
                 document.getElementById('exam_date_edit').value = data.exam_date;
                 document.getElementById('start_time_exam_edit').value = data.start_time;
                 document.getElementById('end_time_exam_edit').value = data.end_time;
+                
+                // Set faculty (hidden input and search display)
+                document.getElementById('faculty_id_exam_edit').value = data.faculty_id || '';
+                if (data.faculty_name) {
+                    document.getElementById('faculty_search_exam_edit').value = data.faculty_name;
+                } else {
+                    document.getElementById('faculty_search_exam_edit').value = '';
+                }
+                
+                // Set room (hidden input and search display)
+                document.getElementById('room_id_exam_edit').value = data.room_id || '';
+                if (data.room_number && data.building_name) {
+                    document.getElementById('room_search_exam_edit').value = `${data.room_number} - ${data.building_name}`;
+                } else if (data.room_number) {
+                    document.getElementById('room_search_exam_edit').value = data.room_number;
+                } else {
+                    document.getElementById('room_search_exam_edit').value = '';
+                }
                 
                 // Use curriculum-based loading (same as edit schedule modal)
                 if (typeof loadCurriculaForEdit === 'function') {

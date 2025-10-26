@@ -14,13 +14,15 @@
                         <span id="room-count-badge" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200">{{ rooms|length }}</span>
                     </h3>
                     
-                    <!-- Building Filter -->
-                    <select id="roomBuildingFilter" onchange="filterRoomByBuilding(this.value)" class="w-full px-3 py-2 text-sm border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All Buildings</option>
-                        {% for building in buildings %}
-                        <option value="{{ building.id }}">{{ building.building_name }}</option>
-                        {% endfor %}
-                    </select>
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input type="text" id="roomSearchInput" placeholder="Search room number..." 
+                               class="w-full px-3 py-2 pl-10 text-sm border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               oninput="searchRoom(this.value)">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
                 </div>
                 
                 <!-- Room List -->
@@ -113,7 +115,6 @@
                                             </svg>
                                             <div class="flex-1 min-w-0">
                                                 <div class="font-semibold truncate">Excel Report</div>
-                                                <div class="text-xs text-gray-500 truncate">Full schedule details</div>
                                             </div>
                                         </a>
                                         <a href="{{ url_for('schedule.export_room_schedule_for_posting', room_id=selected_room.id) }}" class="flex items-center px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors rounded-b-lg border-t border-gray-100">
@@ -122,7 +123,6 @@
                                             </svg>
                                             <div class="flex-1 min-w-0">
                                                 <div class="font-semibold truncate">For Posting</div>
-                                                <div class="text-xs text-gray-500 truncate">Student-friendly view</div>
                                             </div>
                                         </a>
                                     </div>
@@ -212,8 +212,6 @@
                                         <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Day</th>
                                         <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Time</th>
                                         <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden lg:table-cell">Semester</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden lg:table-cell">Academic Year</th>
                                         <th scope="col" class="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -249,12 +247,6 @@
                                                 {{ schedule.schedule_type|title }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
-                                            <div class="text-sm text-gray-900">{{ schedule.semester if schedule.semester else '-' }}</div>
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
-                                            <div class="text-sm text-gray-900">{{ schedule.academic_year if schedule.academic_year else '-' }}</div>
-                                        </td>
                                         <td class="px-4 py-3 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-1">
                                                 <button onclick='editSchedule({{ schedule.id }}, {{ schedule.to_dict()|tojson|safe }})' class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Edit">
@@ -276,95 +268,67 @@
                         </div>
                         
                         <!-- Calendar View -->
-                        <div id="roomCalendarView" class="hidden h-full overflow-y-auto p-2">
+                        <div id="roomCalendarView" class="hidden h-full overflow-y-auto p-4">
                             <div class="calendar-grid">
                                 <!-- Calendar Header -->
-                                <div class="grid grid-cols-8 gap-1 mb-2 sticky top-0 bg-white z-20">
-                                    <div class="calendar-day-header font-bold text-gray-500 uppercase tracking-wider">Time</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-blue-50 rounded border border-blue-100">Mon</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-pink-50 rounded border border-pink-100">Tue</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-green-50 rounded border border-green-100">Wed</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-yellow-50 rounded border border-yellow-100">Thu</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-indigo-50 rounded border border-indigo-100">Fri</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-purple-50 rounded border border-purple-100">Sat</div>
-                                    <div class="calendar-day-header font-bold text-center text-gray-700 uppercase tracking-wider bg-red-50 rounded border border-red-100">Sun</div>
+                                <div class="grid grid-cols-8 gap-2 mb-3 sticky top-0 bg-white z-20 pb-3 border-b-2 border-gray-200">
+                                    <div class="text-xs font-semibold text-gray-500 uppercase">Time</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Mon</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Tue</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Wed</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Thu</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Fri</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Sat</div>
+                                    <div class="text-center text-sm font-semibold text-gray-700 uppercase">Sun</div>
                                 </div>
                                 
-                                <!-- Calendar Body -->
-                                <div class="space-y-0.5">
-                                    {# Always show 7 AM - 8 PM by default #}
-                                    {% set ns = namespace(min_hour=7, max_hour=21) %}
+                                <!-- Calendar Body with Time-based Layout -->
+                                <div class="grid grid-cols-8 gap-2 relative" style="min-height: 800px;">
+                                    {# Use time range from academic settings #}
+                                    {% set ns = namespace(min_hour=schedule_start_hour|default(7), max_hour=schedule_end_hour|default(20)) %}
                                     
-                                    {# Calculate dynamic time range based on actual schedules #}
-                                    {% for schedule in room_schedules %}
-                                        {% set start_hour = schedule.start_time.strftime('%H')|int %}
-                                        {% set end_hour = schedule.end_time.strftime('%H')|int %}
-                                        {% if start_hour < ns.min_hour %}
-                                            {% set ns.min_hour = start_hour %}
-                                        {% endif %}
-                                        {% if end_hour > ns.max_hour %}
-                                            {% set ns.max_hour = end_hour %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    
-                                    {# Generate time slots dynamically #}
-                                    {% set time_slots = [] %}
-                                    {% for hour in range(ns.min_hour, ns.max_hour) %}
-                                        {% set start_24h = '%02d:00'|format(hour) %}
-                                        {% set end_24h = '%02d:00'|format(hour + 1) %}
-                                        {% set display_12h = '%d:00 %s'|format(
-                                            (hour % 12) if (hour % 12) != 0 else 12,
-                                            'AM' if hour < 12 else 'PM'
-                                        ) %}
-                                        {% set _ = time_slots.append((start_24h, end_24h, display_12h)) %}
-                                    {% endfor %}
-                                    
-                                    {% for start_time, end_time, display_time in time_slots %}
-                                    <div class="grid grid-cols-8 gap-1">
-                                        <!-- Time Column -->
-                                        <div class="calendar-time-cell font-semibold text-gray-600 flex items-center">
-                                            {{ display_time }}
+                                    <!-- Time Column -->
+                                    <div class="relative">
+                                        {% for hour in range(ns.min_hour, ns.max_hour + 1) %}
+                                        <div class="absolute left-0 right-0 text-xs text-gray-500 -mt-2" style="top: {{ ((hour - ns.min_hour) * 60) }}px;">
+                                            {{ '%d:00 %s'|format((hour % 12) if (hour % 12) != 0 else 12, 'AM' if hour < 12 else 'PM') }}
                                         </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <!-- Days Columns -->
+                                    {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                    <div class="relative bg-white border-l border-gray-200" style="min-height: {{ ((ns.max_hour - ns.min_hour + 1) * 60) }}px;">
+                                        <!-- Hour Grid Lines -->
+                                        {% for hour in range(ns.min_hour, ns.max_hour + 1) %}
+                                        <div class="absolute left-0 right-0 border-t border-gray-100" style="top: {{ ((hour - ns.min_hour) * 60) }}px;"></div>
+                                        {% endfor %}
                                         
-                                        <!-- Days Columns -->
-                                        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
-                                        <div class="calendar-cell bg-gray-50 rounded border border-gray-200 p-1 relative hover:bg-gray-100 transition-colors">
-                                            {% for schedule in room_schedules %}
-                                                {% if schedule.day_of_week == day %}
-                                                    {% set sched_start = schedule.start_time.strftime('%H:%M') %}
-                                                    {% set sched_end = schedule.end_time.strftime('%H:%M') %}
-                                                    {% if sched_start <= start_time and sched_end > start_time %}
-                                                    <div class="calendar-schedule-card absolute inset-0.5 rounded p-1 overflow-hidden shadow-sm border-l-2 cursor-pointer hover:shadow-md transition-shadow
-                                                        {% if schedule.schedule_type == 'lecture' %}bg-blue-100 border-blue-500 hover:bg-blue-200
-                                                        {% elif schedule.schedule_type == 'lab' %}bg-green-100 border-green-500 hover:bg-green-200
-                                                        {% else %}bg-purple-100 border-purple-500 hover:bg-purple-200{% endif %}"
-                                                        title="{{ schedule.subject.subject_code }} - {{ schedule.subject.course_description }}&#10;Section: {{ schedule.section.section_name }}&#10;Faculty: {{ schedule.faculty.full_name if schedule.faculty else 'TBA' }}&#10;{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}">
-                                                        <div class="font-bold text-gray-900 truncate leading-tight">{{ schedule.subject.subject_code }}</div>
-                                                        <div class="text-gray-700 truncate mt-0.5 leading-tight">{{ schedule.subject.course_description[:15] }}{% if schedule.subject.course_description|length > 15 %}...{% endif %}</div>
-                                                        <div class="text-gray-600 mt-0.5 truncate leading-tight">
-                                                            <span class="inline-flex items-center gap-0.5">
-                                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                                                </svg>
-                                                                <span class="truncate">{{ schedule.section.section_name }}</span>
-                                                            </span>
-                                                        </div>
-                                                        <div class="text-gray-600 truncate leading-tight">
-                                                            <span class="inline-flex items-center gap-0.5">
-                                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                                                </svg>
-                                                                <span class="truncate">{{ schedule.faculty.full_name[:12] if schedule.faculty else 'TBA' }}{% if schedule.faculty and schedule.faculty.full_name|length > 12 %}...{% endif %}</span>
-                                                            </span>
-                                                        </div>
-                                                        <div class="text-gray-900 font-medium mt-0.5 leading-tight">
-                                                            {{ schedule.start_time.strftime('%I:%M %p') }}
-                                                        </div>
-                                                    </div>
+                                        <!-- Schedule Cards -->
+                                        {% for schedule in room_schedules %}
+                                            {% if schedule.day_of_week == day %}
+                                                {% set start_hour = schedule.start_time.strftime('%H')|int %}
+                                                {% set start_minute = schedule.start_time.strftime('%M')|int %}
+                                                {% set end_hour = schedule.end_time.strftime('%H')|int %}
+                                                {% set end_minute = schedule.end_time.strftime('%M')|int %}
+                                                {% set start_pos = ((start_hour - ns.min_hour) * 60) + start_minute %}
+                                                {% set duration = ((end_hour - start_hour) * 60) + (end_minute - start_minute) %}
+                                                
+                                                <div class="absolute left-0 right-0 rounded px-2 py-1.5 overflow-hidden border-l-3 cursor-pointer hover:shadow-sm transition-all z-10
+                                                    {% if schedule.schedule_type == 'lecture' %}bg-blue-50 border-blue-600 hover:bg-blue-100
+                                                    {% elif schedule.schedule_type == 'lab' %}bg-green-50 border-green-600 hover:bg-green-100
+                                                    {% else %}bg-purple-50 border-purple-600 hover:bg-purple-100{% endif %}"
+                                                    style="top: {{ start_pos }}px; height: {{ duration }}px; border-left-width: 3px;"
+                                                    title="{{ schedule.subject.subject_code }} - {{ schedule.subject.course_description }}&#10;Section: {{ schedule.section.section_name }}&#10;Faculty: {{ schedule.faculty.full_name if schedule.faculty else 'TBA' }}&#10;{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}">
+                                                    <div class="text-xs font-semibold text-gray-900 truncate">{{ schedule.subject.subject_code }}</div>
+                                                    {% if duration >= 60 %}
+                                                    <div class="text-xs text-gray-600 truncate">{{ schedule.section.section_name }}</div>
                                                     {% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
+                                                    <div class="text-xs text-gray-500 mt-0.5">
+                                                        {{ schedule.start_time.strftime('%I:%M %p') }}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
                                         {% endfor %}
                                     </div>
                                     {% endfor %}

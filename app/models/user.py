@@ -69,6 +69,53 @@ class User(UserMixin, db.Model):
         """Check if the provided password matches the hash"""
         return check_password_hash(self.password_hash, password)
     
+    def is_temporary_user(self):
+        """
+        Check if this is a temporary auto-generated user account.
+        Temporary users have usernames like user001, user002, etc.
+        and STILL have the default password 'ischedwise'
+        """
+        # Check if username matches the pattern user###
+        if self.username.startswith('user') and len(self.username) == 7:
+            try:
+                # Check if the last 3 characters are digits
+                int(self.username[4:])
+                # Also check if they still have the default password
+                if self.check_password('ischedwise'):
+                    return True
+            except ValueError:
+                pass
+        return False
+    
+    def is_expired_temporary_account(self):
+        """
+        Check if this temporary account has expired (24 hours without configuration).
+        Returns True if:
+        - Account is a temporary user (user### with default password)
+        - Account was created more than 24 hours ago
+        """
+        if not self.is_temporary_user():
+            return False
+        
+        # Check if account is older than 24 hours
+        from datetime import datetime, timedelta
+        if self.created_at:
+            expiry_time = self.created_at + timedelta(hours=24)
+            if datetime.utcnow() > expiry_time:
+                return True
+        
+        return False
+    
+    def check_and_disable_if_expired(self):
+        """
+        Check if temporary account has expired and disable it if needed.
+        Returns True if account was disabled, False otherwise.
+        """
+        if self.is_expired_temporary_account() and self.is_active:
+            self.is_active = False
+            return True
+        return False
+    
     def generate_reset_token(self):
         """Generate a password reset token"""
         s = Serializer(current_app.config['SECRET_KEY'])

@@ -57,3 +57,7 @@ migrations/
 # Temporary files
 *.tmp
 *.bak
+
+# Uploads
+app/static/uploads/department_logos/*
+!app/static/uploads/department_logos/.gitkeep

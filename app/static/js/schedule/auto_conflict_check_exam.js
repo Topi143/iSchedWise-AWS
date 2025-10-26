@@ -86,14 +86,33 @@ function scheduleAutoExamConflictCheck(mode) {
 function performAutoExamConflictCheck(mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
     
-    // Get form data
-    const sectionId = document.getElementById('section_id_exam' + suffix)?.value;
-    const subjectId = document.getElementById('subject_id_exam' + suffix)?.value || null;
-    const facultyId = document.getElementById('faculty_id_exam' + suffix)?.value || null;
-    const roomId = document.getElementById('room_id_exam' + suffix)?.value || null;
-    const examDate = document.getElementById('exam_date' + suffix)?.value;
-    const startTime = document.getElementById('start_time_exam' + suffix)?.value;
-    const endTime = document.getElementById('end_time_exam' + suffix)?.value;
+    // Get form data - with detailed element checking
+    const sectionIdEl = document.getElementById('section_id_exam' + suffix);
+    const subjectIdEl = document.getElementById('subject_id_exam' + suffix);
+    const facultyIdEl = document.getElementById('faculty_id_exam' + suffix);
+    const roomIdEl = document.getElementById('room_id_exam' + suffix);
+    const examDateEl = document.getElementById('exam_date' + suffix);
+    const startTimeEl = document.getElementById('start_time_exam' + suffix);
+    const endTimeEl = document.getElementById('end_time_exam' + suffix);
+    
+    // Log which elements were found
+    console.log('[AUTO-CHECK-EXAM] Element check:', {
+        sectionId: sectionIdEl ? 'FOUND' : 'MISSING',
+        subjectId: subjectIdEl ? 'FOUND' : 'MISSING',
+        facultyId: facultyIdEl ? 'FOUND' : 'MISSING',
+        roomId: roomIdEl ? 'FOUND' : 'MISSING',
+        examDate: examDateEl ? 'FOUND' : 'MISSING',
+        startTime: startTimeEl ? 'FOUND' : 'MISSING',
+        endTime: endTimeEl ? 'FOUND' : 'MISSING'
+    });
+    
+    const sectionId = sectionIdEl?.value;
+    const subjectId = subjectIdEl?.value || null;
+    const facultyId = facultyIdEl?.value || null;
+    const roomId = roomIdEl?.value || null;
+    const examDate = examDateEl?.value;
+    const startTime = startTimeEl?.value;
+    const endTime = endTimeEl?.value;
     const examScheduleId = mode === 'edit' ? document.getElementById('exam_schedule_id_edit')?.value : null;
     
     console.log('[AUTO-CHECK-EXAM] Form data:', {
@@ -101,11 +120,33 @@ function performAutoExamConflictCheck(mode) {
         examDate, startTime, endTime, examScheduleId
     });
     
-    // Check if we have minimum required fields
-    if (!sectionId || !examDate || !startTime || !endTime) {
-        console.log('[AUTO-CHECK-EXAM] Missing required fields, skipping check');
-        // Reset conflict state when fields are incomplete
-        updateExamConflictState(mode, false, true);
+    // Check if we have ALL required fields (including subject, faculty, and room)
+    if (!sectionId || !subjectId || !facultyId || !roomId || !examDate || !startTime || !endTime) {
+        console.log('[AUTO-CHECK-EXAM] Missing required fields:', {
+            section: !sectionId ? 'MISSING' : 'OK',
+            subject: !subjectId ? 'MISSING' : 'OK',
+            faculty: !facultyId ? 'MISSING' : 'OK',
+            room: !roomId ? 'MISSING' : 'OK',
+            examDate: !examDate ? 'MISSING' : 'OK',
+            startTime: !startTime ? 'MISSING' : 'OK',
+            endTime: !endTime ? 'MISSING' : 'OK'
+        });
+        // DISABLE submit button when required fields are missing
+        updateExamConflictState(mode, true, false);
+        showAutoCheckExamStatus(mode, 'warning', '⚠️ All required fields must be filled (including faculty and room)');
+        return;
+    }
+    
+    // Validate exam date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of today
+    const selectedDate = new Date(examDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+        console.log('[AUTO-CHECK-EXAM] Exam date is in the past');
+        showAutoCheckExamStatus(mode, 'error', '⚠️ Cannot schedule exams in the past. Please select a future date.');
+        updateExamConflictState(mode, true, false);
         return;
     }
     
@@ -113,7 +154,7 @@ function performAutoExamConflictCheck(mode) {
     if (startTime && endTime && startTime >= endTime) {
         console.log('[AUTO-CHECK-EXAM] Invalid time range');
         showAutoCheckExamStatus(mode, 'error', '⚠️ End time must be after start time');
-        updateExamConflictState(mode, true);
+        updateExamConflictState(mode, true, false);
         return;
     }
     
@@ -143,8 +184,15 @@ function performAutoExamConflictCheck(mode) {
         body: JSON.stringify(requestData)
     })
     .then(response => {
+        console.log('[AUTO-CHECK-EXAM] Response status:', response.status, response.statusText);
         if (!response.ok) {
-            throw new Error(`Server error (${response.status})`);
+            return response.json().catch(() => {
+                // If response is not JSON, throw with status
+                throw new Error(`Server error (${response.status}: ${response.statusText})`);
+            }).then(errorData => {
+                // If response IS JSON, include error details
+                throw new Error(`Server error (${response.status}): ${errorData.error || response.statusText}`);
+            });
         }
         return response.json();
     })
@@ -208,6 +256,11 @@ function performAutoExamConflictCheck(mode) {
     })
     .catch(error => {
         console.error('[AUTO-CHECK-EXAM] Error:', error);
+        console.error('[AUTO-CHECK-EXAM] Error details:', {
+            message: error.message,
+            stack: error.stack,
+            type: error.constructor.name
+        });
         showAutoCheckExamStatus(mode, 'error', '❌ Network error - Please check your connection');
         // Allow submission on network errors (don't block user)
         updateExamConflictState(mode, false, false);

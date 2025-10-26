@@ -14,6 +14,37 @@ from datetime import datetime
 user_bp = Blueprint('user', __name__, url_prefix='/users')
 
 
+def _disable_expired_temporary_accounts():
+    """
+    Helper function to check and disable all expired temporary accounts.
+    This runs automatically when admins view the users list.
+    """
+    from datetime import datetime, timedelta
+    
+    # Find all temporary users (user### pattern with default password)
+    users = User.query.filter(User.is_active == True).all()
+    disabled_count = 0
+    
+    for user in users:
+        if user.is_temporary_user() and user.created_at:
+            # Check if account is older than 24 hours
+            expiry_time = user.created_at + timedelta(hours=24)
+            if datetime.utcnow() > expiry_time:
+                user.is_active = False
+                disabled_count += 1
+                
+                # Log the auto-disable action
+                log_edit('user', user.id, user.username, {
+                    'status': 'Auto-disabled (24h expiry)',
+                    'reason': 'Temporary account not configured within 24 hours'
+                })
+    
+    if disabled_count > 0:
+        db.session.commit()
+    
+    return disabled_count
+
+
 def admin_required(f):
     """Decorator to require admin role"""
     @wraps(f)
@@ -30,6 +61,9 @@ def admin_required(f):
 @admin_required
 def index():
     """Display all users"""
+    # Auto-disable expired temporary accounts before displaying the list
+    _disable_expired_temporary_accounts()
+    
     users = User.query.order_by(User.created_at.desc()).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.department_name).all()
     return render_template('users.html', users=users, departments=departments)
@@ -316,3 +350,103 @@ def toggle_user_status(user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error toggling user status: {str(e)}'}), 500
+
+
+@user_bp.route('/api/users/quick-generate', methods=['POST'])
+@login_required
+@admin_required
+def quick_generate_user():
+    """
+    Quick user generation - Creates a user with auto-generated username and default password
+    Returns the credentials for distribution
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate required fields (only role is required)
+        role = data.get('role', 'dean')
+        if role not in ['admin', 'dean']:
+            return jsonify({'success': False, 'message': 'Role must be either admin or dean'}), 400
+        
+        # Generate auto username: user001, user002, etc.
+        # Find the highest user number
+        users = User.query.all()
+        max_num = 0
+        for user in users:
+            if user.username.startswith('user') and user.username[4:].isdigit():
+                num = int(user.username[4:])
+                if num > max_num:
+                    max_num = num
+        
+        new_username = f"user{str(max_num + 1).zfill(3)}"  # user001, user002, etc.
+        
+        # Generate auto email
+        auto_email = f"{new_username}@ischedwise.local"
+        
+        # Default password
+        default_password = "ischedwise"
+        
+        # Generate auto full name
+        auto_full_name = f"User {str(max_num + 1).zfill(3)}"
+        
+        # Create new user
+        user = User(
+            username=new_username,
+            email=auto_email,
+            full_name=auto_full_name,
+            role=role,
+            is_active=True
+        )
+        user.set_password(default_password)
+        
+        db.session.add(user)
+        db.session.flush()  # Get user ID before adding departments
+        
+        # Log activity
+        log_create('user', user.id, user.username, {
+            'email': user.email,
+            'role': user.role,
+            'full_name': user.full_name,
+            'type': 'quick_generated'
+        })
+        
+        # Handle department assignments for deans
+        if role == 'dean' and data.get('department_ids'):
+            department_ids = data['department_ids']
+            if not isinstance(department_ids, list):
+                department_ids = [department_ids]
+            
+            for dept_id in department_ids:
+                department = Department.query.get(dept_id)
+                if department:
+                    user.departments.append(department)
+        
+        db.session.commit()
+        
+        # Get department names for display
+        department_names = [dept.department_name for dept in user.departments]
+        
+        return jsonify({
+            'success': True,
+            'message': 'User account generated successfully',
+            'credentials': {
+                'username': new_username,
+                'password': default_password,
+                'email': auto_email,
+                'full_name': auto_full_name,
+                'role': role,
+                'department_names': ', '.join(department_names) if department_names else 'None'
+            },
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.full_name,
+                'role': user.role,
+                'is_active': user.is_active
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error generating user: {str(e)}'}), 500

@@ -189,18 +189,35 @@
                         
                         <!-- Room -->
                         <div>
-                            <label for="room_id_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                            <label for="room_search_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 Room <span class="text-red-500">*</span>
                             </label>
-                            <select id="room_id_add" name="room_id" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
-                                <option value="">Select a room...</option>
-                                {% for room in rooms %}
-                                <option value="{{ room.id }}">{{ room.building.building_name }} - {{ room.room_number }}</option>
-                                {% endfor %}
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="room_search_add" placeholder="Search room number or building..." 
+                                       class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all"
+                                       oninput="filterRoomsModal('add', this.value)"
+                                       onfocus="showRoomDropdownModal('add')"
+                                       autocomplete="off">
+                                <input type="hidden" id="room_id_add" name="room_id" required>
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <div id="room_dropdown_add" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {% for room in all_rooms %}
+                                    <div class="room-option px-2 py-2 sm:px-3 sm:py-2.5 hover:bg-orange-50 cursor-pointer text-[11px] sm:text-sm border-b border-gray-100 last:border-b-0 transition-colors" 
+                                         data-room-id="{{ room.id }}" 
+                                         data-room-number="{{ room.room_number }}"
+                                         data-building="{{ room.building.building_name if room.building else 'No Building' }}"
+                                         onclick="selectRoomModal('add', {{ room.id }}, '{{ room.room_number }}', '{{ room.building.building_name if room.building else '' }}')">
+                                        <div class="font-semibold text-gray-900">{{ room.room_number }}</div>
+                                        <div class="text-[10px] sm:text-xs text-gray-500">{{ room.building.building_name if room.building else 'No Building' }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Time Fields Row -->
@@ -491,18 +508,35 @@
                         
                         <!-- Room -->
                         <div>
-                            <label for="room_id_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                            <label for="room_search_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 Room <span class="text-red-500">*</span>
                             </label>
-                            <select id="room_id_edit" name="room_id" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
-                                <option value="">Select a room...</option>
-                                {% for room in rooms %}
-                                <option value="{{ room.id }}">{{ room.building.building_name }} - {{ room.room_number }}</option>
-                                {% endfor %}
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="room_search_edit" placeholder="Search room number or building..." 
+                                       class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all"
+                                       oninput="filterRoomsModal('edit', this.value)"
+                                       onfocus="showRoomDropdownModal('edit')"
+                                       autocomplete="off">
+                                <input type="hidden" id="room_id_edit" name="room_id" required>
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <div id="room_dropdown_edit" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {% for room in all_rooms %}
+                                    <div class="room-option px-2 py-2 sm:px-3 sm:py-2.5 hover:bg-orange-50 cursor-pointer text-[11px] sm:text-sm border-b border-gray-100 last:border-b-0 transition-colors" 
+                                         data-room-id="{{ room.id }}" 
+                                         data-room-number="{{ room.room_number }}"
+                                         data-building="{{ room.building.building_name if room.building else 'No Building' }}"
+                                         onclick="selectRoomModal('edit', {{ room.id }}, '{{ room.room_number }}', '{{ room.building.building_name if room.building else '' }}')">
+                                        <div class="font-semibold text-gray-900">{{ room.room_number }}</div>
+                                        <div class="text-[10px] sm:text-xs text-gray-500">{{ room.building.building_name if room.building else 'No Building' }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Time Fields Row -->
@@ -754,35 +788,57 @@
                     
                     <!-- Faculty -->
                     <div>
-                        <label for="faculty_id_exam_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                        <label for="faculty_search_exam_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                             <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                             </svg>
                             Faculty <span class="text-red-500">*</span>
                         </label>
-                        <select id="faculty_id_exam_add" name="faculty_id" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
-                            <option value="">Select a faculty...</option>
-                            {% for faculty in faculties %}
-                            <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                        <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Faculty assigned to the selected subject</p>
+                        <div class="relative">
+                            <input type="text" id="faculty_search_exam_add" placeholder="Search faculty..." oninput="filterFacultyModalExam('exam_add', this.value)" onfocus="showFacultyDropdownModalExam('exam_add')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all pr-8">
+                            <svg class="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="hidden" id="faculty_id_exam_add" name="faculty_id" required>
+                            <div id="faculty_dropdown_exam_add" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {% for faculty in all_faculties %}
+                                <div class="faculty-option px-3 py-2 hover:bg-green-50 cursor-pointer text-xs sm:text-sm border-b border-gray-100 last:border-b-0" data-faculty-id="{{ faculty.id }}" data-faculty-name="{{ faculty.full_name }}" onclick="selectFacultyModalExam('exam_add', {{ faculty.id }}, '{{ faculty.full_name|e }}')">
+                                    <div class="font-medium text-gray-900">{{ faculty.full_name }}</div>
+                                    {% if faculty.department %}
+                                    <div class="text-[10px] text-gray-500">{{ faculty.department.department_code }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Select faculty proctor for this exam</p>
                     </div>
                     
                     <!-- Room -->
                     <div>
-                        <label for="room_id_exam_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                        <label for="room_search_exam_add" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                             <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                             Room <span class="text-red-500">*</span>
                         </label>
-                        <select id="room_id_exam_add" name="room_id" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
-                            <option value="">Select a room...</option>
-                            {% for room in rooms %}
-                            <option value="{{ room.id }}">{{ room.building.building_name }} - {{ room.room_number }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="relative">
+                            <input type="text" id="room_search_exam_add" placeholder="Search room..." oninput="filterRoomsModalExam('exam_add', this.value)" onfocus="showRoomDropdownModalExam('exam_add')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all pr-8">
+                            <svg class="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="hidden" id="room_id_exam_add" name="room_id" required>
+                            <div id="room_dropdown_exam_add" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {% for room in all_rooms %}
+                                <div class="room-option px-3 py-2 hover:bg-orange-50 cursor-pointer text-xs sm:text-sm border-b border-gray-100 last:border-b-0" data-room-id="{{ room.id }}" data-room-number="{{ room.room_number }}" data-building="{{ room.building.building_name if room.building else '' }}" onclick="selectRoomModalExam('exam_add', {{ room.id }}, '{{ room.room_number }}', '{{ room.building.building_name|e if room.building else '' }}')">
+                                    <div class="font-medium text-gray-900">{{ room.room_number }}</div>
+                                    {% if room.building %}
+                                    <div class="text-[10px] text-gray-500">{{ room.building.building_name }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Time Fields Row -->
@@ -1032,29 +1088,57 @@
                         
                         <!-- Faculty -->
                         <div>
-                            <label for="faculty_id_exam_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                            <label for="faculty_search_exam_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Faculty <span class="text-red-500 ml-0.5">*</span>
                             </label>
-                            <select id="faculty_id_exam_edit" name="faculty_id" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all">
-                                <option value="">Select a faculty...</option>
-                            </select>
-                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Faculty assigned to the selected subject</p>
+                            <div class="relative">
+                                <input type="text" id="faculty_search_exam_edit" placeholder="Search faculty..." oninput="filterFacultyModalExam('exam_edit', this.value)" onfocus="showFacultyDropdownModalExam('exam_edit')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all pr-8">
+                                <svg class="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <input type="hidden" id="faculty_id_exam_edit" name="faculty_id" required>
+                                <div id="faculty_dropdown_exam_edit" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {% for faculty in all_faculties %}
+                                    <div class="faculty-option px-3 py-2 hover:bg-green-50 cursor-pointer text-xs sm:text-sm border-b border-gray-100 last:border-b-0" data-faculty-id="{{ faculty.id }}" data-faculty-name="{{ faculty.full_name }}" onclick="selectFacultyModalExam('exam_edit', {{ faculty.id }}, '{{ faculty.full_name|e }}')">
+                                        <div class="font-medium text-gray-900">{{ faculty.full_name }}</div>
+                                        {% if faculty.department %}
+                                        <div class="text-[10px] text-gray-500">{{ faculty.department.department_code }}</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <p class="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1.5">Select faculty proctor for this exam</p>
                         </div>
                         
                         <!-- Room -->
                         <div>
-                            <label for="room_id_exam_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                            <label for="room_search_exam_edit" class="flex items-center text-[11px] sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 Room <span class="text-red-500 ml-0.5">*</span>
                             </label>
-                            <select id="room_id_exam_edit" name="room_id" required class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all">
-                                <option value="">Select a room...</option>
-                            </select>
+                            <div class="relative">
+                                <input type="text" id="room_search_exam_edit" placeholder="Search room..." oninput="filterRoomsModalExam('exam_edit', this.value)" onfocus="showRoomDropdownModalExam('exam_edit')" class="w-full px-2 py-1.5 sm:px-4 sm:py-3 text-[11px] sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all pr-8">
+                                <svg class="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <input type="hidden" id="room_id_exam_edit" name="room_id" required>
+                                <div id="room_dropdown_exam_edit" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {% for room in all_rooms %}
+                                    <div class="room-option px-3 py-2 hover:bg-orange-50 cursor-pointer text-xs sm:text-sm border-b border-gray-100 last:border-b-0" data-room-id="{{ room.id }}" data-room-number="{{ room.room_number }}" data-building="{{ room.building.building_name if room.building else '' }}" onclick="selectRoomModalExam('exam_edit', {{ room.id }}, '{{ room.room_number }}', '{{ room.building.building_name|e if room.building else '' }}')">
+                                        <div class="font-medium text-gray-900">{{ room.room_number }}</div>
+                                        {% if room.building %}
+                                        <div class="text-[10px] text-gray-500">{{ room.building.building_name }}</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Time Fields Row -->

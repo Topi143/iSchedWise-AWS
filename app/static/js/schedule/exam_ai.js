@@ -7,17 +7,36 @@
  * @param {string} mode - 'add' or 'edit'
  */
 function checkExamScheduleWithAI(mode) {
-    const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
+    const suffix = mode === 'add' ? '_add' : '_edit';
     
-    // Get form data
-    const sectionId = document.getElementById('section_id' + suffix).value;
-    const subjectId = document.getElementById('subject_id' + suffix).value || null;
-    const facultyId = document.getElementById('faculty_id' + suffix).value || null;
-    const roomId = document.getElementById('room_id' + suffix).value || null;
-    const examDate = document.getElementById('exam_date' + suffix).value;
-    const startTime = document.getElementById('start_time' + suffix).value;
-    const endTime = document.getElementById('end_time' + suffix).value;
-    const examScheduleId = mode === 'edit' ? document.getElementById('exam_schedule_id_edit').value : null;
+    // Get form data - with detailed element checking
+    const sectionIdEl = document.getElementById('section_id_exam' + suffix);
+    const subjectIdEl = document.getElementById('subject_id_exam' + suffix);
+    const facultyIdEl = document.getElementById('faculty_id_exam' + suffix);
+    const roomIdEl = document.getElementById('room_id_exam' + suffix);
+    const examDateEl = document.getElementById('exam_date' + suffix);
+    const startTimeEl = document.getElementById('start_time_exam' + suffix);
+    const endTimeEl = document.getElementById('end_time_exam' + suffix);
+    
+    // Log which elements were found
+    console.log('[AI CHECK EXAM] Element check:', {
+        sectionId: sectionIdEl ? 'FOUND' : 'MISSING',
+        subjectId: subjectIdEl ? 'FOUND' : 'MISSING',
+        facultyId: facultyIdEl ? 'FOUND' : 'MISSING',
+        roomId: roomIdEl ? 'FOUND' : 'MISSING',
+        examDate: examDateEl ? 'FOUND' : 'MISSING',
+        startTime: startTimeEl ? 'FOUND' : 'MISSING',
+        endTime: endTimeEl ? 'FOUND' : 'MISSING'
+    });
+    
+    const sectionId = sectionIdEl?.value;
+    const subjectId = subjectIdEl?.value || null;
+    const facultyId = facultyIdEl?.value || null;
+    const roomId = roomIdEl?.value || null;
+    const examDate = examDateEl?.value;
+    const startTime = startTimeEl?.value;
+    const endTime = endTimeEl?.value;
+    const examScheduleId = mode === 'edit' ? document.getElementById('exam_schedule_id_edit')?.value : null;
     
     // Debug logging
     console.log('[AI CHECK EXAM] Form data:', {
@@ -25,14 +44,28 @@ function checkExamScheduleWithAI(mode) {
         examDate, startTime, endTime, examScheduleId
     });
     
-    // Validate required fields
-    if (!sectionId || !examDate || !startTime || !endTime) {
+    // Validate ALL required fields (including subject, faculty, and room)
+    if (!sectionId || !subjectId || !facultyId || !roomId || !examDate || !startTime || !endTime) {
         const missing = [];
         if (!sectionId) missing.push('Section');
+        if (!subjectId) missing.push('Subject');
+        if (!facultyId) missing.push('Faculty');
+        if (!roomId) missing.push('Room');
         if (!examDate) missing.push('Exam Date');
         if (!startTime) missing.push('Start Time');
         if (!endTime) missing.push('End Time');
         showToast(`Please fill in: ${missing.join(', ')}`, 'error');
+        return;
+    }
+    
+    // Validate exam date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(examDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+        showToast('Cannot schedule exams in the past. Please select a future date.', 'error');
         return;
     }
     
@@ -79,7 +112,17 @@ function checkExamScheduleWithAI(mode) {
             exam_schedule_id: examScheduleId ? parseInt(examScheduleId) : null
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('[AI CHECK EXAM] Response status:', response.status, response.statusText);
+        if (!response.ok) {
+            return response.json().catch(() => {
+                throw new Error(`Server error (${response.status}: ${response.statusText})`);
+            }).then(errorData => {
+                throw new Error(`Server error (${response.status}): ${errorData.error || response.statusText}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         // Hide loading
         if (loadingDiv) loadingDiv.classList.add('hidden');
@@ -145,6 +188,11 @@ function checkExamScheduleWithAI(mode) {
     })
     .catch(error => {
         console.error('[AI CHECK EXAM] Error:', error);
+        console.error('[AI CHECK EXAM] Error details:', {
+            message: error.message,
+            stack: error.stack,
+            type: error.constructor.name
+        });
         if (loadingDiv) loadingDiv.classList.add('hidden');
         if (loadingDivMobile) loadingDivMobile.classList.add('hidden');
         
@@ -157,8 +205,8 @@ function checkExamScheduleWithAI(mode) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         <div>
-                            <h5 class="text-sm font-semibold text-red-800">AI Analysis Failed</h5>
-                            <p class="text-xs text-red-700 mt-1">Unable to perform conflict analysis. Please check manually.</p>
+                            <h5 class="text-sm font-semibold text-red-800">❌ Network error - Please check your connection</h5>
+                            <p class="text-xs text-red-700 mt-1">${error.message}</p>
                         </div>
                     </div>
                 </div>
@@ -396,9 +444,9 @@ function displayExamAIExplanation(explanation, mode) {
 // ============================================================================
 
 function applyExamTimeSlot(startTime, endTime, mode) {
-    const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
-    document.getElementById('start_time' + suffix).value = startTime;
-    document.getElementById('end_time' + suffix).value = endTime;
+    const suffix = mode === 'add' ? '_add' : '_edit';
+    document.getElementById('start_time_exam' + suffix).value = startTime;
+    document.getElementById('end_time_exam' + suffix).value = endTime;
     showToast('Time slot applied! Auto-rechecking conflicts...', 'success');
     
     // Trigger auto-recheck
@@ -408,7 +456,7 @@ function applyExamTimeSlot(startTime, endTime, mode) {
 }
 
 function applyExamDate(examDate, mode) {
-    const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
+    const suffix = mode === 'add' ? '_add' : '_edit';
     document.getElementById('exam_date' + suffix).value = examDate;
     showToast('Exam date applied! Auto-rechecking conflicts...', 'success');
     
@@ -419,8 +467,8 @@ function applyExamDate(examDate, mode) {
 }
 
 function applyExamRoom(roomId, mode) {
-    const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
-    document.getElementById('room_id' + suffix).value = roomId;
+    const suffix = mode === 'add' ? '_add' : '_edit';
+    document.getElementById('room_id_exam' + suffix).value = roomId;
     showToast('Room applied! Auto-rechecking conflicts...', 'success');
     
     // Trigger auto-recheck
@@ -430,8 +478,8 @@ function applyExamRoom(roomId, mode) {
 }
 
 function applyExamFaculty(facultyId, mode) {
-    const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
-    document.getElementById('faculty_id' + suffix).value = facultyId;
+    const suffix = mode === 'add' ? '_add' : '_edit';
+    document.getElementById('faculty_id_exam' + suffix).value = facultyId;
     showToast('Faculty applied! Auto-rechecking conflicts...', 'success');
     
     // Trigger auto-recheck

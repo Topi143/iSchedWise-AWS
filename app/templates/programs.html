@@ -401,7 +401,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
                             </button>
-                            <button onclick="editDepartment({{ display_department.id }}, '{{ display_department.department_code }}', '{{ display_department.department_name }}')" class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Program">
+                            <button onclick="editDepartment({{ display_department.id }}, '{{ display_department.department_code }}', '{{ display_department.department_name }}', '{{ display_department.full_department_name or '' }}', '{{ display_department.secretary_name or '' }}')" class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Program">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
@@ -600,6 +600,25 @@
                         placeholder="e.g., Computer Science"
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                 </div>
+
+                <div>
+                    <label for="full_department_name" class="block text-xs font-semibold text-gray-700 mb-1">
+                        Full Department Name
+                    </label>
+                    <input type="text" id="full_department_name" name="full_department_name"
+                        placeholder="e.g., Department of Computing Studies"
+                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    <p class="text-xs text-gray-500 mt-1">Official full department name for reports and documents</p>
+                </div>
+
+                <div>
+                    <label for="secretary_name" class="block text-xs font-semibold text-gray-700 mb-1">
+                        Department Secretary
+                    </label>
+                    <input type="text" id="secretary_name" name="secretary_name"
+                        placeholder="e.g., Jane Smith"
+                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                </div>
             </div>
 
             <div class="mt-4 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sticky bottom-0 bg-white p-3 sm:p-0 -mx-3 sm:mx-0 -mb-3 sm:mb-0 border-t sm:border-t-0 border-gray-200">
@@ -656,6 +675,25 @@
                         Program Name <span class="text-red-500">*</span>
                     </label>
                     <input type="text" id="edit_department_name" name="department_name" required
+                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                </div>
+
+                <div>
+                    <label for="edit_full_department_name" class="block text-xs font-semibold text-gray-700 mb-1">
+                        Full Department Name
+                    </label>
+                    <input type="text" id="edit_full_department_name" name="full_department_name"
+                        placeholder="e.g., Department of Computing Studies"
+                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    <p class="text-xs text-gray-500 mt-1">Official full department name for reports and documents</p>
+                </div>
+
+                <div>
+                    <label for="edit_secretary_name" class="block text-xs font-semibold text-gray-700 mb-1">
+                        Department Secretary
+                    </label>
+                    <input type="text" id="edit_secretary_name" name="secretary_name"
+                        placeholder="e.g., Jane Smith"
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                 </div>
             </div>
@@ -1166,10 +1204,12 @@
         document.getElementById('editDepartmentForm').reset();
     }
 
-    function editDepartment(id, code, name) {
+    function editDepartment(id, code, name, fullName, secretary) {
         document.getElementById('edit_department_id').value = id;
         document.getElementById('edit_department_code').value = code;
         document.getElementById('edit_department_name').value = name;
+        document.getElementById('edit_full_department_name').value = fullName || '';
+        document.getElementById('edit_secretary_name').value = secretary || '';
         openEditDepartmentModal();
     }
 

@@ -53,6 +53,13 @@ def add():
         start_time = datetime.strptime(start_time_str, '%H:%M').time()
         end_time = datetime.strptime(end_time_str, '%H:%M').time()
         
+        # Validate exam date is not in the past
+        from datetime import date as date_class
+        today = date_class.today()
+        if exam_date < today:
+            flash('Cannot schedule exams in the past. Please select a future date.', 'danger')
+            return redirect(url_for('schedule.index', exam_section_id=section_id))
+        
         # Validate time range
         if start_time >= end_time:
             flash('End time must be after start time', 'danger')
@@ -201,6 +208,13 @@ def edit():
         start_time = datetime.strptime(start_time_str, '%H:%M').time()
         end_time = datetime.strptime(end_time_str, '%H:%M').time()
         
+        # Validate exam date is not in the past
+        from datetime import date as date_class
+        today = date_class.today()
+        if exam_date < today:
+            flash('Cannot schedule exams in the past. Please select a future date.', 'danger')
+            return redirect(url_for('schedule.index', exam_section_id=section_id))
+        
         # Validate time range
         if start_time >= end_time:
             flash('End time must be after start time', 'danger')
@@ -320,7 +334,10 @@ def get_exam_schedule(exam_schedule_id):
             'section_id': exam_schedule.section_id,
             'subject_id': exam_schedule.subject_id,
             'faculty_id': exam_schedule.faculty_id,
+            'faculty_name': exam_schedule.faculty.full_name if exam_schedule.faculty else None,
             'room_id': exam_schedule.room_id,
+            'room_number': exam_schedule.room.room_number if exam_schedule.room else None,
+            'building_name': exam_schedule.room.building.building_name if exam_schedule.room and exam_schedule.room.building else None,
             'exam_date': exam_schedule.exam_date.strftime('%Y-%m-%d'),
             'start_time': exam_schedule.start_time.strftime('%H:%M'),
             'end_time': exam_schedule.end_time.strftime('%H:%M'),
@@ -411,6 +428,14 @@ def ai_check_exam_conflicts():
         start_time = dt.strptime(start_time_str, '%H:%M').time()
         end_time = dt.strptime(end_time_str, '%H:%M').time()
         exam_date = dt.strptime(exam_date_str, '%Y-%m-%d').date()
+        
+        # Validate exam date is not in the past
+        from datetime import date as date_class
+        today = date_class.today()
+        if exam_date < today:
+            error_msg = 'Cannot schedule exams in the past. Please select a future date.'
+            print(f"[AI CHECK EXAM] Validation failed: {error_msg}")
+            return jsonify({'error': error_msg, 'ai_enabled': False}), 400
         
         # Get current academic settings
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
@@ -794,12 +819,19 @@ def export_for_posting(section_id):
         # Import helper functions from schedule.py
         from app.routes.schedule import add_institution_logos_for_posting, add_institution_header_for_posting, add_schedule_title_for_posting
         
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
+        # Get department info for logo and names
+        department = section.department
+        dept_logo_path = department.department_logo if department else None
         
-        # Add header (posting-specific, centered across A-H)
-        dept_name = section.department.department_name.upper() if section.department else 'COLLEGE'
-        add_institution_header_for_posting(ws, dept_name)
+        # Add logos (use posting-specific function with department logo)
+        add_institution_logos_for_posting(ws, dept_logo_path)
+        
+        # Add header (posting-specific, centered across A-H) - use full department name (preserve original case)
+        dept_display_name = department.full_department_name if (department and department.full_department_name) else (department.department_name if department else 'COLLEGE')
+        add_institution_header_for_posting(ws, dept_display_name)
+        
+        # Store full department name for signature section
+        dept_name_for_signature = dept_display_name
         
         # Add title (posting-specific, centered across A-H)
         if current_settings:
@@ -807,7 +839,7 @@ def export_for_posting(section_id):
         else:
             semester_text = "EXAM SCHEDULE"
         dept_code = section.department.department_code if section.department else ''
-        add_schedule_title_for_posting(ws, 'EXAMINATION SCHEDULE - BATCH EXPORT', semester_text, f"Department: {dept_name}")
+        add_schedule_title_for_posting(ws, 'EXAMINATION SCHEDULE - BATCH EXPORT', semester_text, f"Department: {dept_display_name}")
         
         # Define border style
         thin_border = Border(
@@ -953,18 +985,27 @@ def export_for_posting(section_id):
         ws.cell(row=sig_start_row, column=6, value='Checked by:')
         ws.cell(row=sig_start_row, column=6).font = Font(size=10)
         
+        # Get secretary name and dean name from department and current user
+        secretary_name = department.secretary_name if (department and department.secretary_name) else 'Name of the Secretary'
+        dean_name = current_user.full_name if current_user else 'Name of the Dean'
+        
+        # Capitalize names
+        secretary_name = secretary_name.upper()
+        dean_name = dean_name.upper()
+        
         # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
+        ws.cell(row=sig_start_row + 2, column=2, value=secretary_name)
         ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
         
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
+        ws.cell(row=sig_start_row + 2, column=6, value=dean_name)
         ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
         
         # Titles (next row)
         ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
         ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
         
-        dean_title = f"Dean, {dept_name}"
+        # Use full department name for dean title
+        dean_title = f"Dean, {dept_name_for_signature}"
         ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
         ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
         ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')
@@ -1032,12 +1073,19 @@ def export_exam_schedule(section_id):
         # Import helper functions from schedule.py
         from app.routes.schedule import add_institution_logos_for_posting, add_institution_header_for_posting, add_schedule_title_for_posting
         
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
+        # Get department info for logo and names
+        department = section.department
+        dept_logo_path = department.department_logo if department else None
         
-        # Add header (posting-specific, centered across A-H)
-        dept_name = section.department.department_name.upper() if section.department else 'COLLEGE'
-        add_institution_header_for_posting(ws, dept_name)
+        # Add logos (use posting-specific function with department logo)
+        add_institution_logos_for_posting(ws, dept_logo_path)
+        
+        # Add header (posting-specific, centered across A-H) - use full department name (preserve original case)
+        dept_display_name = department.full_department_name if (department and department.full_department_name) else (department.department_name if department else 'COLLEGE')
+        add_institution_header_for_posting(ws, dept_display_name)
+        
+        # Store full department name for signature section
+        dept_name_for_signature = dept_display_name
         
         # Add title (posting-specific, centered across A-H)
         if current_settings:
@@ -1156,18 +1204,27 @@ def export_exam_schedule(section_id):
         ws.cell(row=sig_start_row, column=6, value='Checked by:')
         ws.cell(row=sig_start_row, column=6).font = Font(size=10)
         
+        # Get secretary name and dean name from department and current user
+        secretary_name = department.secretary_name if (department and department.secretary_name) else 'Name of the Secretary'
+        dean_name = current_user.full_name if current_user else 'Name of the Dean'
+        
+        # Capitalize names
+        secretary_name = secretary_name.upper()
+        dean_name = dean_name.upper()
+        
         # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
+        ws.cell(row=sig_start_row + 2, column=2, value=secretary_name)
         ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
         
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
+        ws.cell(row=sig_start_row + 2, column=6, value=dean_name)
         ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
         
         # Titles (next row)
         ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
         ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
         
-        dean_title = f"Dean, {dept_name}"
+        # Use full department name for dean title
+        dean_title = f"Dean, {dept_name_for_signature}"
         ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
         ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
         ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')

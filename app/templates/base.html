@@ -20,44 +20,49 @@
             overflow-y: scroll;
         }
         
-        /* Custom Scrollbar */
+        /* Custom Scrollbar (Compact) */
         .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+            width: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #d1d5db;
-            border-radius: 4px;
+            border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #9ca3af;
         }
         
-        /* Sidebar Navigation */
+        /* Sidebar Navigation - Consistent with Dashboard Design */
         .nav-link {
             display: flex;
             align-items: center;
             padding: 0.75rem 1rem;
             margin: 0.25rem 0.75rem;
             color: #64748b;
-            transition: all 0.15s ease;
-            border-radius: 0.5rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.75rem;
             font-weight: 500;
             font-size: 0.875rem;
             text-decoration: none;
+            line-height: 1.5;
+            border: 1px solid transparent;
         }
         
         .nav-link:hover {
-            background: #f1f5f9;
-            color: #1e40af;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+            color: #2563eb;
+            transform: translateX(2px);
+            border: 1px solid rgba(37, 99, 235, 0.1);
         }
         
         .nav-link.active {
-            background: #2563eb;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             color: #ffffff;
             font-weight: 600;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
         }
         
         .nav-link svg {
@@ -67,33 +72,38 @@
             flex-shrink: 0;
         }
         
-        /* Section Title */
+        /* Section Title - Consistent Typography */
         .section-title {
             color: #94a3b8;
             font-size: 0.6875rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             padding: 1rem 1rem 0.5rem 1rem;
             margin-top: 0.5rem;
         }
         
-        /* User Badge */
+        /* User Badge - Gradient Background */
         .badge {
-            background: #dbeafe;
-            color: #1e40af;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #2563eb;
             font-weight: 600;
-            letter-spacing: 0.025em;
+            border: 1px solid #93c5fd;
         }
         
-        /* Logout Button */
+        /* Logout Button - Gradient Design */
         .logout-btn {
-            background: #dc2626;
-            transition: all 0.15s ease;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            transition: all 0.2s ease;
         }
         
         .logout-btn:hover {
-            background: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+        }
+        
+        .logout-btn:active {
+            transform: translateY(0);
         }
         
         /* Mobile Menu Overlay */
@@ -103,19 +113,14 @@
             transition: all 0.3s ease;
         }
         
-        /* Responsive Adjustments */
-        @media (max-width: 1024px) {
-            .nav-link {
-                padding: 0.875rem 1rem;
-                font-size: 0.9375rem;
-            }
-        }
-        
         /* Fix sidebar layout - prevent collapse */
         #sidebar {
             display: flex;
             flex-direction: column;
             height: 100vh;
+            width: 15rem; /* 240px - comfortable width */
+            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+            border-right: 1px solid #e2e8f0;
         }
         
         #sidebar > .flex.flex-col.h-full {
@@ -125,8 +130,10 @@
             min-height: 0;
         }
         
-        #sidebar .p-4.border-b {
+        #sidebar .logo-section {
             flex-shrink: 0;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.03) 0%, transparent 100%);
         }
         
         #sidebar nav {
@@ -135,9 +142,148 @@
             overflow-y: auto;
         }
         
-        #sidebar .p-4.border-t {
+        #sidebar .user-section {
             flex-shrink: 0;
             margin-top: auto;
+            border-top: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, transparent 0%, rgba(37, 99, 235, 0.02) 100%);
+        }
+        
+        /* 🔴 RESPONSIVE BREAKPOINTS - Mobile First Design (Compact) */
+        
+        /* Mobile (320px - 639px) - Base styles above */
+        @media (max-width: 639px) {
+            /* Larger touch targets for mobile */
+            .nav-link {
+                padding: 0.75rem 0.875rem;
+                font-size: 0.875rem;
+                margin: 0.125rem 0.5rem;
+            }
+            
+            .nav-link svg {
+                width: 1.25rem;
+                height: 1.25rem;
+                margin-right: 0.75rem;
+            }
+            
+            .section-title {
+                font-size: 0.6875rem;
+                padding: 0.625rem 0.75rem 0.25rem 0.75rem;
+            }
+            
+            /* Mobile header adjustments */
+            #openSidebar {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Small Tablets (640px - 767px) */
+        @media (min-width: 640px) and (max-width: 767px) {
+            .nav-link {
+                padding: 0.625rem 0.875rem;
+                font-size: 0.8125rem;
+            }
+            
+            .nav-link svg {
+                width: 1.125rem;
+                height: 1.125rem;
+            }
+            
+            .section-title {
+                font-size: 0.625rem;
+            }
+        }
+        
+        /* Tablets (768px - 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .nav-link {
+                padding: 0.6875rem 0.9375rem;
+                font-size: 0.875rem;
+            }
+            
+            .nav-link svg {
+                width: 1.1875rem;
+                height: 1.1875rem;
+            }
+            
+            #sidebar {
+                width: 13rem; /* Compact on tablets */
+            }
+        }
+        
+        /* Desktop (1024px - 1279px) */
+        @media (min-width: 1024px) and (max-width: 1279px) {
+            #sidebar {
+                width: 15rem; /* 240px */
+            }
+        }
+        
+        /* Large Desktop (1280px+) */
+        @media (min-width: 1280px) {
+            #sidebar {
+                width: 16rem; /* 256px */
+            }
+            
+            .nav-link {
+                padding: 0.8125rem 1.125rem;
+                font-size: 0.9375rem;
+            }
+            
+            .section-title {
+                padding: 1.125rem 1.125rem 0.5625rem 1.125rem;
+            }
+        }
+        
+        /* Ultra-wide screens (1536px+) */
+        @media (min-width: 1536px) {
+            #sidebar {
+                width: 18rem; /* 288px - generous width for ultra-wide */
+            }
+            
+            .nav-link {
+                padding: 0.875rem 1.25rem;
+                font-size: 1rem;
+            }
+            
+            .nav-link svg {
+                width: 1.375rem;
+                height: 1.375rem;
+                margin-right: 0.875rem;
+            }
+        }
+        
+        /* Landscape orientation adjustments for mobile/tablet */
+        @media (max-width: 1023px) and (orientation: landscape) {
+            #sidebar {
+                max-height: 100vh;
+            }
+            
+            #sidebar nav {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            }
+            
+            /* Very compact padding in landscape mode */
+            .nav-link {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .section-title {
+                padding: 0.5rem 0.75rem 0.25rem 0.75rem;
+            }
+        }
+        
+        /* Print styles */
+        @media print {
+            #sidebar,
+            #mobileMenuOverlay,
+            header {
+                display: none !important;
+            }
+            
+            .lg\:ml-64 {
+                margin-left: 0 !important;
+            }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -147,20 +293,24 @@
     <div id="mobileMenuOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"></div>
     
     <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="fixed top-0 left-0 z-50 h-screen w-64 bg-white border-r border-gray-200 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <aside id="sidebar" class="fixed top-0 left-0 z-50 h-screen w-60 sm:w-60 md:w-60 lg:w-60 xl:w-64 2xl:w-72 border-r border-gray-200 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl lg:shadow-sm">
         <div class="flex flex-col h-full">
-            <!-- Logo/Brand -->
-            <div class="p-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center min-w-0 flex-1">
-                        <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" alt="Logo" class="h-10 w-10 mr-3 rounded-lg flex-shrink-0">
-                        <div class="min-w-0">
-                            <span class="text-lg font-bold block text-blue-900 leading-tight">iSchedWise</span>
-                            <span class="text-xs text-gray-600 font-medium leading-tight mt-0.5 block">Smart Scheduling</span>
+            <!-- Logo/Brand - Consistent with Dashboard Cards -->
+            <div class="logo-section py-5 px-4 flex-shrink-0">
+                <div class="flex items-center justify-center lg:justify-between">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div class="flex-shrink-0">
+                            <div class="h-10 w-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                                <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" alt="Logo" class="h-7 w-7 object-contain">
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex flex-col">
+                            <span class="text-base font-bold text-gray-900 leading-tight">iSchedWise</span>
+                            <span class="text-xs text-gray-600 font-medium leading-tight">Norzagaray College</span>
                         </div>
                     </div>
-                    <button id="closeSidebar" class="lg:hidden text-gray-500 hover:text-gray-700 transition-colors ml-2 flex-shrink-0 p-1 rounded-lg hover:bg-gray-100">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button id="closeSidebar" class="lg:hidden text-gray-400 hover:text-gray-600 transition-colors ml-3 flex-shrink-0 p-1.5 rounded-xl hover:bg-gray-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
@@ -168,7 +318,7 @@
             </div>
 
             <!-- Navigation Links -->
-            <nav class="flex-1 overflow-y-auto py-4 custom-scrollbar">
+            <nav class="flex-1 overflow-y-auto py-3 custom-scrollbar">
                 <!-- Main Menu Section -->
                 <div class="section-title">Main Menu</div>
                 
@@ -262,30 +412,32 @@
                 </a>
             </nav>
 
-            <!-- User Info & Logout -->
-            <div class="p-4 border-t border-gray-200 flex-shrink-0">
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                    <div class="flex items-center mb-3">
-                        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center mr-3 flex-shrink-0">
-                            <span class="text-lg font-bold text-white">{{ user.full_name[0] if user else 'U' }}</span>
+            <!-- User Info & Logout - Dashboard Card Style -->
+            <div class="user-section p-3 flex-shrink-0">
+                <div class="rounded-xl border border-gray-200 p-3" style="background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);">
+                    <div class="flex items-center mb-2.5">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center mr-2.5 flex-shrink-0" style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);">
+                            <span class="text-sm font-bold text-white">{{ user.full_name[0] if user else 'U' }}</span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold truncate text-gray-800">{{ user.full_name if user else 'User' }}</p>
-                            <span class="badge inline-flex items-center px-2 py-0.5 rounded text-xs uppercase">
+                            <p class="text-sm font-semibold truncate text-gray-900">{{ user.full_name if user else 'User' }}</p>
+                            <span class="badge inline-flex items-center px-1.5 py-0.5 rounded-md text-[0.65rem] uppercase mt-0.5">
                                 {{ user.role if user else 'ADMIN' }}
                             </span>
                         </div>
                     </div>
                     {% if user and user.role == 'dean' and user.departments %}
-                    <p class="text-xs text-gray-600 truncate mb-3 pl-1" title="{{ user.departments|map(attribute='department_name')|join(', ') }}">
-                        <svg class="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex items-center mb-2.5 px-0.5">
+                        <svg class="w-3.5 h-3.5 text-gray-400 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        {{ user.departments|map(attribute='department_code')|join(', ') }}
-                    </p>
+                        <p class="text-xs text-gray-600 font-medium truncate" title="{{ user.departments|map(attribute='department_name')|join(', ') }}">
+                            {{ user.departments|map(attribute='department_code')|join(', ') }}
+                        </p>
+                    </div>
                     {% endif %}
-                    <a href="{{ url_for('auth.logout') }}" class="logout-btn flex items-center justify-center w-full px-4 py-2 rounded-lg font-semibold text-sm text-white">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ url_for('auth.logout') }}" class="logout-btn flex items-center justify-center w-full px-3 py-2 rounded-lg font-semibold text-sm text-white">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                         </svg>
                         Logout
@@ -296,25 +448,27 @@
     </aside>
 
     <!-- Main Content Area -->
-    <div class="lg:ml-64">
+    <div class="lg:ml-60 xl:ml-64 2xl:ml-72 transition-all duration-300">
         <!-- Top Navigation Bar (Mobile) -->
-        <header class="lg:hidden bg-white shadow-md sticky top-0 z-30">
-            <div class="flex items-center justify-between p-4">
-                <button id="openSidebar" class="text-gray-600 hover:text-gray-900 transition-all hover:bg-gray-100 p-2 rounded-lg">
+        <header class="lg:hidden bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
+            <div class="flex items-center justify-between p-3">
+                <button id="openSidebar" class="text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-xl hover:bg-gray-100">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
                 <div class="flex items-center gap-2">
-                    <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" alt="Logo" class="h-8 w-8 rounded-lg">
-                    <span class="text-lg font-bold text-blue-900">iSchedWise</span>
+                    <div class="h-8 w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                        <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" alt="Logo" class="h-6 w-6 object-contain">
+                    </div>
+                    <span class="text-base font-bold text-gray-900">iSchedWise</span>
                 </div>
                 <div class="w-10"></div> <!-- Spacer for alignment -->
             </div>
         </header>
 
         <!-- Page Content -->
-        <main>
+        <main class="min-h-screen">
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -360,6 +514,56 @@
             });
         });
 
+        // Handle window resize - close sidebar if resizing to desktop
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window.innerWidth >= 1024) {
+                    // Desktop size - ensure body overflow is not hidden
+                    document.body.classList.remove('overflow-hidden');
+                    mobileMenuOverlay.classList.add('hidden');
+                } else {
+                    // Mobile size - ensure sidebar is closed
+                    if (!sidebar.classList.contains('-translate-x-full')) {
+                        // Sidebar is open on mobile - keep overlay visible
+                        mobileMenuOverlay.classList.remove('hidden');
+                    }
+                }
+            }, 150);
+        });
+
+        // Prevent body scroll when sidebar is open on mobile
+        const preventScroll = (e) => {
+            if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+                e.preventDefault();
+            }
+        };
+
+        // Add touch support for better mobile experience
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            // Swipe right to open sidebar (from left edge)
+            if (touchStartX < 20 && touchEndX > touchStartX + 50 && window.innerWidth < 1024) {
+                openSidebar();
+            }
+            // Swipe left to close sidebar
+            if (touchEndX < touchStartX - 50 && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
+                closeSidebar();
+            }
+        }
+
         // Sidebar Scroll Position Management
         const sidebarNav = document.querySelector('nav.overflow-y-auto');
         const SCROLL_POSITION_KEY = 'sidebarScrollPosition';
@@ -393,6 +597,292 @@
                 });
             });
         }
+
+        // Keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            // ESC key to close sidebar on mobile
+            if (e.key === 'Escape' && window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+                closeSidebar();
+            }
+        });
+
+        // Focus trap for sidebar when open on mobile (accessibility)
+        const focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        
+        sidebar.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && window.innerWidth < 1024) {
+                const focusableContent = sidebar.querySelectorAll(focusableElements);
+                const firstFocusable = focusableContent[0];
+                const lastFocusable = focusableContent[focusableContent.length - 1];
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstFocusable) {
+                        lastFocusable.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastFocusable) {
+                        firstFocusable.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
+        });
+
+        // ========================================
+        // 🔄 DYNAMIC REFRESH FUNCTIONALITY
+        // ========================================
+        
+        // Auto-refresh manager for dynamic content updates
+        class DynamicRefreshManager {
+            constructor() {
+                this.refreshInterval = null;
+                this.refreshCallbacks = new Map();
+                this.isPageVisible = true;
+                this.defaultInterval = 30000; // 30 seconds default
+                
+                // Listen for page visibility changes
+                document.addEventListener('visibilitychange', () => {
+                    this.isPageVisible = !document.hidden;
+                    if (this.isPageVisible) {
+                        console.log('Page visible - resuming dynamic refresh');
+                        this.startRefresh();
+                    } else {
+                        console.log('Page hidden - pausing dynamic refresh');
+                        this.stopRefresh();
+                    }
+                });
+                
+                // Listen for online/offline events
+                window.addEventListener('online', () => {
+                    console.log('Connection restored - resuming dynamic refresh');
+                    this.startRefresh();
+                });
+                
+                window.addEventListener('offline', () => {
+                    console.log('Connection lost - pausing dynamic refresh');
+                    this.stopRefresh();
+                });
+            }
+            
+            // Register a refresh callback for a specific component
+            registerRefreshCallback(name, callback, interval = null) {
+                this.refreshCallbacks.set(name, {
+                    callback: callback,
+                    interval: interval || this.defaultInterval,
+                    lastRefresh: Date.now()
+                });
+                console.log(`Registered refresh callback: ${name}`);
+            }
+            
+            // Unregister a refresh callback
+            unregisterRefreshCallback(name) {
+                this.refreshCallbacks.delete(name);
+                console.log(`Unregistered refresh callback: ${name}`);
+            }
+            
+            // Start the refresh cycle
+            startRefresh() {
+                if (this.refreshInterval) {
+                    return; // Already running
+                }
+                
+                console.log('Starting dynamic refresh manager');
+                
+                // Run refresh cycle every 5 seconds (will check individual intervals)
+                this.refreshInterval = setInterval(() => {
+                    if (!this.isPageVisible || !navigator.onLine) {
+                        return; // Skip if page is hidden or offline
+                    }
+                    
+                    const now = Date.now();
+                    this.refreshCallbacks.forEach((config, name) => {
+                        const timeSinceLastRefresh = now - config.lastRefresh;
+                        
+                        if (timeSinceLastRefresh >= config.interval) {
+                            console.log(`Refreshing: ${name}`);
+                            try {
+                                config.callback();
+                                config.lastRefresh = now;
+                            } catch (error) {
+                                console.error(`Error refreshing ${name}:`, error);
+                            }
+                        }
+                    });
+                }, 5000); // Check every 5 seconds
+            }
+            
+            // Stop the refresh cycle
+            stopRefresh() {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                    this.refreshInterval = null;
+                    console.log('Stopped dynamic refresh manager');
+                }
+            }
+            
+            // Manually trigger a specific refresh
+            triggerRefresh(name) {
+                const config = this.refreshCallbacks.get(name);
+                if (config) {
+                    console.log(`Manually triggering refresh: ${name}`);
+                    try {
+                        config.callback();
+                        config.lastRefresh = Date.now();
+                    } catch (error) {
+                        console.error(`Error manually refreshing ${name}:`, error);
+                    }
+                } else {
+                    console.warn(`No refresh callback found for: ${name}`);
+                }
+            }
+            
+            // Refresh all registered callbacks immediately
+            refreshAll() {
+                console.log('Refreshing all callbacks');
+                this.refreshCallbacks.forEach((config, name) => {
+                    this.triggerRefresh(name);
+                });
+            }
+        }
+        
+        // Initialize the global refresh manager
+        window.refreshManager = new DynamicRefreshManager();
+        
+        // Auto-start refresh on page load (if page is visible)
+        if (!document.hidden) {
+            window.refreshManager.startRefresh();
+        }
+        
+        // ========================================
+        // 📊 AJAX HELPER FOR DYNAMIC UPDATES
+        // ========================================
+        
+        // Utility function for making AJAX requests with CSRF token
+        window.fetchWithCSRF = async function(url, options = {}) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(csrfToken && { 'X-CSRFToken': csrfToken })
+                },
+                credentials: 'same-origin'
+            };
+            
+            const mergedOptions = {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...(options.headers || {})
+                }
+            };
+            
+            try {
+                const response = await fetch(url, mergedOptions);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return await response.json();
+                }
+                
+                return await response.text();
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        };
+        
+        // ========================================
+        // 🔔 NOTIFICATION SYSTEM
+        // ========================================
+        
+        // Show toast notification
+        window.showNotification = function(message, type = 'info', duration = 3000) {
+            // Remove existing notification if any
+            const existingNotification = document.querySelector('.dynamic-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+            
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `dynamic-notification fixed top-4 right-4 ${colors[type] || colors.info} text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-slide-in`;
+            notification.innerHTML = `
+                <span class="text-lg font-bold">${icons[type] || icons.info}</span>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+                notification.style.animation = 'slide-out 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
+        };
+        
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slide-in {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slide-out {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+            .animate-slide-in {
+                animation: slide-in 0.3s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // ========================================
+        // 🔄 PAGE-SPECIFIC REFRESH EXAMPLES
+        // ========================================
+        
+        // Example: Auto-refresh for specific page elements
+        // Child pages can register their own refresh callbacks like this:
+        
+        // window.refreshManager.registerRefreshCallback('dashboardStats', async () => {
+        //     const stats = await window.fetchWithCSRF('/api/dashboard/stats');
+        //     // Update dashboard stats in the DOM
+        // }, 60000); // Refresh every 60 seconds
+        
+        console.log('✅ Dynamic refresh system initialized');
     </script>
 
     {% block extra_js %}{% endblock %}

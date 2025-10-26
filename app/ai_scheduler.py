@@ -91,27 +91,33 @@ class AISchedulerAssistant:
             
             # Section conflict
             if schedule.section_id == section_id:
+                # Format section name as DEPTCODE-YEARLEVELSECTIONName
+                section_display = f"{schedule.section.department.department_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.department else schedule.section.section_name if schedule.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'section',
-                    'message': f'Section already has a class at this time',
+                    'message': f'Section {section_display} already has a class at this time',
                     'schedule': schedule,
                     'severity': 'critical'
                 })
             
             # Faculty conflict
             if faculty_id and schedule.faculty_id == faculty_id:
+                # Format section name as DEPTCODE-YEARLEVELSECTIONName
+                section_display = f"{schedule.section.department.department_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.department else schedule.section.section_name if schedule.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'faculty',
-                    'message': f'Faculty {schedule.faculty.full_name} already assigned at this time',
+                    'message': f'Faculty {schedule.faculty.full_name} is already teaching {section_display} ({schedule.subject.subject_code if schedule.subject else "N/A"})',
                     'schedule': schedule,
                     'severity': 'critical'
                 })
             
             # Room conflict
             if room_id and schedule.room_id == room_id:
+                # Format section name as DEPTCODE-YEARLEVELSECTIONName
+                section_display = f"{schedule.section.department.department_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.department else schedule.section.section_name if schedule.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'room',
-                    'message': f'Room {schedule.room.room_number} already occupied at this time',
+                    'message': f'Room {schedule.room.room_number} is already occupied by {section_display} ({schedule.subject.subject_code if schedule.subject else "N/A"})',
                     'schedule': schedule,
                     'severity': 'critical'
                 })
@@ -170,10 +176,22 @@ class AISchedulerAssistant:
         start_time = exam_data.get('start_time')
         end_time = exam_data.get('end_time')
         section_id = exam_data.get('section_id')
+        subject_id = exam_data.get('subject_id')
         faculty_id = exam_data.get('faculty_id')
         room_id = exam_data.get('room_id')
         
         for exam in existing_exams:
+            # Check if same subject is already scheduled for exam in the same section (regardless of date/time)
+            # This prevents double-booking the same exam
+            if subject_id and exam.subject_id == subject_id and exam.section_id == section_id:
+                conflicts.append({
+                    'type': 'duplicate',
+                    'message': f'Subject {exam.subject.subject_code} is already scheduled for an exam on {exam.exam_date.strftime("%B %d, %Y")} at {exam.start_time.strftime("%I:%M %p")}',
+                    'schedule': exam,
+                    'severity': 'critical'
+                })
+                continue  # Skip other checks for this exam since it's a duplicate
+            
             # Check if same date
             if exam.exam_date != exam_date:
                 continue
@@ -182,31 +200,37 @@ class AISchedulerAssistant:
             if not self._times_overlap(start_time, end_time, exam.start_time, exam.end_time):
                 continue
             
-            # Section conflict
+            # Section conflict - same section cannot have multiple exams at the same time
             if exam.section_id == section_id:
+                # Format section name as DEPTCODE-YEARLEVELSECTIONName
+                section_display = f"{exam.section.department.department_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.department else exam.section.section_name if exam.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'section',
-                    'message': f'Section {exam.section.section_name} already has an exam scheduled',
+                    'message': f'Section {section_display} already has an exam scheduled for {exam.subject.subject_code}',
                     'schedule': exam,
                     'severity': 'high'
                 })
             
-            # Faculty conflict
+            # Faculty conflict - same faculty cannot proctor multiple exams at the same time (across ANY section)
             if faculty_id and exam.faculty_id == faculty_id:
+                # Format section name as DEPTCODE-YEARLEVELSECTIONName
+                section_display = f"{exam.section.department.department_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.department else exam.section.section_name if exam.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'faculty',
-                    'message': f'Faculty {exam.faculty.full_name} is already assigned to another exam',
+                    'message': f'Faculty {exam.faculty.full_name} is already proctoring an exam for {section_display} ({exam.subject.subject_code})',
                     'schedule': exam,
                     'severity': 'high'
                 })
             
-            # Room conflict
+            # Room conflict - same room cannot host multiple exams at the same time (across ANY section)
             if room_id and exam.room_id == room_id:
+                # Format section name as DEPTCODE-YEARLEVELSECTIONName
+                section_display = f"{exam.section.department.department_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.department else exam.section.section_name if exam.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'room',
-                    'message': f'Room {exam.room.room_number} is already assigned to another exam',
+                    'message': f'Room {exam.room.room_number} is already occupied by {section_display} ({exam.subject.subject_code})',
                     'schedule': exam,
-                    'severity': 'medium'
+                    'severity': 'high'  # Changed from 'medium' to 'high' - room conflicts are critical
                 })
         
         return conflicts
@@ -219,6 +243,13 @@ class AISchedulerAssistant:
         from datetime import timedelta
         
         recommendations = []
+        
+        # Check if there's a duplicate exam conflict - if so, no recommendations needed
+        has_duplicate = any(c['type'] == 'duplicate' for c in conflicts)
+        if has_duplicate:
+            # For duplicate exams, the only solution is to not create a duplicate
+            # Return empty recommendations since the user should not create this exam at all
+            return []
         
         # Recommend alternative time slots on same date
         alternative_times = self._find_alternative_exam_times(
@@ -379,7 +410,7 @@ class AISchedulerAssistant:
         current_room_id = exam_data.get('room_id')
         
         # Get all available rooms
-        all_rooms = Room.query.filter_by(is_active=True).all()
+        all_rooms = Room.query.filter_by(is_available=True).all()
         
         for room in all_rooms:
             if room.id == current_room_id:
@@ -403,12 +434,11 @@ class AISchedulerAssistant:
                 alternatives.append({
                     'room_id': room.id,
                     'display': f'{room.room_number} ({room.building.building_name if room.building else "N/A"})',
-                    'capacity': room.capacity or 0,
                     'score': 100
                 })
         
-        # Sort by capacity (larger rooms first for exams)
-        return sorted(alternatives, key=lambda x: x['capacity'], reverse=True)[:5]
+        # Sort by room number for consistency
+        return sorted(alternatives, key=lambda x: x['display'])[:5]
     
     def _find_alternative_exam_faculty(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
         """Find alternative faculty for exam proctoring"""
@@ -458,6 +488,14 @@ class AISchedulerAssistant:
             return ""
         
         try:
+            # Check if there's a duplicate exam conflict
+            has_duplicate = any(c['type'] == 'duplicate' for c in conflicts)
+            
+            if has_duplicate:
+                # For duplicate exams, provide a clear message without AI call
+                duplicate_conflict = next(c for c in conflicts if c['type'] == 'duplicate')
+                return f"⚠️ This subject is already scheduled for an exam. You cannot create duplicate exams for the same subject in the same section. Please review the existing exam schedule."
+            
             # Prepare context for AI
             conflict_summary = "\n".join([
                 f"- {c['type'].title()} Conflict: {c['message']}" 
@@ -467,7 +505,7 @@ class AISchedulerAssistant:
             recommendation_summary = "\n".join([
                 f"- {r['type'].title()}: {len(r['options'])} options available"
                 for r in recommendations
-            ])
+            ]) if recommendations else "No alternative recommendations available"
             
             prompt = f"""You are an intelligent scheduling assistant for a university. 
             

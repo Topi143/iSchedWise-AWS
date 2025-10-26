@@ -449,12 +449,22 @@
                             <p class="text-xs sm:text-sm text-gray-600">Manage system users and access control</p>
                         </div>
                     </div>
-                    <button onclick="openAddModal()" class="btn-primary px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[44px]">
+                    <!-- Primary: Quick Generate (Default Account Creation) -->
+                    <button onclick="openQuickGenerateModal()" class="btn-primary px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[44px]">
                         <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
                         <span class="hidden sm:inline">Add New User</span>
                         <span class="sm:hidden">Add User</span>
+                    </button>
+                    
+                    <!-- Secondary: Manual Entry (Advanced) -->
+                    <button onclick="openAddModal()" class="bg-gray-600 hover:bg-gray-700 px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[44px]">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Custom Setup</span>
+                        <span class="sm:hidden">Custom</span>
                     </button>
                 </div>
             </div>
@@ -815,6 +825,215 @@
                     Activate User
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Generate User Modal (Default Account Creation) -->
+<div id="quickGenerateModal" class="modal">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4 overflow-hidden animate-scale-in">
+        <!-- Header with gradient -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-white">Create New User</h3>
+                </div>
+                <button onclick="closeQuickGenerateModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4 sm:p-6">
+            <!-- Info Alert -->
+            <div class="bg-green-50 border-l-4 border-green-500 p-3 mb-4 rounded">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <div class="text-xs text-green-800">
+                        <p class="font-semibold mb-1">✨ Quick Account Setup</p>
+                        <p>Username and email are auto-generated. Default password: <strong>"ischedwise"</strong></p>
+                        <p class="mt-1 text-green-700">User can change password after first login.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Selection -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        Role
+                    </span>
+                </label>
+                <select id="quickGenerateRole" onchange="toggleQuickGenerateDepartmentField()" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white">
+                    <option value="dean">Dean</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <!-- Department Selection (for Deans) -->
+            <div id="quickGenerateDepartmentField">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Department(s) <span class="text-gray-500 font-normal">(Select at least one)</span>
+                    </span>
+                </label>
+                <div class="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto bg-gray-50 space-y-2">
+                    {% for department in departments %}
+                    <label class="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                        <input type="checkbox" class="quick-generate-department-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" value="{{ department.id }}">
+                        <span class="text-sm text-gray-700">{{ department.department_name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row gap-2 sm:gap-3 border-t">
+            <button type="button" onclick="closeQuickGenerateModal()" class="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold text-sm transition-all border border-gray-300 min-h-[44px]">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmQuickGenerate()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg min-h-[44px] flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Credentials Display Modal -->
+<div id="credentialsModal" class="modal">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg m-4 overflow-hidden animate-scale-in">
+        <!-- Header with gradient -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-white">User Credentials - Share with User</h3>
+                </div>
+                <button onclick="closeCredentialsModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4 sm:p-6">
+            <!-- Success Message -->
+            <div class="bg-green-50 border-l-4 border-green-500 p-3 mb-4 rounded">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <p class="text-sm text-green-700 font-semibold">User account generated successfully!</p>
+                </div>
+            </div>
+
+            <!-- Credentials Card -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                <h4 class="text-sm font-bold text-blue-900 mb-3 flex items-center">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                    </svg>
+                    Login Credentials
+                </h4>
+                
+                <div class="space-y-3">
+                    <!-- Username -->
+                    <div class="bg-white rounded-lg p-3 border border-blue-200">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Username</label>
+                        <div class="flex items-center justify-between">
+                            <code id="credUsername" class="text-sm font-mono font-bold text-gray-900">-</code>
+                            <button onclick="copyToClipboard('credUsername', 'Username')" class="text-blue-600 hover:text-blue-700 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="bg-white rounded-lg p-3 border border-blue-200">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+                        <div class="flex items-center justify-between">
+                            <code id="credPassword" class="text-sm font-mono font-bold text-gray-900">-</code>
+                            <button onclick="copyToClipboard('credPassword', 'Password')" class="text-blue-600 hover:text-blue-700 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="bg-white rounded-lg p-3 border border-blue-200">
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <label class="block font-semibold text-gray-600 mb-1">Role</label>
+                                <span id="credRole" class="font-medium text-gray-900">-</span>
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-gray-600 mb-1">Email</label>
+                                <span id="credEmail" class="font-medium text-gray-900">-</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="block font-semibold text-gray-600 mb-1">Departments</label>
+                            <span id="credDepartments" class="font-medium text-gray-900">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Note -->
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="text-xs text-amber-700">
+                        <p class="font-semibold">⚠️ Important</p>
+                        <p>Share these credentials securely. User should change password on first login.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex gap-2 border-t">
+            <button type="button" onclick="printCredentials()" class="flex-1 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg min-h-[44px] flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                </svg>
+                Print
+            </button>
+            <button type="button" onclick="closeCredentialsModal()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg min-h-[44px]">
+                Done
+            </button>
         </div>
     </div>
 </div>
@@ -1346,6 +1565,247 @@
     function removeToast(toast) {
         toast.classList.add('removing');
         setTimeout(() => toast.remove(), 300);
+    }
+    
+    // Quick Generate User Functions
+    function openQuickGenerateModal() {
+        document.getElementById('quickGenerateRole').value = 'dean';
+        document.getElementById('quickGenerateDepartmentField').style.display = 'block';
+        // Uncheck all department checkboxes
+        document.querySelectorAll('.quick-generate-department-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById('quickGenerateModal').classList.add('show');
+    }
+    
+    function closeQuickGenerateModal() {
+        document.getElementById('quickGenerateModal').classList.remove('show');
+    }
+    
+    function toggleQuickGenerateDepartmentField() {
+        const role = document.getElementById('quickGenerateRole').value;
+        const departmentField = document.getElementById('quickGenerateDepartmentField');
+        
+        if (role === 'dean') {
+            departmentField.style.display = 'block';
+        } else {
+            departmentField.style.display = 'none';
+        }
+    }
+    
+    function confirmQuickGenerate() {
+        const role = document.getElementById('quickGenerateRole').value;
+        const departmentIds = [];
+        
+        // Get selected departments (for deans)
+        if (role === 'dean') {
+            document.querySelectorAll('.quick-generate-department-checkbox:checked').forEach(cb => {
+                departmentIds.push(parseInt(cb.value));
+            });
+        }
+        
+        // Send request to generate user
+        fetch('/users/api/users/quick-generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                role: role,
+                department_ids: departmentIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            closeQuickGenerateModal();
+            
+            if (data.success) {
+                // Show credentials modal
+                displayCredentials(data.credentials);
+                loadUsers(); // Reload user list
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error generating user:', error);
+            closeQuickGenerateModal();
+            showNotification('Error generating user', 'error');
+        });
+    }
+    
+    function displayCredentials(credentials) {
+        // Fill in credentials
+        document.getElementById('credUsername').textContent = credentials.username;
+        document.getElementById('credPassword').textContent = credentials.password;
+        document.getElementById('credRole').textContent = credentials.role.charAt(0).toUpperCase() + credentials.role.slice(1);
+        document.getElementById('credEmail').textContent = credentials.email;
+        document.getElementById('credDepartments').textContent = credentials.department_names || 'None';
+        
+        // Show modal
+        document.getElementById('credentialsModal').classList.add('show');
+    }
+    
+    function closeCredentialsModal() {
+        document.getElementById('credentialsModal').classList.remove('show');
+    }
+    
+    function copyToClipboard(elementId, label) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+        
+        // Create temporary input to copy
+        const tempInput = document.createElement('input');
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        
+        showNotification(`${label} copied to clipboard!`, 'success');
+    }
+    
+    function printCredentials() {
+        const username = document.getElementById('credUsername').textContent;
+        const password = document.getElementById('credPassword').textContent;
+        const role = document.getElementById('credRole').textContent;
+        const email = document.getElementById('credEmail').textContent;
+        const departments = document.getElementById('credDepartments').textContent;
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>iSchedWise Credentials</title>
+                <style>
+                    @page {
+                        margin: 0;
+                    }
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: Arial, sans-serif;
+                        padding: 30px;
+                        background: white;
+                    }
+                    .container {
+                        max-width: 500px;
+                        margin: 0 auto;
+                        border: 2px solid #2563eb;
+                        border-radius: 12px;
+                        padding: 30px;
+                        background: white;
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        padding-bottom: 20px;
+                        border-bottom: 2px solid #2563eb;
+                    }
+                    .header h1 {
+                        color: #2563eb;
+                        font-size: 28px;
+                        margin-bottom: 5px;
+                    }
+                    .header p {
+                        color: #6b7280;
+                        font-size: 14px;
+                    }
+                    .credentials {
+                        margin: 20px 0;
+                    }
+                    .credential-row {
+                        display: flex;
+                        margin: 15px 0;
+                        padding: 12px;
+                        background: #f9fafb;
+                        border-radius: 6px;
+                        border-left: 3px solid #2563eb;
+                    }
+                    .label {
+                        font-weight: bold;
+                        color: #374151;
+                        min-width: 120px;
+                        font-size: 14px;
+                    }
+                    .value {
+                        font-size: 16px;
+                        color: #1f2937;
+                        font-weight: 600;
+                        font-family: 'Courier New', monospace;
+                    }
+                    .note {
+                        margin-top: 25px;
+                        padding: 15px;
+                        background: #fef3c7;
+                        border-left: 4px solid #f59e0b;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        color: #92400e;
+                        line-height: 1.5;
+                    }
+                    @media print {
+                        body {
+                            padding: 15px;
+                        }
+                        .container {
+                            border: 2px solid #000;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>iSchedWise</h1>
+                        <p>Login Credentials</p>
+                    </div>
+                    
+                    <div class="credentials">
+                        <div class="credential-row">
+                            <div class="label">Username:</div>
+                            <div class="value">${username}</div>
+                        </div>
+                        <div class="credential-row">
+                            <div class="label">Password:</div>
+                            <div class="value">${password}</div>
+                        </div>
+                        <div class="credential-row">
+                            <div class="label">Role:</div>
+                            <div class="value">${role}</div>
+                        </div>
+                        <div class="credential-row">
+                            <div class="label">Email:</div>
+                            <div class="value">${email}</div>
+                        </div>
+                        <div class="credential-row">
+                            <div class="label">Department(s):</div>
+                            <div class="value">${departments}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="note">
+                        <strong>⚠️ Important Notice:</strong>
+                        <ul style="margin: 8px 0 0 20px; list-style-type: disc;">
+                            <li><strong>This account will expire in 24 hours</strong> if not configured</li>
+                            <li>Login immediately and update your username, email, and password</li>
+                            <li>After updating your credentials, the account will remain active permanently</li>
+                            <li>Keep these credentials secure and confidential</li>
+                        </ul>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
     }
     
     // Modals will only close when clicking the X button

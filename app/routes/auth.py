@@ -32,6 +32,12 @@ def login():
             flash('Invalid username/email or password', 'error')
             return redirect(url_for('auth.login'))
         
+        # Check if temporary account has expired and disable it
+        if user.check_and_disable_if_expired():
+            db.session.commit()
+            flash('This temporary account has expired (24 hours). Please contact the administrator for a new account.', 'error')
+            return redirect(url_for('auth.login'))
+        
         if not user.is_active:
             flash('Your account has been deactivated. Please contact the administrator.', 'error')
             return redirect(url_for('auth.login'))
@@ -55,6 +61,11 @@ def login():
         )
         
         db.session.commit()
+        
+        # Check if this is a temporary auto-generated user
+        if user.is_temporary_user():
+            flash('Welcome! Please update your account details (username, email, and password) to continue.', 'info')
+            return redirect(url_for('profile.index'))
         
         # Redirect to next page or dashboard
         next_page = request.args.get('next')

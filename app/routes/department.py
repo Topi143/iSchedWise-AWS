@@ -53,6 +53,8 @@ def add():
     try:
         department_code = request.form.get('department_code', '').strip().upper()
         department_name = request.form.get('department_name', '').strip()
+        full_department_name = request.form.get('full_department_name', '').strip() or None
+        secretary_name = request.form.get('secretary_name', '').strip() or None
         
         if not all([department_code, department_name]):
             flash('Please fill in all required fields.', 'error')
@@ -65,6 +67,8 @@ def add():
         new_department = Department(
             department_code=department_code,
             department_name=department_name,
+            full_department_name=full_department_name,
+            secretary_name=secretary_name,
             is_active=True
         )
         
@@ -93,6 +97,8 @@ def edit():
         department_id = request.form.get('department_id', '').strip()
         department_code = request.form.get('department_code', '').strip().upper()
         department_name = request.form.get('department_name', '').strip()
+        full_department_name = request.form.get('full_department_name', '').strip() or None
+        secretary_name = request.form.get('secretary_name', '').strip() or None
         
         if not all([department_id, department_code, department_name]):
             flash('Please fill in all required fields.', 'error')
@@ -114,9 +120,15 @@ def edit():
             changes['code'] = f'{department.department_code} → {department_code}'
         if department.department_name != department_name:
             changes['name'] = f'{department.department_name} → {department_name}'
+        if department.full_department_name != full_department_name:
+            changes['full_name'] = f'{department.full_department_name or "None"} → {full_department_name or "None"}'
+        if department.secretary_name != secretary_name:
+            changes['secretary'] = f'{department.secretary_name or "None"} → {secretary_name or "None"}'
         
         department.department_code = department_code
         department.department_name = department_name
+        department.full_department_name = full_department_name
+        department.secretary_name = secretary_name
         
         # Log activity with changes
         log_edit('department', department.id, department_code, changes if changes else None)

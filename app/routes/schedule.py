@@ -119,7 +119,7 @@ def add_institution_logos(ws):
         pass  # Continue without logos if not found
 
 
-def add_institution_logos_for_posting(ws):
+def add_institution_logos_for_posting(ws, department_logo_path=None):
     """Add institution logos for posting exports - centered with table layout"""
     try:
         from openpyxl.drawing.image import Image as ExcelImage
@@ -141,38 +141,73 @@ def add_institution_logos_for_posting(ws):
             ws.add_image(img_left, 'B1')
             print(f"[LOGO DEBUG] Left logo added for posting export (centered)")
         
-        # Always create placeholder for right side (no Bagong Pilipinas logo)
-        try:
-            import io as img_io
-            # Create a 100x100 placeholder image
-            placeholder = Image.new('RGB', (100, 100), color='white')
-            draw = ImageDraw.Draw(placeholder)
+        # Add department logo on right side (column G)
+        if department_logo_path:
+            # Construct full path to department logo
+            # Remove leading slash and 'static/' if present in path
+            clean_path = department_logo_path.lstrip('/')
+            if clean_path.startswith('static/'):
+                clean_path = clean_path[7:]  # Remove 'static/' prefix
             
-            # Draw a border
-            draw.rectangle([(0, 0), (99, 99)], outline='#d1d5db', width=2)
+            logo_right_path = os.path.join(base_dir, 'static', clean_path)
             
-            # Add text
+            print(f"[LOGO DEBUG] Original path: {department_logo_path}")
+            print(f"[LOGO DEBUG] Cleaned path: {clean_path}")
+            print(f"[LOGO DEBUG] Full path: {logo_right_path}")
+            print(f"[LOGO DEBUG] File exists: {os.path.exists(logo_right_path)}")
+            
+            if os.path.exists(logo_right_path):
+                img_right = ExcelImage(logo_right_path)
+                img_right.width = 100
+                img_right.height = 100
+                ws.add_image(img_right, 'G1')
+                print(f"[LOGO DEBUG] Department logo added for posting export: {logo_right_path}")
+            else:
+                print(f"[LOGO DEBUG] Department logo not found at: {logo_right_path}")
+                # Create placeholder if logo file doesn't exist
+                try:
+                    import io as img_io
+                    placeholder = Image.new('RGB', (100, 100), color='white')
+                    draw = ImageDraw.Draw(placeholder)
+                    draw.rectangle([(0, 0), (99, 99)], outline='#d1d5db', width=2)
+                    try:
+                        font = ImageFont.truetype("arial.ttf", 9)
+                    except:
+                        font = ImageFont.load_default()
+                    text = "Dept\nLogo"
+                    draw.text((50, 50), text, fill='#9ca3af', font=font, anchor='mm', align='center')
+                    img_buffer = img_io.BytesIO()
+                    placeholder.save(img_buffer, format='PNG')
+                    img_buffer.seek(0)
+                    img_right = ExcelImage(img_buffer)
+                    img_right.width = 100
+                    img_right.height = 100
+                    ws.add_image(img_right, 'G1')
+                except Exception as placeholder_error:
+                    print(f"[LOGO DEBUG] Could not create placeholder: {str(placeholder_error)}")
+        else:
+            # No department logo provided - create placeholder
             try:
-                font = ImageFont.truetype("arial.ttf", 9)
-            except:
-                font = ImageFont.load_default()
-            
-            text = "Logo\nPlaceholder"
-            draw.text((50, 50), text, fill='#9ca3af', font=font, anchor='mm', align='center')
-            
-            # Save to BytesIO
-            img_buffer = img_io.BytesIO()
-            placeholder.save(img_buffer, format='PNG')
-            img_buffer.seek(0)
-            
-            # Add to worksheet in column G - centered with table
-            img_right = ExcelImage(img_buffer)
-            img_right.width = 100
-            img_right.height = 100
-            ws.add_image(img_right, 'G1')
-            print(f"[LOGO DEBUG] Placeholder added for posting export (centered)")
-        except Exception as placeholder_error:
-            print(f"[LOGO DEBUG] Could not create placeholder: {str(placeholder_error)}")
+                import io as img_io
+                placeholder = Image.new('RGB', (100, 100), color='white')
+                draw = ImageDraw.Draw(placeholder)
+                draw.rectangle([(0, 0), (99, 99)], outline='#d1d5db', width=2)
+                try:
+                    font = ImageFont.truetype("arial.ttf", 9)
+                except:
+                    font = ImageFont.load_default()
+                text = "Dept\nLogo"
+                draw.text((50, 50), text, fill='#9ca3af', font=font, anchor='mm', align='center')
+                img_buffer = img_io.BytesIO()
+                placeholder.save(img_buffer, format='PNG')
+                img_buffer.seek(0)
+                img_right = ExcelImage(img_buffer)
+                img_right.width = 100
+                img_right.height = 100
+                ws.add_image(img_right, 'G1')
+                print(f"[LOGO DEBUG] Placeholder added for posting export (no dept logo)")
+            except Exception as placeholder_error:
+                print(f"[LOGO DEBUG] Could not create placeholder: {str(placeholder_error)}")
             
     except Exception as e:
         print(f"[LOGO ERROR] Error adding logos for posting: {str(e)}")
@@ -224,7 +259,8 @@ def add_institution_header_for_posting(ws, department_name):
     ws['A3'].alignment = Alignment(horizontal='center', vertical='center')
     ws.merge_cells('A3:H3')
     
-    dept_name = department_name.upper() if department_name else 'COLLEGE'
+    # Use department name as provided (don't force uppercase unless it's 'COLLEGE')
+    dept_name = department_name if department_name else 'COLLEGE'
     ws['A4'] = f'{dept_name}'
     ws['A4'].font = Font(bold=True, size=11)
     ws['A4'].alignment = Alignment(horizontal='center', vertical='center')
@@ -378,7 +414,7 @@ def apply_grid_borders(ws, last_row):
             ws.cell(row=row, column=col).border = thin_border
 
 
-def add_signature_section(ws, sig_start_row, department_id, dept_name):
+def add_signature_section(ws, sig_start_row, department_id, dept_name, dean_name=None):
     """Add signature section with dean and college president"""
     # Prepared by section (column D)
     ws.cell(row=sig_start_row, column=4, value='Prepared by :')
@@ -390,8 +426,9 @@ def add_signature_section(ws, sig_start_row, department_id, dept_name):
     ws.cell(row=sig_start_row, column=6).font = Font(size=10)
     ws.cell(row=sig_start_row, column=6).alignment = Alignment(horizontal='left')
     
-    # Name of the Dean label (column D) - BOLD
-    ws.cell(row=sig_start_row + 2, column=4, value='Name of the Dean')
+    # Dean name (column D) - Use provided dean name or default - BOLD and UPPERCASE
+    dean_display_name = dean_name.upper() if dean_name else 'NAME OF THE DEAN'
+    ws.cell(row=sig_start_row + 2, column=4, value=dean_display_name)
     ws.cell(row=sig_start_row + 2, column=4).font = Font(bold=True, size=10)
     ws.cell(row=sig_start_row + 2, column=4).alignment = Alignment(horizontal='left')
     
@@ -400,7 +437,7 @@ def add_signature_section(ws, sig_start_row, department_id, dept_name):
     ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
     ws.cell(row=sig_start_row + 2, column=6).alignment = Alignment(horizontal='left')
     
-    # Dean title (column D) - Directly under "Name of the Dean" - CENTERED
+    # Dean title (column D) - Directly under dean name - CENTERED
     dean_title = f"Dean, {dept_name}" if dept_name else "Dean"
     ws.cell(row=sig_start_row + 3, column=4, value=dean_title)
     ws.cell(row=sig_start_row + 3, column=4).font = Font(size=10)
@@ -637,6 +674,10 @@ def index():
     # Get department filter from query params
     department_filter = request.args.get('department_id', type=int)
     
+    # Auto-apply filter if user has only 1 department and no filter specified
+    if department_filter is None and len(departments) == 1:
+        department_filter = departments[0].id
+    
     # Get sections based on filter
     sections_query = Section.query.filter_by(is_active=True)
     
@@ -698,10 +739,88 @@ def index():
                 Schedule.start_time
             ).all()
     
-    # Get faculties for faculty tab
-    faculties_query = Faculty.query.filter_by(is_active=True)
-    if current_user.role == 'Dean' and current_user.department_id:
-        faculties_query = faculties_query.filter_by(department_id=current_user.department_id)
+    # Get faculties for faculty tab - Show any faculty with schedules in accessible departments
+    # Get department filter parameter
+    faculty_department_filter = request.args.get('faculty_department_id', type=int)
+    
+    # Build faculty query - show faculty based on their schedules, not their department assignment
+    if user_department_ids is None:
+        # Admin - show faculty who have schedules in any department
+        if faculty_department_filter:
+            # Filter by specific department - show ANY faculty with schedules in that department
+            faculty_ids_with_schedules = db.session.query(Schedule.faculty_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id == faculty_department_filter
+                )
+            if current_settings:
+                faculty_ids_with_schedules = faculty_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            faculty_ids_with_schedules = [f[0] for f in faculty_ids_with_schedules.all() if f[0] is not None]
+            faculties_query = Faculty.query.filter(
+                Faculty.is_active == True,
+                Faculty.id.in_(faculty_ids_with_schedules)
+            )
+        else:
+            # Show all active faculty
+            faculties_query = Faculty.query.filter_by(is_active=True)
+    else:
+        # Dean - show ANY faculty who have schedules in dean's assigned departments
+        if faculty_department_filter and faculty_department_filter in user_department_ids:
+            # Filter by specific department within dean's access
+            # Show ANY faculty (regardless of their assigned department) with schedules in this department
+            faculty_ids_with_schedules = db.session.query(Schedule.faculty_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id == faculty_department_filter
+                )
+            if current_settings:
+                faculty_ids_with_schedules = faculty_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            faculty_ids_with_schedules = [f[0] for f in faculty_ids_with_schedules.all() if f[0] is not None]
+            faculties_query = Faculty.query.filter(
+                Faculty.is_active == True,
+                Faculty.id.in_(faculty_ids_with_schedules)
+            )
+        elif len(user_department_ids) == 1:
+            # Single department - auto-filter to show ANY faculty with schedules in that department
+            faculty_ids_with_schedules = db.session.query(Schedule.faculty_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id.in_(user_department_ids)
+                )
+            if current_settings:
+                faculty_ids_with_schedules = faculty_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            faculty_ids_with_schedules = [f[0] for f in faculty_ids_with_schedules.all() if f[0] is not None]
+            faculties_query = Faculty.query.filter(
+                Faculty.is_active == True,
+                Faculty.id.in_(faculty_ids_with_schedules)
+            )
+        else:
+            # Multiple departments - show ANY faculty with schedules in any of dean's departments
+            faculty_ids_with_schedules = db.session.query(Schedule.faculty_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id.in_(user_department_ids)
+                )
+            if current_settings:
+                faculty_ids_with_schedules = faculty_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            faculty_ids_with_schedules = [f[0] for f in faculty_ids_with_schedules.all() if f[0] is not None]
+            faculties_query = Faculty.query.filter(
+                Faculty.is_active == True,
+                Faculty.id.in_(faculty_ids_with_schedules)
+            )
+    
     faculties_list = faculties_query.order_by(Faculty.full_name).all()
     
     # Calculate faculty schedule counts for current academic period
@@ -745,8 +864,89 @@ def index():
                 Schedule.start_time
             ).all()
     
-    # Get rooms for room tab
-    rooms_list = Room.query.filter_by(is_available=True).order_by(Room.room_number).all()
+    # Get rooms for room tab - Show rooms based on their schedules in accessible departments
+    # Get department filter parameter
+    room_department_filter = request.args.get('room_department_id', type=int)
+    
+    # Build room query - show rooms based on their schedules, not building
+    if user_department_ids is None:
+        # Admin - show rooms that have schedules in any department
+        if room_department_filter:
+            # Filter by specific department - show ANY room with schedules in that department
+            room_ids_with_schedules = db.session.query(Schedule.room_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id == room_department_filter
+                )
+            if current_settings:
+                room_ids_with_schedules = room_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            room_ids_with_schedules = [r[0] for r in room_ids_with_schedules.all() if r[0] is not None]
+            rooms_query = Room.query.filter(
+                Room.is_available == True,
+                Room.id.in_(room_ids_with_schedules)
+            )
+        else:
+            # Show all available rooms
+            rooms_query = Room.query.filter_by(is_available=True)
+    else:
+        # Dean - show ANY room that has schedules in dean's assigned departments
+        if room_department_filter and room_department_filter in user_department_ids:
+            # Filter by specific department within dean's access
+            # Show ANY room (regardless of building) with schedules in this department
+            room_ids_with_schedules = db.session.query(Schedule.room_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id == room_department_filter
+                )
+            if current_settings:
+                room_ids_with_schedules = room_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            room_ids_with_schedules = [r[0] for r in room_ids_with_schedules.all() if r[0] is not None]
+            rooms_query = Room.query.filter(
+                Room.is_available == True,
+                Room.id.in_(room_ids_with_schedules)
+            )
+        elif len(user_department_ids) == 1:
+            # Single department - auto-filter to show ANY room with schedules in that department
+            room_ids_with_schedules = db.session.query(Schedule.room_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id.in_(user_department_ids)
+                )
+            if current_settings:
+                room_ids_with_schedules = room_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            room_ids_with_schedules = [r[0] for r in room_ids_with_schedules.all() if r[0] is not None]
+            rooms_query = Room.query.filter(
+                Room.is_available == True,
+                Room.id.in_(room_ids_with_schedules)
+            )
+        else:
+            # Multiple departments - show ANY room with schedules in any of dean's departments
+            room_ids_with_schedules = db.session.query(Schedule.room_id).distinct()\
+                .join(Section).filter(
+                    Schedule.is_active == True,
+                    Section.department_id.in_(user_department_ids)
+                )
+            if current_settings:
+                room_ids_with_schedules = room_ids_with_schedules.filter(
+                    Schedule.academic_year == current_settings.academic_year,
+                    Schedule.semester == current_settings.semester
+                )
+            room_ids_with_schedules = [r[0] for r in room_ids_with_schedules.all() if r[0] is not None]
+            rooms_query = Room.query.filter(
+                Room.is_available == True,
+                Room.id.in_(room_ids_with_schedules)
+            )
+    
+    rooms_list = rooms_query.order_by(Room.room_number).all()
     
     # Calculate room schedule counts for current academic period
     room_schedule_counts = {}
@@ -796,6 +996,10 @@ def index():
     # Get sections for exam tab (reuse the sections query)
     exam_sections = sections
     exam_department_filter = request.args.get('exam_department_id', type=int)
+    
+    # Auto-apply filter if user has only 1 department and no filter specified
+    if exam_department_filter is None and len(departments) == 1:
+        exam_department_filter = departments[0].id
     
     # Calculate exam schedule counts for current academic period
     exam_section_schedule_counts = {}
@@ -861,9 +1065,11 @@ def index():
         faculties=faculties_list,
         selected_faculty=selected_faculty,
         faculty_schedules=faculty_schedules,
+        faculty_department_filter=faculty_department_filter,
         rooms=rooms_list,
         selected_room=selected_room,
         room_schedules=room_schedules,
+        room_department_filter=room_department_filter,
         current_settings=current_settings,
         section_schedule_counts=section_schedule_counts,
         faculty_schedule_counts=faculty_schedule_counts,
@@ -1773,9 +1979,12 @@ def export_class_schedule(section_id):
         last_row = 11 + len(time_slots) - 1
         apply_grid_borders(ws, last_row)
         
-        # Add signature section
+        # Add signature section with current user's name
         sig_start_row = last_row + 3
-        add_signature_section(ws, sig_start_row, section.department_id, dept_name.upper())
+        dean_name = current_user.full_name if current_user else None
+        # Use full department name for dean title (keep original case)
+        dept_display = section.department.full_department_name if (section.department and section.department.full_department_name) else dept_name
+        add_signature_section(ws, sig_start_row, section.department_id, dept_display, dean_name)
         
         # Set column widths
         set_column_widths(ws)
@@ -1786,131 +1995,6 @@ def export_class_schedule(section_id):
         output.seek(0)
         
         filename = f"{dept_code}_{section.year_level}{section.section_name}_Schedule.xlsx".replace(' ', '_')
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=filename
-        )
-        
-    except Exception as e:
-        flash(f'Error exporting schedule: {str(e)}', 'error')
-        return redirect(url_for('schedule.index', section_id=section_id))
-        section = Section.query.get_or_404(section_id)
-        
-        # Get current academic settings
-        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
-        
-        # Query schedules for this section
-        query = Schedule.query.filter_by(section_id=section_id, is_active=True)
-        if current_settings:
-            query = query.filter_by(
-                academic_year=current_settings.academic_year,
-                semester=current_settings.semester
-            )
-        
-        schedules = query.order_by(Schedule.day_of_week, Schedule.start_time).all()
-        
-        # Create workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Class Schedule"
-        
-        # Title
-        title = f"{section.section_name} - Class Schedule"
-        if current_settings:
-            title += f" ({current_settings.academic_year} - {current_settings.semester})"
-        
-        ws['A1'] = title
-        ws['A1'].font = Font(bold=True, size=14, color='FFFFFF')
-        ws['A1'].fill = PatternFill(start_color='7C3AED', end_color='7C3AED', fill_type='solid')
-        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
-        ws.merge_cells('A1:H1')
-        ws.row_dimensions[1].height = 30
-        
-        # Headers
-        headers = ['Day', 'Time', 'Subject Code', 'Subject Description', 'Type', 'Faculty', 'Room', 'Units']
-        header_fill = PatternFill(start_color='9333EA', end_color='9333EA', fill_type='solid')
-        header_font = Font(bold=True, color='FFFFFF', size=11)
-        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-        border_style = Border(
-            left=Side(style='thin', color='FFFFFF'),
-            right=Side(style='thin', color='FFFFFF'),
-            top=Side(style='thin', color='FFFFFF'),
-            bottom=Side(style='thin', color='FFFFFF')
-        )
-        
-        for col_idx, header in enumerate(headers, start=1):
-            cell = ws.cell(row=3, column=col_idx, value=header)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = header_alignment
-            cell.border = border_style
-        
-        ws.row_dimensions[3].height = 25
-        
-        # Data rows
-        data_border = Border(
-            left=Side(style='thin', color='E5E7EB'),
-            right=Side(style='thin', color='E5E7EB'),
-            top=Side(style='thin', color='E5E7EB'),
-            bottom=Side(style='thin', color='E5E7EB')
-        )
-        
-        for row_idx, schedule in enumerate(schedules, start=4):
-            time_str = f"{schedule.start_time.strftime('%I:%M %p')} - {schedule.end_time.strftime('%I:%M %p')}"
-            faculty_name = schedule.faculty.full_name if schedule.faculty else 'TBA'
-            room_display = ''
-            if schedule.room:
-                building_name = schedule.room.building.building_name if schedule.room.building else ''
-                room_display = f"{building_name} {schedule.room.room_number}".strip()
-            else:
-                room_display = 'TBA'
-            
-            row_data = [
-                schedule.day_of_week,
-                time_str,
-                schedule.subject.subject_code if schedule.subject else '',
-                schedule.subject.course_description if schedule.subject else '',
-                schedule.schedule_type.title(),
-                faculty_name,
-                room_display,
-                float(schedule.subject.total_units) if schedule.subject else 0
-            ]
-            
-            # Alternate row colors
-            if row_idx % 2 == 0:
-                fill = PatternFill(start_color='F9FAFB', end_color='F9FAFB', fill_type='solid')
-            else:
-                fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
-            
-            for col_idx, value in enumerate(row_data, start=1):
-                cell = ws.cell(row=row_idx, column=col_idx, value=value)
-                cell.fill = fill
-                cell.border = data_border
-                cell.alignment = Alignment(vertical='center', wrap_text=True)
-                if col_idx in [1, 5, 8]:  # Day, Type, Units
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
-            
-            ws.row_dimensions[row_idx].height = 20
-        
-        # Column widths
-        ws.column_dimensions['A'].width = 12  # Day
-        ws.column_dimensions['B'].width = 20  # Time
-        ws.column_dimensions['C'].width = 15  # Subject Code
-        ws.column_dimensions['D'].width = 40  # Description
-        ws.column_dimensions['E'].width = 12  # Type
-        ws.column_dimensions['F'].width = 25  # Faculty
-        ws.column_dimensions['G'].width = 20  # Room
-        ws.column_dimensions['H'].width = 10  # Units
-        
-        # Save to BytesIO
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        filename = f"{section.section_name.replace(' ', '_')}_Schedule.xlsx"
-        
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1974,10 +2058,13 @@ def export_faculty_schedule(faculty_id):
         last_row = 11 + len(time_slots) - 1
         apply_grid_borders(ws, last_row)
         
-        # Add signature section
+        # Add signature section with current user's name
         sig_start_row = last_row + 3
         dept_id = faculty.department_id if faculty.department else None
-        add_signature_section(ws, sig_start_row, dept_id, dept_name.upper())
+        dean_name = current_user.full_name if current_user else None
+        # Use full department name for dean title (keep original case)
+        dept_display = faculty.department.full_department_name if (faculty.department and faculty.department.full_department_name) else dept_name
+        add_signature_section(ws, sig_start_row, dept_id, dept_display, dean_name)
         
         # Set column widths
         set_column_widths(ws)
@@ -2051,10 +2138,17 @@ def export_room_schedule(room_id):
         last_row = 11 + len(time_slots) - 1
         apply_grid_borders(ws, last_row)
         
-        # Add signature section
+        # Add signature section with current user's name
         sig_start_row = last_row + 3
-        dept_name = building_display.upper()
-        add_signature_section(ws, sig_start_row, None, dept_name)
+        dean_name = current_user.full_name if current_user else None
+        # For room exports, use current user's department full name for dean title
+        dept_name = None
+        department_id = None
+        if current_user and hasattr(current_user, 'departments') and current_user.departments:
+            first_dept = current_user.departments[0]
+            dept_name = first_dept.full_department_name if first_dept.full_department_name else first_dept.department_name
+            department_id = first_dept.id
+        add_signature_section(ws, sig_start_row, department_id, dept_name, dean_name)
         
         # Set column widths
         set_column_widths(ws)
@@ -2112,17 +2206,24 @@ def export_class_schedule_for_posting(section_id):
         ws = wb.active
         ws.title = "Schedule"
         
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
+        # Get department info for logo and names
+        department = section.department
+        dept_logo_path = department.department_logo if department else None
         
-        # Add header (posting-specific, centered across A-H)
-        dept_name = section.department.department_name.upper() if section.department else 'COLLEGE'
-        add_institution_header_for_posting(ws, dept_name)
+        # Add logos (use posting-specific function with department logo)
+        add_institution_logos_for_posting(ws, dept_logo_path)
+        
+        # Add header (posting-specific, centered across A-H) - use full department name (preserve original case)
+        dept_display_name = department.full_department_name if (department and department.full_department_name) else (department.department_name if department else 'COLLEGE')
+        add_institution_header_for_posting(ws, dept_display_name)
+        
+        # Store full department name for signature section
+        dept_name_for_signature = dept_display_name
         
         # Add title (posting-specific, centered across A-H)
         dept_code = section.department.department_code if section.department else ''
         semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "CLASS SCHEDULE"
-        section_display = f"Course - Section: {dept_code} {section.year_level}{section.section_name}"
+        section_display = f"{dept_code} {section.year_level}{section.section_name}"
         add_schedule_title_for_posting(ws, 'CLASS SCHEDULE', semester_text, section_display)
         
         # Define border style
@@ -2233,18 +2334,27 @@ def export_class_schedule_for_posting(section_id):
         ws.cell(row=sig_start_row, column=6, value='Checked by:')
         ws.cell(row=sig_start_row, column=6).font = Font(size=10)
         
+        # Get secretary name and dean name from department and current user
+        secretary_name = department.secretary_name if (department and department.secretary_name) else 'Name of the Secretary'
+        dean_name = current_user.full_name if current_user else 'Name of the Dean'
+        
+        # Capitalize names
+        secretary_name = secretary_name.upper()
+        dean_name = dean_name.upper()
+        
         # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
+        ws.cell(row=sig_start_row + 2, column=2, value=secretary_name)
         ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
         
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
+        ws.cell(row=sig_start_row + 2, column=6, value=dean_name)
         ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
         
         # Titles (next row)
         ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
         ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
         
-        dean_title = f"Dean, {dept_name}"
+        # Use full department name for dean title
+        dean_title = f"Dean, {dept_name_for_signature}"
         ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
         ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
         ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')
@@ -2308,12 +2418,19 @@ def export_faculty_schedule_for_posting(faculty_id):
         ws = wb.active
         ws.title = "Schedule"
         
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
+        # Get department info for logo and names
+        department = faculty.department
+        dept_logo_path = department.department_logo if department else None
         
-        # Add header (posting-specific, centered across A-H)
-        dept_name = faculty.department.department_name.upper() if faculty.department else 'COLLEGE'
-        add_institution_header_for_posting(ws, dept_name)
+        # Add logos (use posting-specific function with department logo)
+        add_institution_logos_for_posting(ws, dept_logo_path)
+        
+        # Add header (posting-specific, centered across A-H) - use full department name (preserve original case)
+        dept_display_name = department.full_department_name if (department and department.full_department_name) else (department.department_name if department else 'COLLEGE')
+        add_institution_header_for_posting(ws, dept_display_name)
+        
+        # Store full department name for signature section
+        dept_name_for_signature = dept_display_name
         
         # Add title (posting-specific, centered across A-H)
         semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "FACULTY SCHEDULE"
@@ -2427,18 +2544,27 @@ def export_faculty_schedule_for_posting(faculty_id):
         ws.cell(row=sig_start_row, column=6, value='Checked by:')
         ws.cell(row=sig_start_row, column=6).font = Font(size=10)
         
+        # Get secretary name and dean name from department and current user
+        secretary_name = department.secretary_name if (department and department.secretary_name) else 'Name of the Secretary'
+        dean_name = current_user.full_name if current_user else 'Name of the Dean'
+        
+        # Capitalize names
+        secretary_name = secretary_name.upper()
+        dean_name = dean_name.upper()
+        
         # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
+        ws.cell(row=sig_start_row + 2, column=2, value=secretary_name)
         ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
         
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
+        ws.cell(row=sig_start_row + 2, column=6, value=dean_name)
         ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
         
         # Titles (next row)
         ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
         ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
         
-        dean_title = f"Dean, {dept_name}"
+        # Use full department name for dean title
+        dean_title = f"Dean, {dept_name_for_signature}"
         ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
         ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
         ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')
@@ -2497,17 +2623,31 @@ def export_room_schedule_for_posting(room_id):
             )
         schedules = query.order_by(Schedule.day_of_week, Schedule.start_time).all()
         
+        # Get department from the first schedule's section (if available)
+        department = None
+        if schedules and schedules[0].section:
+            department = schedules[0].section.department
+        
         # Create workbook
         wb = Workbook()
         ws = wb.active
         ws.title = "Schedule"
         
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
+        # Get department logo
+        dept_logo_path = department.department_logo if department else None
         
-        # Add header (posting-specific, centered across A-H)
-        building_display = room.building.building_name.upper() if room.building else 'BUILDING'
-        add_institution_header_for_posting(ws, building_display)
+        # Add logos (use posting-specific function with department logo)
+        add_institution_logos_for_posting(ws, dept_logo_path)
+        
+        # Add header (posting-specific, centered across A-H) - use full department name (preserve original case)
+        if department:
+            dept_display_name = department.full_department_name if department.full_department_name else department.department_name
+        else:
+            dept_display_name = 'COLLEGE'
+        add_institution_header_for_posting(ws, dept_display_name)
+        
+        # Store full department name for signature section
+        dept_name_for_signature = dept_display_name
         
         # Add title (posting-specific, centered across A-H)
         semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "ROOM SCHEDULE"
@@ -2621,18 +2761,27 @@ def export_room_schedule_for_posting(room_id):
         ws.cell(row=sig_start_row, column=6, value='Checked by:')
         ws.cell(row=sig_start_row, column=6).font = Font(size=10)
         
+        # Get secretary name and dean name from department and current user
+        secretary_name = department.secretary_name if (department and department.secretary_name) else 'Name of the Secretary'
+        dean_name = current_user.full_name if current_user else 'Name of the Dean'
+        
+        # Capitalize names
+        secretary_name = secretary_name.upper()
+        dean_name = dean_name.upper()
+        
         # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
+        ws.cell(row=sig_start_row + 2, column=2, value=secretary_name)
         ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
         
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
+        ws.cell(row=sig_start_row + 2, column=6, value=dean_name)
         ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
         
         # Titles (next row)
         ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
         ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
         
-        dean_title = f"Dean, {building_display}"
+        # Use full department name for dean title
+        dean_title = f"Dean, {dept_name_for_signature}"
         ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
         ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
         ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')
