@@ -80,6 +80,19 @@ def index():
     # Get user's department access
     user_department_ids = current_user.get_department_ids()
     
+    # Filter departments by user access
+    if user_department_ids is None:
+        departments = Department.query.filter_by(is_active=True).order_by(Department.department_name).all()
+    else:
+        departments = Department.query.filter(
+            Department.is_active == True,
+            Department.id.in_(user_department_ids)
+        ).order_by(Department.department_name).all()
+    
+    # Auto-select department if user has only 1 department and no filter is set
+    if not department_id and user_department_ids is not None and len(departments) == 1:
+        department_id = departments[0].id
+    
     # Build query based on filters and user access
     query = Curriculum.query
     
@@ -184,7 +197,7 @@ def add():
         # Auto-create year levels with semesters
         year_names = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 
                       '6th Year', '7th Year', '8th Year', '9th Year', '10th Year']
-        semester_names = {1: '1st Semester', 2: '2nd Semester', 3: 'Summer'}
+        semester_names = {1: '1st Semester', 2: '2nd Semester'}
         
         for i in range(year_levels_count):
             year_level = YearLevel(
@@ -285,7 +298,7 @@ def edit():
         current_year_levels = len(curriculum.year_levels)
         year_names = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year', 
                       '7th Year', '8th Year', '9th Year', '10th Year']
-        semester_names = {1: '1st Semester', 2: '2nd Semester', 3: 'Summer'}
+        semester_names = {1: '1st Semester', 2: '2nd Semester'}
         
         if year_levels_count > current_year_levels:
             # Add new year levels with semesters
@@ -484,8 +497,7 @@ def add_semester():
         
         semester_names = {
             1: '1st Semester',
-            2: '2nd Semester',
-            3: 'Summer'
+            2: '2nd Semester'
         }
         
         semesters_created = 0

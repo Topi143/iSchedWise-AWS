@@ -561,7 +561,7 @@
                         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        <span>Departments</span>
+                        <span>Programs</span>
                     </button>
                     <button onclick="switchMainTab('faculty-archive')" class="main-tab-button flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2 border border-transparent" id="main-tab-faculty-archive">
                         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -632,29 +632,38 @@
                         
                         <!-- Filters -->
                         <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                            <select id="classFilterProgram" onchange="filterArchivesByProgram('class', this.value)" 
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="" disabled selected>Select Program</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.department_code }}</option>
+                                {% endfor %}
+                            </select>
                             <select id="classFilterAcademicYear" onchange="loadGroupedArchives('class')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Academic Years</option>
+                                <option value="" disabled selected>Select Academic Year</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="classFilterSemester" onchange="loadGroupedArchives('class')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Semesters</option>
+                                <option value="" disabled selected>Select Semester</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
-                                <option value="Summer">Summer</option>
                             </select>
                         </div>
                         
                         <!-- Sections List -->
                         <div class="flex-1 overflow-y-auto" id="class-list">
-                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
-                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                </svg>
-                                <p class="font-medium">Select filters to view sections</p>
+                            <div class="text-center py-8 sm:py-12 px-4">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Select filters to view sections</p>
+                                <p class="text-sm text-blue-600">Choose Academic Year and Semester to load archived schedules</p>
                             </div>
                         </div>
                     </div>
@@ -718,29 +727,38 @@
                         
                         <!-- Filters -->
                         <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                            <select id="facultyFilterProgram" onchange="filterArchivesByProgram('faculty', this.value)" 
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="" disabled selected>Select Program</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.department_code }}</option>
+                                {% endfor %}
+                            </select>
                             <select id="facultyFilterAcademicYear" onchange="loadGroupedArchives('faculty')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Academic Years</option>
+                                <option value="" disabled selected>Select Academic Year</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="facultyFilterSemester" onchange="loadGroupedArchives('faculty')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Semesters</option>
+                                <option value="" disabled selected>Select Semester</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
-                                <option value="Summer">Summer</option>
                             </select>
                         </div>
                         
                         <!-- Faculty List -->
                         <div class="flex-1 overflow-y-auto" id="faculty-list">
-                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
-                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                                <p class="font-medium">Select filters to view faculty</p>
+                            <div class="text-center py-8 sm:py-12 px-4">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Select filters to view faculty</p>
+                                <p class="text-sm text-blue-600">Choose Academic Year and Semester to load archived schedules</p>
                             </div>
                         </div>
                     </div>
@@ -804,29 +822,38 @@
                         
                         <!-- Filters -->
                         <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                            <select id="roomsFilterProgram" onchange="filterArchivesByProgram('rooms', this.value)" 
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="" disabled selected>Select Program</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.department_code }}</option>
+                                {% endfor %}
+                            </select>
                             <select id="roomsFilterAcademicYear" onchange="loadGroupedArchives('rooms')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Academic Years</option>
+                                <option value="" disabled selected>Select Academic Year</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="roomsFilterSemester" onchange="loadGroupedArchives('rooms')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Semesters</option>
+                                <option value="" disabled selected>Select Semester</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
-                                <option value="Summer">Summer</option>
                             </select>
                         </div>
                         
                         <!-- Rooms List -->
                         <div class="flex-1 overflow-y-auto" id="rooms-list">
-                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
-                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                                <p class="font-medium">Select filters to view rooms</p>
+                            <div class="text-center py-8 sm:py-12 px-4">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Select filters to view rooms</p>
+                                <p class="text-sm text-blue-600">Choose Academic Year and Semester to load archived schedules</p>
                             </div>
                         </div>
                     </div>
@@ -890,23 +917,29 @@
                         
                         <!-- Filters -->
                         <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0 space-y-2">
+                            <select id="examFilterProgram" onchange="filterArchivesByProgram('exam', this.value)" 
+                                    class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="" disabled selected>Select Program</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.department_code }}</option>
+                                {% endfor %}
+                            </select>
                             <select id="examFilterAcademicYear" onchange="loadGroupedArchives('exam')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Academic Years</option>
+                                <option value="" disabled selected>Select Academic Year</option>
                                 {% for year in academic_years %}
                                 <option value="{{ year }}">{{ year }}</option>
                                 {% endfor %}
                             </select>
                             <select id="examFilterSemester" onchange="loadGroupedArchives('exam')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Semesters</option>
+                                <option value="" disabled selected>Select Semester</option>
                                 <option value="1st Semester">1st Semester</option>
                                 <option value="2nd Semester">2nd Semester</option>
-                                <option value="Summer">Summer</option>
                             </select>
                             <select id="examFilterPeriod" onchange="loadGroupedArchives('exam')" 
                                     class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">All Periods</option>
+                                <option value="" disabled selected>Select Period</option>
                                 <option value="Prelim">Prelim</option>
                                 <option value="Midterm">Midterm</option>
                                 <option value="Final">Final</option>
@@ -915,11 +948,14 @@
                         
                         <!-- Sections List -->
                         <div class="flex-1 overflow-y-auto" id="exam-list">
-                            <div class="text-center py-8 sm:py-12 text-gray-500 text-xs sm:text-sm px-4">
-                                <svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <p class="font-medium">Select filters to view sections</p>
+                            <div class="text-center py-8 sm:py-12 px-4">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Select filters to view exam sections</p>
+                                <p class="text-sm text-blue-600">Choose Academic Year, Semester, and Exam Period to load archived exams</p>
                             </div>
                         </div>
                     </div>
@@ -1005,7 +1041,7 @@
                 </div>
             </div>
 
-            <!-- Departments Tab -->
+            <!-- Programs Tab -->
             <div id="content-department" class="tab-content h-full">
                 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
                     <!-- Header with Filters -->
@@ -1017,19 +1053,19 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
                                 </div>
-                                <span>Archived Departments</span>
+                                <span>Archived Programs</span>
                             </h2>
                             
                             <!-- Search -->
                             <div class="flex gap-2">
-                                <input type="text" id="departmentSearch" placeholder="Search departments..." 
+                                <input type="text" id="departmentSearch" placeholder="Search programs..." 
                                     class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     onkeyup="searchDepartments()">
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Departments List -->
+                    <!-- Programs List -->
                     <div class="flex-1 overflow-y-auto p-4">
                         <div id="departments-container" class="space-y-3">
                             <div class="text-center py-12">
@@ -1038,7 +1074,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
                                 </div>
-                                <p class="text-lg font-semibold text-blue-900 mb-2">Loading archived departments...</p>
+                                <p class="text-lg font-semibold text-blue-900 mb-2">Loading archived programs...</p>
                                 <p class="text-sm text-blue-600">Please wait while we fetch the data</p>
                             </div>
                         </div>
@@ -1299,7 +1335,7 @@
     </div>
 </div>
 
-<!-- Restore Department Modal -->
+<!-- Restore Program Modal -->
 <div id="restoreDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
         <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-2xl">
@@ -1310,7 +1346,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-white">Restore Department</h3>
+                    <h3 class="text-xl font-bold text-white">Restore Program</h3>
                 </div>
                 <button onclick="closeRestoreDepartmentModal()" class="text-white hover:text-gray-200 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1326,7 +1362,7 @@
             
             <div class="mb-6">
                 <p class="text-gray-700 mb-4">
-                    Restore department: <span class="font-bold text-blue-600" id="restore_department_display"></span>?
+                    Restore program: <span class="font-bold text-blue-600" id="restore_department_display"></span>?
                 </p>
                 
                 <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
@@ -1334,7 +1370,7 @@
                         <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        This department will be moved back to the active departments list.
+                        This program will be moved back to the active programs list.
                     </p>
                 </div>
             </div>
@@ -1346,14 +1382,14 @@
                 </button>
                 <button type="button" onclick="confirmRestoreDepartment()"
                     class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-md">
-                    Restore Department
+                    Restore Program
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Delete Department Permanently Modal -->
+<!-- Delete Program Permanently Modal -->
 <div id="deleteDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
         <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
@@ -1380,7 +1416,7 @@
             
             <div class="mb-6">
                 <p class="text-gray-700 mb-4">
-                    Are you sure you want to <span class="font-bold text-red-600">PERMANENTLY DELETE</span> department: <span class="font-bold" id="delete_department_display"></span>?
+                    Are you sure you want to <span class="font-bold text-red-600">PERMANENTLY DELETE</span> program: <span class="font-bold" id="delete_department_display"></span>?
                 </p>
                 
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4">
@@ -1740,8 +1776,26 @@
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
         document.getElementById(`content-${scheduleTab}`).classList.add('active');
         
-        // Load schedule archives
-        loadGroupedArchives(scheduleTab);
+        // Initialize empty state - don't load archives until filters are selected
+        const listContainer = document.getElementById(`${scheduleTab}-list`);
+        const cardsContainer = document.getElementById(`${scheduleTab}-cards`);
+        const badge = document.getElementById(`${scheduleTab}-count-badge`);
+        
+        if (listContainer && cardsContainer && badge) {
+            listContainer.innerHTML = `
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">Select filters to view archives</p>
+                    <p class="text-sm text-blue-600">Choose Academic Year and Semester to load archived schedules</p>
+                </div>
+            `;
+            cardsContainer.innerHTML = '';
+            badge.textContent = '0';
+        }
     }
     
     // Load grouped archives (sections, faculty, rooms, or exam sections)
@@ -1752,6 +1806,30 @@
         
         if (tab === 'exam') {
             examPeriod = document.getElementById('examFilterPeriod').value;
+        }
+        
+        // Check if required filters are selected
+        if (!academicYear || !semester) {
+            // Clear the lists and show "select filters" message
+            const listContainer = document.getElementById(`${tab}-list`);
+            const cardsContainer = document.getElementById(`${tab}-cards`);
+            const badge = document.getElementById(`${tab}-count-badge`);
+            
+            listContainer.innerHTML = `
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">Select filters to view archives</p>
+                    <p class="text-sm text-blue-600">Choose Academic Year and Semester to load archived schedules</p>
+                </div>
+            `;
+            cardsContainer.innerHTML = '';
+            badge.textContent = '0';
+            allArchives = [];
+            return;
         }
         
         // Build query parameters
@@ -1793,6 +1871,42 @@
         } catch (error) {
             console.error('Error:', error);
             showToast('Error loading archives', 'error');
+        }
+    }
+    
+    // Filter archives by program
+    function filterArchivesByProgram(tab, programId) {
+        // Store selected program for this tab
+        if (!window.selectedPrograms) {
+            window.selectedPrograms = {};
+        }
+        window.selectedPrograms[tab] = programId;
+        
+        // Filter the current archives by program
+        let filteredArchives = allArchives;
+        
+        if (programId) {
+            // Filter archives where department_name matches the selected program
+            // We need to get the department name from the dropdown
+            const selectElement = document.getElementById(`${tab}FilterProgram`);
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const programCode = selectedOption.text;
+            
+            filteredArchives = allArchives.filter(archive => {
+                // Match by department name in the archive
+                return archive.department_name && archive.department_name.includes(programCode);
+            });
+        }
+        
+        // Re-display the grouped data with filtered archives
+        if (tab === 'class') {
+            displayGroupedSections(filteredArchives);
+        } else if (tab === 'faculty') {
+            displayGroupedFaculty(filteredArchives);
+        } else if (tab === 'rooms') {
+            displayGroupedRooms(filteredArchives);
+        } else if (tab === 'exam') {
+            displayGroupedExamSections(filteredArchives);
         }
     }
     
@@ -2342,12 +2456,14 @@
         
         if (!curricula || curricula.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-gray-500">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-900 mb-2">No Archived Curricula</p>
-                    <p class="text-sm text-gray-500">There are no archived curricula to display</p>
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived curricula found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -2546,12 +2662,14 @@
         
         if (!departments || departments.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-gray-500">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-900 mb-2">No Archived Departments</p>
-                    <p class="text-sm text-gray-500">There are no archived departments to display</p>
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived departments found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -2746,12 +2864,14 @@
         
         if (faculty.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-gray-500">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-900 mb-2">No archived faculty found</p>
-                    <p class="text-sm text-gray-500">Faculty will appear here after they are archived</p>
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived faculty found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -2932,12 +3052,14 @@
         
         if (buildings.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-gray-500">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                    <p class="text-lg font-medium text-gray-900 mb-2">No Archived Buildings</p>
-                    <p class="text-sm text-gray-500">There are no archived buildings at the moment</p>
+                <div class="text-center py-8 sm:py-12 px-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 sm:mb-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold text-blue-900 mb-2">No archived buildings found</p>
+                    <p class="text-sm text-blue-600">Try adjusting your filters to see more results</p>
                 </div>
             `;
             return;
@@ -3128,6 +3250,7 @@
         
         // Restore previously selected main tab or default to 'schedules'
         const savedMainTab = localStorage.getItem('selectedMainTab') || 'schedules';
+        // Initialize tabs but don't load data until filters are selected
         switchMainTab(savedMainTab);
     });
 </script>

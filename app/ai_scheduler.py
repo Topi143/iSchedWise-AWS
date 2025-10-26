@@ -122,6 +122,378 @@ class AISchedulerAssistant:
         """Check if two time ranges overlap"""
         return start1 < end2 and end1 > start2
     
+    def analyze_exam_conflicts(self, exam_data: Dict, existing_exams: List) -> Dict:
+        """
+        Analyze potential conflicts for exam schedules
+        
+        Args:
+            exam_data: Dictionary with section_id, subject_id, faculty_id, room_id, 
+                      exam_date, start_time, end_time
+            existing_exams: List of existing ExamSchedule objects
+        
+        Returns:
+            Dictionary with conflicts, recommendations, and AI explanation
+        """
+        if not self.enabled:
+            return {
+                'has_conflicts': False,
+                'conflicts': [],
+                'recommendations': [],
+                'ai_explanation': '',
+                'ai_enabled': False
+            }
+        
+        # Detect conflicts
+        conflicts = self._detect_exam_conflicts(exam_data, existing_exams)
+        
+        # Get recommendations if conflicts exist
+        recommendations = []
+        ai_explanation = ""
+        
+        if conflicts:
+            recommendations = self._generate_exam_recommendations(exam_data, conflicts, existing_exams)
+            ai_explanation = self._get_exam_ai_explanation(exam_data, conflicts, recommendations)
+        
+        return {
+            'has_conflicts': len(conflicts) > 0,
+            'conflicts': conflicts,
+            'recommendations': recommendations,
+            'ai_explanation': ai_explanation,
+            'ai_enabled': True
+        }
+    
+    def _detect_exam_conflicts(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
+        """Detect exam scheduling conflicts"""
+        conflicts = []
+        
+        exam_date = exam_data.get('exam_date')
+        start_time = exam_data.get('start_time')
+        end_time = exam_data.get('end_time')
+        section_id = exam_data.get('section_id')
+        faculty_id = exam_data.get('faculty_id')
+        room_id = exam_data.get('room_id')
+        
+        for exam in existing_exams:
+            # Check if same date
+            if exam.exam_date != exam_date:
+                continue
+            
+            # Check time overlap
+            if not self._times_overlap(start_time, end_time, exam.start_time, exam.end_time):
+                continue
+            
+            # Section conflict
+            if exam.section_id == section_id:
+                conflicts.append({
+                    'type': 'section',
+                    'message': f'Section {exam.section.section_name} already has an exam scheduled',
+                    'schedule': exam,
+                    'severity': 'high'
+                })
+            
+            # Faculty conflict
+            if faculty_id and exam.faculty_id == faculty_id:
+                conflicts.append({
+                    'type': 'faculty',
+                    'message': f'Faculty {exam.faculty.full_name} is already assigned to another exam',
+                    'schedule': exam,
+                    'severity': 'high'
+                })
+            
+            # Room conflict
+            if room_id and exam.room_id == room_id:
+                conflicts.append({
+                    'type': 'room',
+                    'message': f'Room {exam.room.room_number} is already assigned to another exam',
+                    'schedule': exam,
+                    'severity': 'medium'
+                })
+        
+        return conflicts
+    
+    def _generate_exam_recommendations(self, exam_data: Dict, conflicts: List[Dict], 
+                                      existing_exams: List) -> List[Dict]:
+        """Generate recommendations to resolve exam conflicts"""
+        from app.models.building import Room
+        from app.models.faculty import Faculty
+        from datetime import timedelta
+        
+        recommendations = []
+        
+        # Recommend alternative time slots on same date
+        alternative_times = self._find_alternative_exam_times(
+            exam_data, 
+            existing_exams,
+            exam_data.get('exam_date')
+        )
+        
+        if alternative_times:
+            recommendations.append({
+                'type': 'time',
+                'priority': 1,
+                'message': 'Alternative time slots available on the same date',
+                'options': alternative_times
+            })
+        
+        # Recommend alternative dates
+        alternative_dates = self._find_alternative_exam_dates(exam_data, existing_exams)
+        
+        if alternative_dates:
+            recommendations.append({
+                'type': 'date',
+                'priority': 2,
+                'message': 'Alternative dates available',
+                'options': alternative_dates
+            })
+        
+        # Recommend alternative rooms (if room conflict)
+        if any(c['type'] == 'room' for c in conflicts):
+            alternative_rooms = self._find_alternative_exam_rooms(exam_data, existing_exams)
+            if alternative_rooms:
+                recommendations.append({
+                    'type': 'room',
+                    'priority': 3,
+                    'message': 'Alternative rooms available',
+                    'options': alternative_rooms
+                })
+        
+        # Recommend alternative faculty (if faculty conflict)
+        if any(c['type'] == 'faculty' for c in conflicts):
+            alternative_faculty = self._find_alternative_exam_faculty(exam_data, existing_exams)
+            if alternative_faculty:
+                recommendations.append({
+                    'type': 'faculty',
+                    'priority': 4,
+                    'message': 'Alternative faculty available',
+                    'options': alternative_faculty
+                })
+        
+        return sorted(recommendations, key=lambda x: x['priority'])
+    
+    def _find_alternative_exam_times(self, exam_data: Dict, existing_exams: List, 
+                                    exam_date) -> List[Dict]:
+        """Find alternative time slots on the same exam date"""
+        from app.models.settings import AcademicSettings
+        from datetime import time as dt_time
+        
+        alternatives = []
+        
+        # Get exam time ranges from settings
+        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        if not current_settings:
+            return alternatives
+        
+        # Exam time ranges (typically morning and afternoon sessions)
+        exam_sessions = [
+            {'start': dt_time(8, 0), 'end': dt_time(11, 0), 'name': 'Morning Session'},
+            {'start': dt_time(13, 0), 'end': dt_time(16, 0), 'name': 'Afternoon Session'},
+        ]
+        
+        section_id = exam_data.get('section_id')
+        faculty_id = exam_data.get('faculty_id')
+        room_id = exam_data.get('room_id')
+        
+        for session in exam_sessions:
+            # Check if this time slot has conflicts
+            has_conflict = False
+            
+            for exam in existing_exams:
+                if exam.exam_date != exam_date:
+                    continue
+                
+                if not self._times_overlap(session['start'], session['end'], 
+                                          exam.start_time, exam.end_time):
+                    continue
+                
+                # Check for section, faculty, or room conflicts
+                if (exam.section_id == section_id or
+                    (faculty_id and exam.faculty_id == faculty_id) or
+                    (room_id and exam.room_id == room_id)):
+                    has_conflict = True
+                    break
+            
+            if not has_conflict:
+                alternatives.append({
+                    'start_time': session['start'].strftime('%H:%M'),
+                    'end_time': session['end'].strftime('%H:%M'),
+                    'display': f"{session['name']} ({session['start'].strftime('%I:%M %p')} - {session['end'].strftime('%I:%M %p')})",
+                    'score': 100
+                })
+        
+        return alternatives[:3]  # Return top 3 alternatives
+    
+    def _find_alternative_exam_dates(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
+        """Find alternative exam dates"""
+        from datetime import timedelta
+        
+        alternatives = []
+        current_date = exam_data.get('exam_date')
+        section_id = exam_data.get('section_id')
+        start_time = exam_data.get('start_time')
+        end_time = exam_data.get('end_time')
+        
+        # Check next 14 days
+        for days_offset in range(1, 15):
+            new_date = current_date + timedelta(days=days_offset)
+            
+            # Skip weekends
+            if new_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                continue
+            
+            # Check if date has conflicts
+            has_conflict = False
+            
+            for exam in existing_exams:
+                if exam.exam_date != new_date:
+                    continue
+                
+                if not self._times_overlap(start_time, end_time, 
+                                          exam.start_time, exam.end_time):
+                    continue
+                
+                # Check for section conflict
+                if exam.section_id == section_id:
+                    has_conflict = True
+                    break
+            
+            if not has_conflict:
+                alternatives.append({
+                    'exam_date': new_date.strftime('%Y-%m-%d'),
+                    'display': new_date.strftime('%B %d, %Y (%A)'),
+                    'score': max(100 - (days_offset * 5), 50)
+                })
+            
+            if len(alternatives) >= 5:
+                break
+        
+        return alternatives
+    
+    def _find_alternative_exam_rooms(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
+        """Find alternative rooms for exam"""
+        from app.models.building import Room
+        
+        alternatives = []
+        exam_date = exam_data.get('exam_date')
+        start_time = exam_data.get('start_time')
+        end_time = exam_data.get('end_time')
+        current_room_id = exam_data.get('room_id')
+        
+        # Get all available rooms
+        all_rooms = Room.query.filter_by(is_active=True).all()
+        
+        for room in all_rooms:
+            if room.id == current_room_id:
+                continue
+            
+            # Check if room is available
+            is_available = True
+            
+            for exam in existing_exams:
+                if exam.exam_date != exam_date:
+                    continue
+                
+                if exam.room_id != room.id:
+                    continue
+                
+                if self._times_overlap(start_time, end_time, exam.start_time, exam.end_time):
+                    is_available = False
+                    break
+            
+            if is_available:
+                alternatives.append({
+                    'room_id': room.id,
+                    'display': f'{room.room_number} ({room.building.building_name if room.building else "N/A"})',
+                    'capacity': room.capacity or 0,
+                    'score': 100
+                })
+        
+        # Sort by capacity (larger rooms first for exams)
+        return sorted(alternatives, key=lambda x: x['capacity'], reverse=True)[:5]
+    
+    def _find_alternative_exam_faculty(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
+        """Find alternative faculty for exam proctoring"""
+        from app.models.faculty import Faculty
+        
+        alternatives = []
+        exam_date = exam_data.get('exam_date')
+        start_time = exam_data.get('start_time')
+        end_time = exam_data.get('end_time')
+        subject_id = exam_data.get('subject_id')
+        current_faculty_id = exam_data.get('faculty_id')
+        
+        # Get faculty who can proctor this subject's exam
+        all_faculty = Faculty.query.filter_by(is_active=True).all()
+        
+        for faculty in all_faculty:
+            if faculty.id == current_faculty_id:
+                continue
+            
+            # Check if faculty is available
+            is_available = True
+            
+            for exam in existing_exams:
+                if exam.exam_date != exam_date:
+                    continue
+                
+                if exam.faculty_id != faculty.id:
+                    continue
+                
+                if self._times_overlap(start_time, end_time, exam.start_time, exam.end_time):
+                    is_available = False
+                    break
+            
+            if is_available:
+                alternatives.append({
+                    'faculty_id': faculty.id,
+                    'display': faculty.full_name,
+                    'score': 100
+                })
+        
+        return alternatives[:5]
+    
+    def _get_exam_ai_explanation(self, exam_data: Dict, conflicts: List[Dict], 
+                                recommendations: List[Dict]) -> str:
+        """Generate AI explanation for exam conflicts using Gemini"""
+        if not self.enabled or not self.model:
+            return ""
+        
+        try:
+            # Prepare context for AI
+            conflict_summary = "\n".join([
+                f"- {c['type'].title()} Conflict: {c['message']}" 
+                for c in conflicts
+            ])
+            
+            recommendation_summary = "\n".join([
+                f"- {r['type'].title()}: {len(r['options'])} options available"
+                for r in recommendations
+            ])
+            
+            prompt = f"""You are an intelligent scheduling assistant for a university. 
+            
+A user is trying to schedule an exam with the following details:
+- Date: {exam_data.get('exam_date')}
+- Time: {exam_data.get('start_time').strftime('%I:%M %p') if isinstance(exam_data.get('start_time'), time) else exam_data.get('start_time')} - {exam_data.get('end_time').strftime('%I:%M %p') if isinstance(exam_data.get('end_time'), time) else exam_data.get('end_time')}
+
+The following conflicts were detected:
+{conflict_summary}
+
+Available recommendations:
+{recommendation_summary}
+
+Provide a brief, helpful explanation (1-2 sentences) that:
+1. Identifies the main conflict
+2. Suggests the best resolution
+
+Keep your response ultra-concise and actionable."""
+
+            response = self.model.generate_content(prompt)
+            return response.text
+            
+        except Exception as e:
+            print(f"AI explanation error: {e}")
+            return ""
+    
     def _generate_recommendations(self, schedule_data: Dict, conflicts: List[Dict], 
                                  existing_schedules: List) -> List[Dict]:
         """Generate recommendations to resolve conflicts"""
@@ -182,6 +554,11 @@ class AISchedulerAssistant:
         """Find alternative time slots on the same day based on schedule type (lecture/lab/both)"""
         alternatives = []
         
+        # Get current academic settings for time range
+        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
         # Get subject to determine required duration
         subject_id = schedule_data.get('subject_id')
         subject = Subject.query.get(subject_id) if subject_id else None
@@ -207,20 +584,19 @@ class AISchedulerAssistant:
             # Convert hours to minutes for time calculation
             required_minutes = int(required_hours * 60)
         else:
-            # Default to 1.5 hours if subject not found
-            required_minutes = 90
+            # Default: assume 1.5 hours (90 minutes)
+            required_hours = 1.5
         
-        # Generate time slots based on 30-minute intervals from 7:00 AM to 8:00 PM
-        # This matches the dropdown options in the UI
+        # Generate time slots based on 30-minute intervals from configured start to end hour
+        # This matches the dropdown options in the UI which are now dynamic
         time_slots = []
         
-        # Start from 7:00 AM (07:00) and go up to 8:00 PM (20:00)
-        start_hour = 7
+        # Use configured start and end hours from settings
         start_minute = 0
         
         # Generate all possible 30-minute interval start times
         current_datetime = datetime.combine(datetime.today(), time(start_hour, start_minute))
-        end_limit = datetime.combine(datetime.today(), time(20, 0))  # 8:00 PM
+        end_limit = datetime.combine(datetime.today(), time(end_hour, 0))
         
         while current_datetime <= end_limit:
             current_time = current_datetime.time()
@@ -228,8 +604,8 @@ class AISchedulerAssistant:
             # Calculate end time based on required duration
             end_datetime = current_datetime + timedelta(minutes=required_minutes)
             
-            # Only include if end time is within 8:00 PM and on same day
-            if end_datetime.time() <= time(20, 0) and end_datetime.date() == current_datetime.date():
+            # Only include if end time is within configured end hour and on same day
+            if end_datetime.time() <= time(end_hour, 0) and end_datetime.date() == current_datetime.date():
                 time_slots.append((current_time, end_datetime.time()))
             
             # Increment by 30 minutes
@@ -430,22 +806,22 @@ class AISchedulerAssistant:
         return sorted(alternatives, key=lambda x: x['current_workload'])[:5]
     
     def _calculate_time_slot_score(self, start: time, end: time) -> int:
-        """Calculate preference score for a time slot (prefer morning, extended hours 7 AM - 8 PM)"""
+        """Calculate preference score for a time slot (prefer morning, works with any configured time range)"""
         hour = start.hour
         
-        if hour == 7:  # Early morning (7:00-7:30 AM)
+        if hour <= 8:  # Early morning slots
             return 85
-        elif 8 <= hour < 10:  # Morning prime time (8:00-10:00 AM)
+        elif 8 < hour < 10:  # Morning prime time
             return 100
-        elif 10 <= hour < 12:  # Late morning (10:00 AM-12:00 PM)
+        elif 10 <= hour < 12:  # Late morning
             return 90
-        elif 13 <= hour < 15:  # Early afternoon (1:00-3:00 PM)
+        elif 13 <= hour < 15:  # Early afternoon
             return 80
-        elif 15 <= hour < 17:  # Late afternoon (3:00-5:00 PM)
+        elif 15 <= hour < 17:  # Late afternoon
             return 70
-        elif 17 <= hour < 19:  # Evening (5:00-7:00 PM)
+        elif 17 <= hour < 19:  # Evening
             return 60
-        else:  # Late evening (7:00-8:00 PM)
+        else:  # Late evening/night
             return 50
     
     def _calculate_day_score(self, day: str) -> int:
@@ -573,21 +949,34 @@ Keep your response ultra-concise and actionable."""
     def _find_free_time_slots_for_day(self, day: str, section: Section, 
                                       faculty: Optional[Faculty], 
                                       existing_schedules: List) -> List[Dict]:
-        """Find free time slots for a specific day (7:00 AM - 8:00 PM with 30-min intervals)"""
+        """Find free time slots for a specific day using configured time range with 30-min intervals"""
         free_slots = []
         
-        # Standard time slots with 30-minute intervals (matching UI dropdown)
-        time_slots = [
-            (time(7, 0), time(8, 30)),   # 7:00-8:30 AM
-            (time(8, 0), time(9, 30)),   # 8:00-9:30 AM
-            (time(9, 30), time(11, 0)),  # 9:30-11:00 AM
-            (time(11, 0), time(12, 30)), # 11:00-12:30 PM
-            (time(13, 0), time(14, 30)), # 1:00-2:30 PM
-            (time(14, 30), time(16, 0)), # 2:30-4:00 PM
-            (time(16, 0), time(17, 30)), # 4:00-5:30 PM
-            (time(17, 30), time(19, 0)), # 5:30-7:00 PM
-            (time(19, 0), time(20, 0)),  # 7:00-8:00 PM
-        ]
+        # Get current academic settings for time range
+        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
+        # Generate time slots dynamically based on configured time range (30-minute intervals)
+        time_slots = []
+        current_hour = start_hour
+        
+        # Create 1.5-hour time slots (matching typical class duration)
+        while current_hour < end_hour:
+            slot_start = time(current_hour, 0)
+            # Calculate end time (1.5 hours = 90 minutes later)
+            end_minutes = (current_hour * 60) + 90
+            end_hour_calc = end_minutes // 60
+            end_minute_calc = end_minutes % 60
+            
+            # Only add slot if it fits within the configured end hour
+            if end_hour_calc <= end_hour or (end_hour_calc == end_hour and end_minute_calc == 0):
+                slot_end = time(end_hour_calc, end_minute_calc)
+                time_slots.append((slot_start, slot_end))
+            
+            # Move to next slot (advance by 30 minutes for more options)
+            current_hour_float = current_hour + 0.5
+            current_hour = int(current_hour_float) if current_hour_float % 1 == 0 else int(current_hour_float * 2) / 2
         
         for start, end in time_slots:
             is_free = True
@@ -619,7 +1008,7 @@ Keep your response ultra-concise and actionable."""
         return free_slots
     
     def generate_report_summary(self, stats: Dict, academic_year: str = None, 
-                               semester: str = None) -> Dict:
+                               semester: str = None, department_name: str = None) -> Dict:
         """
         Generate a comprehensive AI summary of the report statistics
         
@@ -627,6 +1016,7 @@ Keep your response ultra-concise and actionable."""
             stats: Dictionary containing all report statistics
             academic_year: Current academic year
             semester: Current semester
+            department_name: Specific department being analyzed (if filtered)
         
         Returns:
             Dictionary with summary text and key insights
@@ -640,12 +1030,15 @@ Keep your response ultra-concise and actionable."""
             }
         
         try:
+            # Build scope context
+            scope = f"DEPARTMENT: {department_name}\n" if department_name else "SCOPE: All Departments\n"
+            
             # Prepare context for AI
             context = f"""
 You are an educational data analyst providing a CONCISE analysis of scheduling data.
 
 PERIOD: {academic_year or 'N/A'}, {semester or 'N/A'}
-
+{scope}
 KEY METRICS:
 - Schedules: {stats.get('total_schedules', 0)} classes, {stats.get('total_exam_schedules', 0)} exams
 - Faculty: {stats.get('faculty_with_schedules', 0)}/{stats.get('total_faculty', 0)} active
@@ -661,12 +1054,13 @@ TOP ROOM USAGE:
 WEEKLY PATTERN:
 {self._format_weekly_distribution(stats.get('schedule_by_day', {}))}
 
-Provide a BRIEF analysis:
-- Summary: 2-3 sentences highlighting overall status and utilization rates
-- Key Insights: 3-4 bullet points (one sentence each) about critical patterns
-- Recommendations: 3-4 bullet points (one sentence each) with specific actions
+Provide a BRIEF analysis {"for " + department_name if department_name else "across all departments"}:
+- Summary: 2-3 sentences highlighting overall status and utilization rates{"" if not department_name else " for this department"}
+- Key Insights: 3-4 bullet points (one sentence each) about critical patterns{"" if not department_name else " specific to this department"}
+- Recommendations: 3-4 bullet points (one sentence each) with specific actions{"" if not department_name else " for improving this department's scheduling"}
 
 Be direct, specific, and actionable. Use numbers. No fluff.
+{"Focus exclusively on " + department_name + " data." if department_name else "Consider department-level variations if relevant."}
 DO NOT use markdown formatting (no **, *, or #). Use plain text only.
 DO NOT number the sections (no "1.", "2.", "3."). Just use section headers."""
             

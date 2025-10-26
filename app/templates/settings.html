@@ -4,6 +4,11 @@
 
 {% block extra_css %}
 <style>
+    /* Ensure Inter font family */
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    
     /* Custom Scrollbar - Consistent with base.html */
     .overflow-y-auto::-webkit-scrollbar {
         width: 5px;
@@ -37,6 +42,7 @@
         color: #1e40af;
         border: 1px solid #93c5fd;
         font-weight: 600;
+        font-size: 0.6875rem;
         text-transform: uppercase;
         letter-spacing: 0.025em;
     }
@@ -94,103 +100,110 @@
     }
     
     @media (max-width: 640px) {
-        /* Ultra-compact mobile layout */
+        /* Mobile layout optimizations */
         .bg-gray-50 {
             padding: 0.5rem !important;
         }
         
-        /* Compact all cards */
+        /* Compact cards */
         .settings-card {
             padding: 0.75rem !important;
             margin-bottom: 0.5rem !important;
         }
         
-        /* Page header compact */
+        /* Page header */
         .page-header {
             padding: 0.75rem !important;
         }
         
         .page-header h1 {
-            font-size: 1rem !important;
-            line-height: 1.25rem !important;
+            font-size: 1.125rem !important;
+            line-height: 1.5rem !important;
+            font-weight: 700;
         }
         
         .page-header p {
-            font-size: 0.625rem !important;
+            font-size: 0.75rem !important;
             line-height: 1rem !important;
         }
         
         .page-header .icon-container {
-            width: 2rem !important;
-            height: 2rem !important;
+            width: 2.5rem !important;
+            height: 2.5rem !important;
         }
         
         .page-header .icon-container svg {
-            width: 1rem !important;
-            height: 1rem !important;
+            width: 1.25rem !important;
+            height: 1.25rem !important;
         }
         
-        /* Current period card - compact */
+        /* Current period card */
         .current-period-card {
             padding: 0.75rem !important;
         }
         
         .current-period-card h2 {
-            font-size: 0.75rem !important;
-            margin-bottom: 0.5rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 700;
+            margin-bottom: 0.75rem !important;
         }
         
         .current-period-card .period-box {
-            padding: 0.5rem !important;
-            margin-bottom: 0.375rem !important;
+            padding: 0.625rem !important;
+            margin-bottom: 0.5rem !important;
         }
         
         .current-period-card .period-label {
-            font-size: 0.625rem !important;
+            font-size: 0.6875rem !important;
             margin-bottom: 0.25rem !important;
         }
         
         .current-period-card .period-value {
-            font-size: 0.875rem !important;
-            line-height: 1.25rem !important;
+            font-size: 1rem !important;
+            line-height: 1.5rem !important;
+            font-weight: 700;
         }
         
-        /* Stats card - compact */
+        /* Stats card */
         .stats-card {
             padding: 0.75rem !important;
         }
         
         .stats-card h3 {
-            font-size: 0.75rem !important;
-            margin-bottom: 0.5rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 700;
+            margin-bottom: 0.75rem !important;
         }
         
         .stats-card .stat-item {
-            padding: 0.5rem !important;
-            font-size: 0.625rem !important;
+            padding: 0.625rem !important;
+            font-size: 0.75rem !important;
         }
         
         .stats-card .stat-value {
-            font-size: 0.875rem !important;
+            font-size: 1rem !important;
+            font-weight: 700;
         }
         
-        /* Form section - compact */
+        /* Form section */
         .form-section {
             padding: 0.75rem !important;
         }
         
         .form-section h2 {
-            font-size: 0.75rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 700;
             margin-bottom: 0.75rem !important;
         }
         
         .form-grid {
             grid-template-columns: 1fr !important;
-            gap: 0.5rem !important;
+            gap: 0.75rem !important;
         }
         
         .form-label {
-            font-size: 0.6875rem !important;
+            font-size: 0.75rem !important;
+            font-weight: 600;
             margin-bottom: 0.375rem !important;
         }
         
@@ -198,104 +211,107 @@
         select {
             padding: 0.625rem !important;
             font-size: 0.875rem !important;
-            min-height: 42px !important;
+            min-height: 44px !important;
         }
         
         .form-help-text {
-            font-size: 0.625rem !important;
+            font-size: 0.6875rem !important;
             margin-top: 0.25rem !important;
         }
         
-        /* Button - compact but touchable */
+        /* Button - touchable */
         .btn-primary {
             padding: 0.625rem 1rem !important;
-            font-size: 0.75rem !important;
-            min-height: 42px !important;
+            font-size: 0.875rem !important;
+            font-weight: 600;
+            min-height: 44px !important;
         }
         
         .btn-primary svg {
-            width: 0.875rem !important;
-            height: 0.875rem !important;
-            margin-right: 0.375rem !important;
+            width: 1rem !important;
+            height: 1rem !important;
+            margin-right: 0.5rem !important;
         }
         
-        /* History section - compact */
+        /* History section */
         .history-section {
             padding: 0.75rem !important;
         }
         
         .history-section h2 {
-            font-size: 0.75rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 700;
             margin-bottom: 0.75rem !important;
         }
         
         .history-item {
-            padding: 0.625rem !important;
+            padding: 0.75rem !important;
             margin-bottom: 0.5rem !important;
         }
         
         .history-item h4 {
-            font-size: 0.75rem !important;
-            margin-bottom: 0.25rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 700;
+            margin-bottom: 0.375rem !important;
         }
         
         .history-badge {
-            font-size: 0.625rem !important;
-            padding: 0.25rem 0.5rem !important;
+            font-size: 0.6875rem !important;
+            padding: 0.25rem 0.625rem !important;
         }
         
         .history-date {
-            font-size: 0.625rem !important;
-            padding: 0.25rem 0.375rem !important;
+            font-size: 0.6875rem !important;
+            padding: 0.25rem 0.5rem !important;
         }
         
-        /* Icon containers - compact */
+        /* Icon containers */
         .icon-box {
-            width: 1.5rem !important;
-            height: 1.5rem !important;
+            width: 1.75rem !important;
+            height: 1.75rem !important;
             padding: 0.25rem !important;
         }
         
         .icon-box svg {
-            width: 0.875rem !important;
-            height: 0.875rem !important;
-        }
-        
-        /* Section titles - compact */
-        .section-icon {
-            width: 1.5rem !important;
-            height: 1.5rem !important;
-            margin-right: 0.375rem !important;
-        }
-        
-        .section-icon svg {
-            width: 0.875rem !important;
-            height: 0.875rem !important;
-        }
-        
-        /* Toast messages - compact */
-        .toast-container {
-            padding: 0.625rem !important;
-        }
-        
-        .toast-icon {
-            width: 1.5rem !important;
-            height: 1.5rem !important;
-            margin-right: 0.5rem !important;
-        }
-        
-        .toast-icon svg {
             width: 1rem !important;
             height: 1rem !important;
         }
         
+        /* Section icons */
+        .section-icon {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
+            margin-right: 0.5rem !important;
+        }
+        
+        .section-icon svg {
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        /* Toast messages */
+        .toast-container {
+            padding: 0.75rem !important;
+        }
+        
+        .toast-icon {
+            width: 2rem !important;
+            height: 2rem !important;
+            margin-right: 0.625rem !important;
+        }
+        
+        .toast-icon svg {
+            width: 1.125rem !important;
+            height: 1.125rem !important;
+        }
+        
         .toast-message {
-            font-size: 0.75rem !important;
+            font-size: 0.875rem !important;
         }
         
         /* Spacing adjustments */
         .space-y-3 > * + * {
-            margin-top: 0.5rem !important;
+            margin-top: 0.75rem !important;
         }
         
         .space-y-4 > * + * {
@@ -307,12 +323,12 @@
         }
         
         .gap-3 {
-            gap: 0.5rem !important;
+            gap: 0.75rem !important;
         }
         
         /* History scroll container */
         .history-scroll {
-            max-height: 300px !important;
+            max-height: 350px !important;
         }
     }
 </style>
@@ -450,13 +466,18 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 form-grid">
                                 <div>
                                     <label class="block text-xs font-semibold text-gray-700 mb-1 form-label">Academic Year *</label>
-                                    <input type="text" name="academic_year" 
-                                           value="{{ active_settings.academic_year if active_settings else '2024-2025' }}"
-                                           placeholder="e.g., 2024-2025"
-                                           required
-                                           class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
-                                           style="font-size: 16px;">
-                                    <p class="text-xs text-gray-500 mt-1 form-help-text">Format: YYYY-YYYY</p>
+                                    <select name="academic_year" required
+                                            class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
+                                            style="font-size: 16px;">
+                                        <option value="">Select Academic Year</option>
+                                        {% set current_year = 2024 %}
+                                        {% for year in range(current_year - 2, current_year + 6) %}
+                                        <option value="{{ year }}-{{ year + 1 }}" {% if active_settings and active_settings.academic_year == (year|string + '-' + (year + 1)|string) %}selected{% elif not active_settings and year == 2024 %}selected{% endif %}>
+                                            {{ year }}-{{ year + 1 }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1 form-help-text">Select the academic year period</p>
                                 </div>
 
                                 <div>
@@ -467,7 +488,6 @@
                                         <option value="">Select Semester</option>
                                         <option value="1st Semester" {% if active_settings and active_settings.semester == '1st Semester' %}selected{% endif %}>1st Semester</option>
                                         <option value="2nd Semester" {% if active_settings and active_settings.semester == '2nd Semester' %}selected{% endif %}>2nd Semester</option>
-                                        <option value="Summer" {% if active_settings and active_settings.semester == 'Summer' %}selected{% endif %}>Summer</option>
                                     </select>
                                 </div>
                             </div>
@@ -484,7 +504,48 @@
                                 </select>
                             </div>
 
-                            <div class="flex justify-end pt-2">
+                            <!-- Schedule Time Range Settings -->
+                            <div class="col-span-2 border-t border-gray-200 pt-3 mt-2">
+                                <h3 class="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center">
+                                    <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center mr-1.5 sm:mr-2 section-icon" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);">
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    Schedule Time Range
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-3">Set the daily schedule start and end hours (24-hour format)</p>
+                                
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1 form-label">Start Hour *</label>
+                                        <select name="schedule_start_hour" required
+                                                class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
+                                                style="font-size: 16px;">
+                                            {% for hour in range(24) %}
+                                            <option value="{{ hour }}" {% if active_settings and active_settings.schedule_start_hour == hour %}selected{% elif not active_settings and hour == 7 %}selected{% endif %}>
+                                                {{ '12' if hour == 0 or hour == 12 else '%d' % (hour if hour < 12 else hour - 12) }} {{ 'AM' if hour < 12 else 'PM' }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1 form-label">End Hour *</label>
+                                        <select name="schedule_end_hour" required
+                                                class="w-full px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[44px]"
+                                                style="font-size: 16px;">
+                                            {% for hour in range(24) %}
+                                            <option value="{{ hour }}" {% if active_settings and active_settings.schedule_end_hour == hour %}selected{% elif not active_settings and hour == 20 %}selected{% endif %}>
+                                                {{ '12' if hour == 0 or hour == 12 else '%d' % (hour if hour < 12 else hour - 12) }} {{ 'AM' if hour < 12 else 'PM' }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end pt-2 col-span-2">
                                 <button type="submit" class="btn-primary px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-semibold shadow-md hover:shadow-lg transition-all min-h-[44px]">
                                     <svg class="w-3 h-3 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>

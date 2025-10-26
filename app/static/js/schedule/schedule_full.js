@@ -2,6 +2,45 @@
     // Scroll State Management - Save scroll position for left panels
     // ============================================================================
     
+    // CRITICAL FIX: Move all modals to body level on page load to prevent stacking context issues
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalIds = [
+            'addScheduleModal',
+            'editScheduleModal', 
+            'addExamScheduleModal',
+            'editExamScheduleModal'
+        ];
+        
+        modalIds.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal && modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+        });
+    });
+    
+    /**
+     * Toggle export dropdown menu
+     * @param {string} dropdownId - ID of the dropdown element to toggle
+     */
+    function toggleExportDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+        }
+        
+        // Close dropdown when clicking outside
+        if (!dropdown.classList.contains('hidden')) {
+            const closeDropdown = (e) => {
+                if (!e.target.closest(`#${dropdownId}`) && !e.target.closest('button[onclick*="toggleExportDropdown"]')) {
+                    dropdown.classList.add('hidden');
+                    document.removeEventListener('click', closeDropdown);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+        }
+    }
+    
     /**
      * Save scroll position for a specific list
      * @param {string} listId - ID of the scrollable list element
@@ -138,8 +177,24 @@
             button.classList.remove('active');
         });
         
-        // Then activate the correct tab
-        const activeTab = localStorage.getItem('activeScheduleTab') || 'class';
+        // Determine which tab to show based on URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        let activeTab = 'class'; // Default to class tab
+        
+        // If URL has specific selection parameters, show the corresponding tab
+        if (urlParams.has('section_id')) {
+            activeTab = 'class';
+        } else if (urlParams.has('faculty_id')) {
+            activeTab = 'faculty';
+        } else if (urlParams.has('room_id')) {
+            activeTab = 'room';
+        } else if (urlParams.has('exam_section_id')) {
+            activeTab = 'exam';
+        } else {
+            // Only restore from localStorage if no URL parameters
+            activeTab = localStorage.getItem('activeScheduleTab') || 'class';
+        }
+        
         switchTab(activeTab);
         
         // Restore schedule view preference (table or calendar)
@@ -214,11 +269,12 @@
         document.querySelectorAll('.section-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        // Find and highlight the clicked item by matching the onclick content
+        // Find and highlight the clicked item by matching the onclick content with exact ID
         const sectionItems = document.querySelectorAll('.section-list-item');
         sectionItems.forEach(item => {
             const onclick = item.getAttribute('onclick');
-            if (onclick && onclick.includes(`selectSection(${id}`)) {
+            // Use regex to match exact ID (not partial match like ID 1 matching 10, 11, etc.)
+            if (onclick && onclick.match(new RegExp(`selectSection\\(${id}\\s*,`))) {
                 item.classList.add('selected');
             }
         });
@@ -319,6 +375,12 @@
 
     // Add Schedule Modal
     function openAddScheduleModal(sectionId) {
+        // Close edit modal if it's open
+        const editModal = document.getElementById('editScheduleModal');
+        if (editModal && !editModal.classList.contains('hidden')) {
+            closeEditScheduleModal();
+        }
+        
         document.getElementById('section_id_add').value = sectionId;
         document.getElementById('addScheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -372,8 +434,8 @@
         console.log(`[FACULTY] Loading faculty for subject ${subjectId}, mode: ${mode}, pre-select: ${selectedFacultyId}`);
         
         if (!subjectId) {
-            // Reset to TBA when no subject selected
-            facultySelect.innerHTML = '<option value="">TBA</option>';
+            // Reset when no subject selected
+            facultySelect.innerHTML = '<option value="">Select a faculty...</option>';
             facultySelect.disabled = false;
             return;
         }
@@ -386,7 +448,7 @@
         fetch(`/schedule/get-faculty/${subjectId}`)
             .then(response => response.json())
             .then(data => {
-                facultySelect.innerHTML = '<option value="">TBA</option>';
+                facultySelect.innerHTML = '<option value="">Select a faculty...</option>';
                 
                 let facultyFound = false;
                 
@@ -408,7 +470,7 @@
                         facultySelect.appendChild(option);
                     });
                 } else {
-                    // If no faculty assigned, show message but keep TBA option
+                    // If no faculty assigned, show message
                     const option = document.createElement('option');
                     option.value = "";
                     option.textContent = "No faculty assigned to this subject";
@@ -434,7 +496,7 @@
                                     option.value = selectedFaculty.id;
                                     option.textContent = `${selectedFaculty.display} (Currently assigned)`;
                                     option.selected = true;
-                                    // Insert after TBA option
+                                    // Insert after "Select a faculty..." option
                                     facultySelect.insertBefore(option, facultySelect.children[1]);
                                     console.log(`[FACULTY] Faculty dropdown value is now: ${facultySelect.value}`);
                                 }
@@ -451,7 +513,7 @@
             })
             .catch(error => {
                 console.error('[FACULTY] Error loading faculty:', error);
-                facultySelect.innerHTML = '<option value="">TBA</option>';
+                facultySelect.innerHTML = '<option value="">Select a faculty...</option>';
                 facultySelect.disabled = false;
                 showToast('Error loading faculty. Please try again.', 'error');
             });
@@ -459,6 +521,12 @@
 
     // Edit Schedule Modal
     function openEditScheduleModal() {
+        // Close add modal if it's open
+        const addModal = document.getElementById('addScheduleModal');
+        if (addModal && !addModal.classList.contains('hidden')) {
+            closeAddScheduleModal();
+        }
+        
         document.getElementById('editScheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
         
@@ -871,11 +939,12 @@
         document.querySelectorAll('.faculty-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        // Find and highlight the clicked item by matching the onclick content
+        // Find and highlight the clicked item by matching the onclick content with exact ID
         const facultyItems = document.querySelectorAll('.faculty-list-item');
         facultyItems.forEach(item => {
             const onclick = item.getAttribute('onclick');
-            if (onclick && onclick.includes(`selectFaculty(${id}`)) {
+            // Use regex to match exact ID (not partial match like ID 1 matching 10, 11, etc.)
+            if (onclick && onclick.match(new RegExp(`selectFaculty\\(${id}\\s*,`))) {
                 item.classList.add('selected');
             }
         });
@@ -953,11 +1022,12 @@
         document.querySelectorAll('.room-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        // Find and highlight the clicked item by matching the onclick content
+        // Find and highlight the clicked item by matching the onclick content with exact ID
         const roomItems = document.querySelectorAll('.room-list-item');
         roomItems.forEach(item => {
             const onclick = item.getAttribute('onclick');
-            if (onclick && onclick.includes(`selectRoom(${id}`)) {
+            // Use regex to match exact ID (not partial match like ID 1 matching 10, 11, etc.)
+            if (onclick && onclick.match(new RegExp(`selectRoom\\(${id}\\s*,`))) {
                 item.classList.add('selected');
             }
         });
@@ -1113,11 +1183,12 @@
         document.querySelectorAll('#examSectionList .section-list-item').forEach(item => {
             item.classList.remove('selected');
         });
-        // Find and highlight the clicked item by matching the onclick content
+        // Find and highlight the clicked item by matching the onclick content with exact ID
         const examSectionItems = document.querySelectorAll('#examSectionList .section-list-item');
         examSectionItems.forEach(item => {
             const onclick = item.getAttribute('onclick');
-            if (onclick && onclick.includes(`selectExamSection(${id}`)) {
+            // Use regex to match exact ID (not partial match like ID 1 matching 10, 11, etc.)
+            if (onclick && onclick.match(new RegExp(`selectExamSection\\(${id}\\s*,`))) {
                 item.classList.add('selected');
             }
         });
@@ -1217,6 +1288,12 @@
 
     // Exam Schedule Modal Functions
     function openAddExamScheduleModal(sectionId) {
+        // Close edit modal if open
+        const editModal = document.getElementById('editExamScheduleModal');
+        if (editModal && !editModal.classList.contains('hidden')) {
+            closeEditExamScheduleModal();
+        }
+        
         document.getElementById('section_id_exam_add').value = sectionId;
         document.getElementById('addExamScheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -1229,34 +1306,66 @@
         document.getElementById('addExamScheduleModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         document.getElementById('addExamScheduleForm').reset();
+        
+        // Reset auto-check state for exam modal
+        if (typeof resetAutoCheckExamState === 'function') {
+            resetAutoCheckExamState('add');
+        }
     }
 
-    function openEditExamScheduleModal() {
-        document.getElementById('editExamScheduleModal').classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
+    // Edit exam schedule modal
+    function editExamSchedule(examScheduleId) {
+        // Close add modal if open
+        const addModal = document.getElementById('addExamScheduleModal');
+        if (addModal && !addModal.classList.contains('hidden')) {
+            closeAddExamScheduleModal();
+        }
+        
+        fetch(`/exam-schedule/get/${examScheduleId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Set hidden fields
+                document.getElementById('exam_schedule_id_edit').value = data.id;
+                document.getElementById('section_id_exam_edit').value = data.section_id;
+                
+                // Set form fields that don't depend on async data
+                document.getElementById('exam_date_edit').value = data.exam_date;
+                document.getElementById('start_time_exam_edit').value = data.start_time;
+                document.getElementById('end_time_exam_edit').value = data.end_time;
+                
+                // Use curriculum-based loading (same as edit schedule modal)
+                if (typeof loadCurriculaForEdit === 'function') {
+                    loadCurriculaForEdit(data.section_id, data, 'exam_edit');
+                } else {
+                    // Fallback to direct subject loading if curriculum selector not available
+                    return loadSubjectsForExamSection(data.section_id, 'edit', data);
+                }
+                
+                return Promise.resolve();
+            })
+            .then(() => {
+                // Open modal AFTER all data is loaded
+                const modal = document.getElementById('editExamScheduleModal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    document.body.classList.add('overflow-hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading exam schedule:', error);
+                showToast('Error loading exam schedule data', 'error');
+            });
     }
 
     function closeEditExamScheduleModal() {
         document.getElementById('editExamScheduleModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         document.getElementById('editExamScheduleForm').reset();
-    }
-
-    function editExamSchedule(id, examData) {
-        document.getElementById('exam_schedule_id_edit').value = id;
         
-        // Load curricula and subjects for the exam's section
-        const sectionId = examData.section_id;
-        loadCurriculaForEdit(sectionId, examData, 'exam_edit');
-        
-        // Set other fields immediately
-        document.getElementById('exam_date_edit').value = examData.exam_date || '';
-        document.getElementById('start_time_exam_edit').value = examData.start_time || '';
-        document.getElementById('end_time_exam_edit').value = examData.end_time || '';
-        document.getElementById('faculty_id_exam_edit').value = examData.faculty_id || '';
-        document.getElementById('room_id_exam_edit').value = examData.room_id || '';
-        
-        openEditExamScheduleModal();
+        // Reset auto-check state for exam edit modal
+        if (typeof resetAutoCheckExamState === 'function') {
+            resetAutoCheckExamState('edit');
+        }
     }
 
     function deleteExamSchedule(id, subjectCode) {
@@ -1287,13 +1396,134 @@
     function loadSubjectsForExamSection(sectionId, mode, examData = null) {
         const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
         const subjectSelect = document.getElementById('subject_id' + suffix);
+        const facultySelect = document.getElementById('faculty_id' + suffix);
+        const roomSelect = document.getElementById('room_id' + suffix);
+        const curriculumSelect = document.getElementById('curriculum_id' + suffix);
+        
+        if (!subjectSelect || !facultySelect || !roomSelect || !curriculumSelect) {
+            console.error('Missing dropdown elements for exam modal');
+            return Promise.reject('Missing dropdown elements');
+        }
         
         // Show loading state
         subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
         subjectSelect.disabled = true;
         
-        // Fetch subjects for this section
-        fetch(`/schedule/get-subjects/${sectionId}`)
+        // First load curricula for the section
+        return fetch(`/schedule/get-curricula/${sectionId}`)
+            .then(response => response.json())
+            .then(data => {
+                curriculumSelect.innerHTML = '<option value="">Select Curriculum...</option>';
+                
+                if (data.curricula && data.curricula.length > 0) {
+                    data.curricula.forEach(curriculum => {
+                        const option = document.createElement('option');
+                        option.value = curriculum.id;
+                        option.textContent = `${curriculum.curriculum_code} - ${curriculum.curriculum_name}`;
+                        curriculumSelect.appendChild(option);
+                    });
+                    
+                    // If editing, we need to find which curriculum contains the subject
+                    if (examData && examData.subject_id) {
+                        // Fetch subject details to get curriculum_id
+                        return fetch(`/schedule/get-subject-details/${examData.subject_id}`)
+                            .then(r => {
+                                if (!r.ok) throw new Error('Subject not found');
+                                return r.json();
+                            })
+                            .then(subjectData => {
+                                if (subjectData && subjectData.curriculum_id) {
+                                    curriculumSelect.value = subjectData.curriculum_id;
+                                    // Now load subjects for that curriculum and select the subject
+                                    return loadSubjectsForExamCurriculum(mode, examData.subject_id);
+                                } else {
+                                    subjectSelect.innerHTML = '<option value="">Select curriculum first...</option>';
+                                    subjectSelect.disabled = true;
+                                    return Promise.resolve();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching subject details:', error);
+                                subjectSelect.innerHTML = '<option value="">Select curriculum first...</option>';
+                                subjectSelect.disabled = true;
+                                return Promise.resolve();
+                            });
+                    } else {
+                        // Add mode - wait for user to select curriculum
+                        subjectSelect.innerHTML = '<option value="">Select curriculum first...</option>';
+                        subjectSelect.disabled = true;
+                        return Promise.resolve();
+                    }
+                } else {
+                    subjectSelect.innerHTML = '<option value="">No curricula available</option>';
+                    subjectSelect.disabled = true;
+                    return Promise.resolve();
+                }
+            })
+            .then(() => {
+                // Load faculty and rooms
+                return Promise.all([
+                    fetch('/schedule/get-all-faculty').then(r => r.json()),
+                    fetch('/schedule/get-all-rooms').then(r => r.json())
+                ]);
+            })
+            .then(([facultyData, roomData]) => {
+                // Populate faculty dropdown
+                facultySelect.innerHTML = '<option value="">Select a faculty...</option>';
+                if (facultyData.faculty && facultyData.faculty.length > 0) {
+                    facultyData.faculty.forEach(fac => {
+                        const option = document.createElement('option');
+                        option.value = fac.id;
+                        option.textContent = fac.full_name;
+                        facultySelect.appendChild(option);
+                    });
+                    
+                    // If editing, select the current faculty
+                    if (examData && examData.faculty_id) {
+                        facultySelect.value = examData.faculty_id;
+                    }
+                }
+                
+                // Populate room dropdown
+                roomSelect.innerHTML = '<option value="">Select a room...</option>';
+                if (roomData.rooms && roomData.rooms.length > 0) {
+                    roomData.rooms.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.id;
+                        option.textContent = room.display || room.room_number;
+                        roomSelect.appendChild(option);
+                    });
+                    
+                    // If editing, select the current room
+                    if (examData && examData.room_id) {
+                        roomSelect.value = examData.room_id;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading exam data:', error);
+                subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
+                subjectSelect.disabled = false;
+                throw error;
+            });
+    }
+
+    // Load subjects when curriculum is selected in exam modal
+    function loadSubjectsForExamCurriculum(mode, selectedSubjectId = null) {
+        const suffix = mode === 'add' ? '_exam_add' : '_exam_edit';
+        const curriculumId = document.getElementById('curriculum_id' + suffix).value;
+        const subjectSelect = document.getElementById('subject_id' + suffix);
+        
+        if (!curriculumId) {
+            subjectSelect.innerHTML = '<option value="">Select curriculum first...</option>';
+            subjectSelect.disabled = true;
+            return Promise.resolve();
+        }
+        
+        subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
+        subjectSelect.disabled = true;
+        
+        return fetch(`/schedule/get-subjects-by-curriculum/${curriculumId}`)
             .then(response => response.json())
             .then(data => {
                 subjectSelect.innerHTML = '<option value="">Select a subject</option>';
@@ -1306,9 +1536,9 @@
                         subjectSelect.appendChild(option);
                     });
                     
-                    // If editing, select the current subject
-                    if (examData && examData.subject_id) {
-                        subjectSelect.value = examData.subject_id;
+                    // If we have a selected subject ID (edit mode), set it
+                    if (selectedSubjectId) {
+                        subjectSelect.value = selectedSubjectId;
                     }
                 } else {
                     subjectSelect.innerHTML = '<option value="">No subjects available</option>';
@@ -1759,3 +1989,5 @@
         }
     });
 
+    // Export exam schedule functions to global scope for onclick handlers
+    // Edit, Add, and Delete operations supported

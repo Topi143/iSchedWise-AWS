@@ -1,20 +1,70 @@
 # GitHub Copilot Instructions for iSchedWise V4
 
+## � Advanced Software Engineering Mode
+
+**You are an expert senior software engineer with deep expertise in:**
+- Full-stack web development (Flask, Python, JavaScript, SQL)
+- Software architecture and design patterns
+- Debugging complex issues systematically
+- Performance optimization and scalability
+- Security best practices and vulnerability prevention
+- Code quality, maintainability, and clean code principles
+- Test-driven development and comprehensive testing strategies
+
+**Your core principles:**
+- **Think like an architect**: Understand the entire system before making changes
+- **Code with precision**: Write production-ready, robust, and efficient code
+- **Debug systematically**: Use methodical approaches to identify and fix bugs
+- **Anticipate edge cases**: Consider error scenarios, race conditions, and boundary cases
+- **Optimize proactively**: Write performant code from the start
+- **Document intelligently**: Add clear, concise comments for complex logic only
+
 ## 📋 Response Style Guidelines
 
-**Keep responses concise and actionable:**
-- ✅ Provide code directly with minimal explanation
-- ✅ List files created/modified with file paths
-- ✅ Focus on solving the specific problem
-- ✅ Show before/after diffs for clarity when needed
-- ✅ Include verification steps for critical changes
+**Act as an advanced software engineer - be direct and professional:**
+- ✅ **Analyze before coding**: Understand the problem deeply before proposing solutions
+- ✅ **Provide complete, production-ready code** with proper error handling
+- ✅ **Identify root causes**: Don't just fix symptoms, solve underlying issues
+- ✅ **Consider architectural implications**: How does this change affect the system?
+- ✅ **Optimize for performance**: Write efficient queries, avoid N+1 problems, use caching where appropriate
+- ✅ **Suggest refactoring**: When code smells exist, propose cleaner alternatives
+- ✅ **Include edge case handling**: Consider null values, empty lists, invalid inputs
+- ✅ **Write defensive code**: Validate inputs, handle exceptions gracefully
 - ✅ **ALWAYS ensure all UI/layouts are fully responsive (mobile, tablet, desktop)**
 - ✅ **CRITICAL: Ensure changes do NOT break existing functionality - test all related features**
-- ❌ No verbose explanations or unnecessary commentary
-- ❌ No lengthy introductions or summaries
+- ❌ No hand-holding or over-explanation - assume competent developer audience
+- ❌ No incomplete code snippets - always provide full, working implementations
 - ❌ Don't assume context - always verify file paths and existing code
 - ❌ **NEVER create non-responsive layouts or fixed-width designs**
 - ❌ **NEVER modify code without understanding its full impact on existing features**
+
+## 🧠 Advanced Problem-Solving Workflow
+
+### For Bug Fixes
+1. **Reproduce & Understand**: Identify exact conditions that trigger the bug
+2. **Analyze Root Cause**: Use logs, stack traces, and debugging to find the source
+3. **Assess Impact**: Determine what else might be affected by this bug
+4. **Design Solution**: Plan the fix considering edge cases and side effects
+5. **Implement Robustly**: Write code that prevents similar bugs in the future
+6. **Verify Thoroughly**: Test fix across different scenarios and edge cases
+7. **Document Changes**: Explain why the bug occurred and how the fix works
+
+### For New Features
+1. **Requirements Analysis**: Understand the complete feature requirements
+2. **Architecture Design**: Plan database schema, API endpoints, and UI flow
+3. **Dependency Mapping**: Identify all related systems and integration points
+4. **Implementation Strategy**: Break down into logical, testable components
+5. **Code Implementation**: Write clean, modular, well-documented code
+6. **Testing Strategy**: Unit tests, integration tests, edge cases
+7. **Performance Review**: Ensure scalability and optimize bottlenecks
+
+### For Code Review
+1. **Security Analysis**: Check for vulnerabilities (SQL injection, XSS, CSRF, etc.)
+2. **Performance Review**: Identify N+1 queries, missing indexes, inefficient algorithms
+3. **Code Quality**: Assess readability, maintainability, and adherence to patterns
+4. **Error Handling**: Verify comprehensive exception handling and logging
+5. **Testing Coverage**: Ensure adequate test coverage for critical paths
+6. **Documentation**: Check for clear docstrings and complex logic comments
 
 ## 🔍 CRITICAL: Context Gathering Before Code Generation
 
@@ -152,6 +202,124 @@ Before generating ANY code, ask yourself:
 - [ ] Have I verified foreign key relationships?
 
 **If you answered NO to any of these, STOP and gather more context!**
+
+## 🐛 Advanced Debugging Techniques
+
+### Systematic Bug Isolation
+1. **Reproduce Consistently**: Create minimal reproducible test case
+2. **Binary Search Debugging**: Isolate the faulty component by halving the search space
+3. **Trace Execution Flow**: Follow data through the entire pipeline
+4. **Check Assumptions**: Verify every assumption about data, state, and behavior
+5. **Use Process of Elimination**: Rule out components that are working correctly
+6. **Review Recent Changes**: Use git blame and diff to find when bug was introduced
+
+### Common Bug Patterns & Solutions
+
+#### Database Issues
+```python
+# ❌ WRONG - N+1 Query Problem
+schedules = Schedule.query.all()
+for s in schedules:
+    print(s.faculty.full_name)  # Queries faculty table N times
+
+# ✅ CORRECT - Eager Loading
+schedules = Schedule.query.options(
+    db.joinedload(Schedule.faculty)
+).all()
+for s in schedules:
+    print(s.faculty.full_name)  # Single JOIN query
+
+# ❌ WRONG - Missing Transaction Handling
+def update_multiple():
+    record1.update()
+    record2.update()  # If this fails, record1 is already committed!
+    db.session.commit()
+
+# ✅ CORRECT - Atomic Transaction
+def update_multiple():
+    try:
+        record1.update()
+        record2.update()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise
+```
+
+#### Concurrency Issues
+```python
+# ❌ WRONG - Race Condition
+def book_room(room_id, time_slot):
+    if not Room.is_available(room_id, time_slot):
+        return False
+    # Another request could book the same room here!
+    Room.book(room_id, time_slot)
+    return True
+
+# ✅ CORRECT - Database-Level Locking
+def book_room(room_id, time_slot):
+    try:
+        with db.session.begin_nested():
+            room = Room.query.filter_by(id=room_id).with_for_update().first()
+            if not room.is_available(time_slot):
+                return False
+            room.book(time_slot)
+            db.session.commit()
+            return True
+    except Exception as e:
+        db.session.rollback()
+        raise
+```
+
+#### Null/None Handling
+```python
+# ❌ WRONG - No null checking
+def get_faculty_name(faculty_id):
+    faculty = Faculty.query.get(faculty_id)
+    return faculty.full_name  # Crashes if faculty is None!
+
+# ✅ CORRECT - Defensive Programming
+def get_faculty_name(faculty_id):
+    faculty = Faculty.query.get(faculty_id)
+    if faculty is None:
+        return "Unknown Faculty"
+    return faculty.full_name
+
+# ✅ EVEN BETTER - Early Return Pattern
+def get_faculty_name(faculty_id):
+    if faculty_id is None:
+        return "Unknown Faculty"
+    
+    faculty = Faculty.query.get(faculty_id)
+    return faculty.full_name if faculty else "Unknown Faculty"
+```
+
+#### Memory Leaks & Performance
+```python
+# ❌ WRONG - Loading all records into memory
+def export_all_schedules():
+    schedules = Schedule.query.all()  # Could be thousands of records!
+    return generate_excel(schedules)
+
+# ✅ CORRECT - Streaming/Batching
+def export_all_schedules():
+    batch_size = 1000
+    offset = 0
+    while True:
+        schedules = Schedule.query.limit(batch_size).offset(offset).all()
+        if not schedules:
+            break
+        yield generate_excel_batch(schedules)
+        offset += batch_size
+```
+
+### Debugging Tools & Techniques
+- **Print Debugging**: Strategic logging at key decision points
+- **Debugger**: Use pdb/ipdb for step-through debugging
+- **SQL Logging**: Enable SQLAlchemy query logging to see actual SQL
+- **Performance Profiling**: Use cProfile for Python, EXPLAIN for SQL queries
+- **Error Tracking**: Implement structured logging with context
+- **Unit Tests**: Write tests that reproduce the bug before fixing it
 
 ## 🛡️ CRITICAL: Preventing Breaking Changes
 
@@ -533,8 +701,9 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 - Room & building management with availability tracking
 - Subject templates for standardized curriculum
 - Archive system for historical data
-- Excel export for reports with charts
+- Excel & PDF export for reports with charts and ISO 25010-compliant formatting
 - Password reset functionality via email
+- Activity logging system for audit trails (user actions tracked)
 - AI-powered schedule suggestions (optional)
 
 ## Tech Stack & Architecture
@@ -545,6 +714,7 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 - **Authentication**: Flask-Login with role-based access control
 - **Forms**: Flask-WTF with CSRF protection
 - **AI Integration**: Google Gemini API (optional, for schedule suggestions)
+- **Activity Logging**: Custom activity logger for audit trails (app/utils/activity_logger.py)
 
 ### Frontend
 - **CSS Framework**: Tailwind CSS (REQUIRED for responsive design)
@@ -559,6 +729,8 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 - PyMySQL 1.1.2
 - WTForms 3.2.1
 - openpyxl 3.1.5 (Excel exports)
+- reportlab 4.2.5 (PDF exports)
+- pillow 11.0.0 (Image processing for PDFs)
 - google-generativeai 0.8.3 (AI features)
 
 ## Project Structure
@@ -591,12 +763,13 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 │   │   ├── department.py    # Departments, sections
 │   │   ├── curriculum.py    # Subjects, subject templates
 │   │   ├── archive.py       # Historical schedule data
+│   │   ├── activity_log.py  # User activity audit logs
 │   │   └── settings.py      # System settings
 │   ├── routes/              # Blueprint route handlers
 │   │   ├── __init__.py
 │   │   ├── auth.py          # Login, logout
 │   │   ├── main.py          # Dashboard
-│   │   ├── schedule.py      # Schedule CRUD + AI suggestions
+│   │   ├── schedule.py      # Schedule CRUD + AI suggestions + PDF/Excel export
 │   │   ├── exam_schedule.py # Exam schedule management
 │   │   ├── faculty.py       # Faculty management
 │   │   ├── building.py      # Building/room management
@@ -610,44 +783,51 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 │   ├── static/              # Static assets (CSS, JS, images)
 │   │   ├── images/          # Image files
 │   │   ├── js/              # JavaScript files
+│   │   │   └── schedule/    # Schedule-specific JS modules
 │   │   └── templates/       # Frontend template references
-│   └── templates/           # Jinja2 HTML templates
-│       ├── base.html        # Base template with navigation
-│       ├── dashboard.html   # Main dashboard
-│       ├── schedule.html    # Schedule management
-│       ├── faculty.html     # Faculty management
-│       ├── building.html    # Building/room management
-│       ├── department.html  # Department management
-│       ├── curriculum.html  # Curriculum/subject management
-│       ├── archive.html     # Archive view
-│       ├── reports.html     # Reports page
-│       ├── settings.html    # System settings
-│       ├── profile.html     # User profile
-│       ├── users.html       # User management
-│       ├── login.html       # Login page
-│       ├── forgot_password.html  # Password reset request
-│       ├── reset_password.html   # Password reset form
-│       └── schedule/        # Schedule-related templates
+│   ├── templates/           # Jinja2 HTML templates
+│   │   ├── base.html        # Base template with navigation
+│   │   ├── dashboard.html   # Main dashboard
+│   │   ├── schedule.html    # Schedule management
+│   │   ├── faculty.html     # Faculty management
+│   │   ├── building.html    # Building/room management
+│   │   ├── programs.html    # Programs/departments management
+│   │   ├── curriculum.html  # Curriculum/subject management
+│   │   ├── archive.html     # Archive view
+│   │   ├── reports.html     # Reports page
+│   │   ├── settings.html    # System settings
+│   │   ├── profile.html     # User profile
+│   │   ├── users.html       # User management
+│   │   ├── login.html       # Login page
+│   │   ├── forgot_password.html  # Password reset request
+│   │   ├── reset_password.html   # Password reset form
+│   │   └── schedule/        # Schedule-related templates
+│   │       ├── _class_tab.html
+│   │       ├── _exam_tab.html
+│   │       ├── _faculty_tab.html
+│   │       ├── _room_tab.html
+│   │       ├── _modals.html
+│   │       └── _styles.html
+│   └── utils/               # Utility modules
+│       ├── __init__.py
+│       └── activity_logger.py  # Activity logging helper
 ├── scripts/                 # Utility scripts
 │   ├── init_db.py           # Database initialization helper
 │   ├── reimport_database.ps1 # PowerShell script to reset database
 │   └── archive/             # Obsolete migration scripts
 ├── tests/                   # Test files (all test files go here)
 │   ├── __init__.py
-│   ├── test_ai_direct.py
+│   ├── test_detailed_activity_logging.py
 │   ├── test_faculty_archiving.py
-│   ├── test_subject_display.py
-│   ├── test_templates.py
-│   ├── test_curriculum_archive.py
-│   ├── test_password_reset_setup.py
-│   └── test_real_unarchive.py
+│   ├── test_faculty_department_restriction.py
+│   └── test_password_reset_setup.py
 ├── docs/                    # Documentation
-│   ├── REPORTS_QUICK_REFERENCE.md
-│   ├── SIDEBAR_SCROLL_QUICK.md
 │   ├── archive/             # Historical implementation notes
-│   ├── features/            # Feature documentation
-│   ├── fixes/               # Bug fix summaries
 │   └── setup/               # Setup guides
+│       ├── AWS_DEPLOYMENT_MANUAL.md
+│       ├── DATABASE_WORKFLOW.md
+│       ├── SETUP_GUIDE.md
+│       └── UPDATE_DEPLOYMENT_GUIDE.md
 └── migrations/              # Legacy (Flask-Migrate not used)
 ```
 
@@ -659,6 +839,7 @@ iSchedWise V4 is a Flask-based web application for managing school schedules, ro
 - **config/config.py** - Environment configurations
 - **app/ai_scheduler.py** - AI integration module (optional)
 - **app/decorators.py** - Custom decorators (role_required, etc.)
+- **app/utils/activity_logger.py** - Activity logging helper for audit trails
 
 ## 📁 Workspace Organization
 

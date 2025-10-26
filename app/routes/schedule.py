@@ -9,6 +9,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import io
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+from reportlab.lib import colors as rl_colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+import os
 
 from app.extensions import db, csrf
 from app.models.schedule import Schedule
@@ -412,6 +419,200 @@ def set_column_widths(ws):
         ws.column_dimensions[col].width = 20.71
 
 
+# ============================================================================
+# PDF EXPORT HELPER FUNCTIONS (ReportLab)
+# ============================================================================
+
+def create_pdf_schedule(schedules, title, semester_text, section_display, dept_name, filename, start_hour=7, end_hour=20):
+    """Create PDF schedule with exact same template as Excel export"""
+    output = io.BytesIO()
+    
+    # Create document with landscape orientation to match Excel layout
+    doc = SimpleDocTemplate(
+        output,
+        pagesize=landscape(letter),
+        rightMargin=0.5*inch,
+        leftMargin=0.5*inch,
+        topMargin=0.5*inch,
+        bottomMargin=0.5*inch
+    )
+    
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    header_style = ParagraphStyle(
+        'CustomHeader',
+        parent=styles['Normal'],
+        fontSize=11,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    
+    subheader_style = ParagraphStyle(
+        'CustomSubHeader',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=TA_CENTER,
+        fontName='Helvetica'
+    )
+    
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Add institution header
+    story.append(Paragraph('Republic of the Philippines', header_style))
+    story.append(Paragraph('Municipality of Norzagaray', subheader_style))
+    story.append(Paragraph('NORZAGARAY COLLEGE', header_style))
+    story.append(Paragraph(dept_name.upper() if dept_name else 'COLLEGE', header_style))
+    story.append(Spacer(1, 0.1*inch))
+    
+    # Add title and metadata
+    story.append(Paragraph(title, title_style))
+    story.append(Paragraph(semester_text, header_style))
+    story.append(Paragraph(section_display, header_style))
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Generate time slots with dynamic range
+    time_slots = generate_time_slots(start_hour=start_hour, end_hour=end_hour)
+    
+    # Create schedule grid data
+    grid_data = []
+    
+    # Header row
+    headers = ['TIME', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+    grid_data.append(headers)
+    
+    # Day column mapping
+    day_columns = {
+        'Monday': 1,
+        'Tuesday': 2,
+        'Wednesday': 3,
+        'Thursday': 4,
+        'Friday': 5,
+        'Saturday': 6
+    }
+    
+    # Initialize grid with empty cells
+    for time_slot in time_slots:
+        row = [time_slot] + [''] * 6
+        grid_data.append(row)
+    
+    # Place schedules in grid
+    for schedule in schedules:
+        day = schedule.day_of_week
+        start_time = schedule.start_time
+        end_time = schedule.end_time
+        
+        if day not in day_columns:
+            continue
+        
+        col_idx = day_columns[day]
+        
+        # Calculate which 30-minute slot this starts in (matching Excel export logic)
+        start_minutes = start_time.hour * 60 + start_time.minute
+        end_minutes = end_time.hour * 60 + end_time.minute
+        slot_start_minutes = start_hour * 60  # Use dynamic start hour
+        
+        # Find start row index (each row is 30 minutes)
+        start_row_idx = (start_minutes - slot_start_minutes) // 30
+        
+        # Calculate how many rows to span
+        duration_minutes = end_minutes - start_minutes
+        rows_to_span = max(1, (duration_minutes + 29) // 30)
+        
+        # Build schedule cell content
+        subject_display = schedule.subject.course_description if schedule.subject else 'N/A'
+        subject_code = schedule.subject.subject_code if schedule.subject else ''
+        type_display = schedule.schedule_type.upper() if schedule.schedule_type else ''
+        faculty_display = schedule.faculty.full_name if schedule.faculty else 'TBA'
+        room_display = schedule.room.room_number if schedule.room else 'TBA'
+        units = schedule.subject.total_units if schedule.subject else 0
+        
+        cell_content = f"{subject_code}\n{subject_display}\n{type_display}\n{faculty_display}\n{room_display}\n({units} units)"
+        
+        # Add to grid (row index + 1 because of header row)
+        grid_row_idx = start_row_idx + 1
+        if 0 <= start_row_idx < len(time_slots):
+            if grid_data[grid_row_idx][col_idx] == '':
+                grid_data[grid_row_idx][col_idx] = cell_content
+            else:
+                # Multiple schedules in same slot - append
+                grid_data[grid_row_idx][col_idx] += f"\n\n{cell_content}"
+    
+    # Create table
+    col_widths = [1*inch] + [1.5*inch] * 6
+    table = Table(grid_data, colWidths=col_widths, repeatRows=1)
+    
+    # Style table
+    table.setStyle(TableStyle([
+        # Header row
+        ('BACKGROUND', (0, 0), (-1, 0), rl_colors.HexColor('#2563eb')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), rl_colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        
+        # Time column
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (0, -1), 8),
+        
+        # Data cells
+        ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+        ('VALIGN', (1, 1), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (1, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (1, 1), (-1, -1), 7),
+        
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.5, rl_colors.grey),
+        ('BOX', (0, 0), (-1, -1), 1, rl_colors.black),
+        
+        # Alternating row colors for better readability
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [rl_colors.white, rl_colors.HexColor('#f9fafb')]),
+    ]))
+    
+    story.append(table)
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Add signature section
+    sig_data = [
+        ['', '', 'Prepared by :', '', 'Noted :'],
+        ['', '', '', '', ''],
+        ['', '', 'Name of the Dean', '', 'Ma. Liberty DG. Pascual, Ph.D'],
+        ['', '', f'Dean, {dept_name}' if dept_name else 'Dean', '', 'College President']
+    ]
+    
+    sig_table = Table(sig_data, colWidths=[1.5*inch, 1.5*inch, 2*inch, 1.5*inch, 2.5*inch])
+    sig_table.setStyle(TableStyle([
+        ('FONTNAME', (2, 0), (2, 0), 'Helvetica'),
+        ('FONTNAME', (4, 0), (4, 0), 'Helvetica'),
+        ('FONTNAME', (2, 2), (4, 3), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (2, 0), (2, 0), 'LEFT'),
+        ('ALIGN', (4, 0), (4, 0), 'LEFT'),
+        ('ALIGN', (2, 2), (2, 3), 'LEFT'),
+        ('ALIGN', (4, 2), (4, 3), 'LEFT'),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    
+    story.append(sig_table)
+    
+    # Build PDF
+    doc.build(story)
+    output.seek(0)
+    
+    return output
+
+
 @schedule_bp.route('/')
 @login_required
 def index():
@@ -645,6 +846,10 @@ def index():
     from app.models.building import Building
     buildings = Building.query.filter_by(is_active=True).order_by(Building.building_name).all()
     
+    # Get time range from settings for calendar view and time dropdowns
+    schedule_start_hour = current_settings.schedule_start_hour if current_settings else 7
+    schedule_end_hour = current_settings.schedule_end_hour if current_settings else 20
+    
     return render_template(
         'schedule.html',
         sections=sections,
@@ -671,7 +876,10 @@ def index():
         exam_section_schedule_counts=exam_section_schedule_counts,
         all_faculties=all_faculties,
         all_rooms=all_rooms,
-        buildings=buildings
+        buildings=buildings,
+        # Schedule time range for calendar and time dropdowns
+        schedule_start_hour=schedule_start_hour,
+        schedule_end_hour=schedule_end_hour
     )
 
 
@@ -682,16 +890,16 @@ def add():
     try:
         section_id = request.form.get('section_id', type=int)
         subject_id = request.form.get('subject_id', type=int)
-        faculty_id = request.form.get('faculty_id', type=int) or None
-        room_id = request.form.get('room_id', type=int) or None
+        faculty_id = request.form.get('faculty_id', type=int)
+        room_id = request.form.get('room_id', type=int)
         day_of_week = request.form.get('day_of_week')
         start_time_str = request.form.get('start_time')
         end_time_str = request.form.get('end_time')
         schedule_type = request.form.get('schedule_type', 'lecture')
         
-        # Validation
-        if not all([section_id, subject_id, day_of_week, start_time_str, end_time_str]):
-            flash('Please fill in all required fields.', 'error')
+        # Validation - faculty and room are now required
+        if not all([section_id, subject_id, faculty_id, room_id, day_of_week, start_time_str, end_time_str]):
+            flash('All required fields must be filled (including faculty and room).', 'error')
             return redirect(url_for('schedule.index', section_id=section_id))
         
         # Get current academic settings
@@ -828,8 +1036,8 @@ def edit():
     try:
         schedule_id = request.form.get('schedule_id', type=int)
         subject_id = request.form.get('subject_id', type=int)
-        faculty_id = request.form.get('faculty_id', type=int) or None
-        room_id = request.form.get('room_id', type=int) or None
+        faculty_id = request.form.get('faculty_id', type=int)
+        room_id = request.form.get('room_id', type=int)
         day_of_week = request.form.get('day_of_week')
         start_time_str = request.form.get('start_time')
         end_time_str = request.form.get('end_time')
@@ -839,9 +1047,9 @@ def edit():
         schedule = Schedule.query.get_or_404(schedule_id)
         section_id = schedule.section_id
         
-        # Validation
-        if not all([subject_id, day_of_week, start_time_str, end_time_str]):
-            flash('Please fill in all required fields.', 'error')
+        # Validation - faculty and room are now required
+        if not all([subject_id, faculty_id, room_id, day_of_week, start_time_str, end_time_str]):
+            flash('All required fields must be filled (including faculty and room).', 'error')
             return redirect(url_for('schedule.index', section_id=section_id))
         
         # Convert time strings to time objects
@@ -1071,8 +1279,7 @@ def get_subjects_for_section(section_id):
         # Determine semester number from semester name
         semester_mapping = {
             '1st Semester': 1,
-            '2nd Semester': 2,
-            'Summer': 3
+            '2nd Semester': 2
         }
         semester_number = semester_mapping.get(current_settings.semester, 1)
         
@@ -1134,6 +1341,112 @@ def get_subjects_for_section(section_id):
         return jsonify({'error': str(e)}), 500
 
 
+@schedule_bp.route('/get-subject-details/<int:subject_id>')
+@login_required
+def get_subject_details(subject_id):
+    """Get detailed information about a subject including its curriculum"""
+    from flask import jsonify
+    import traceback
+    
+    try:
+        print(f'[SUBJECT DETAILS] Fetching subject {subject_id}')
+        subject = Subject.query.get(subject_id)
+        
+        if not subject:
+            print(f'[SUBJECT DETAILS] Subject {subject_id} not found')
+            return jsonify({'error': 'Subject not found'}), 404
+        
+        print(f'[SUBJECT DETAILS] Subject found: {subject.subject_code}')
+        print(f'[SUBJECT DETAILS] Semester ID: {subject.semester_id}')
+        
+        # Get curriculum through relationships
+        semester = subject.semester
+        if not semester:
+            print(f'[SUBJECT DETAILS] Subject {subject_id} has no semester')
+            return jsonify({'error': 'Subject has no semester'}), 404
+        
+        print(f'[SUBJECT DETAILS] Semester found: {semester.semester_name}')
+        print(f'[SUBJECT DETAILS] Year level ID: {semester.year_level_id}')
+        
+        year_level = semester.year_level
+        if not year_level:
+            print(f'[SUBJECT DETAILS] Semester {semester.id} has no year level')
+            return jsonify({'error': 'Semester has no year level'}), 404
+        
+        print(f'[SUBJECT DETAILS] Year level found: {year_level.year_name}')
+        print(f'[SUBJECT DETAILS] Curriculum ID: {year_level.curriculum_id}')
+        
+        curriculum = year_level.curriculum
+        if not curriculum:
+            print(f'[SUBJECT DETAILS] Year level {year_level.id} has no curriculum')
+            return jsonify({'error': 'Year level has no curriculum'}), 404
+        
+        print(f'[SUBJECT DETAILS] Curriculum found: {curriculum.curriculum_code}')
+        
+        return jsonify({
+            'id': subject.id,
+            'subject_code': subject.subject_code,
+            'course_description': subject.course_description,
+            'curriculum_id': curriculum.id,
+            'curriculum_code': curriculum.curriculum_code,
+            'curriculum_name': curriculum.degree_program
+        })
+        
+    except Exception as e:
+        print(f'[SUBJECT DETAILS] ERROR: {str(e)}')
+        print(f'[SUBJECT DETAILS] Traceback: {traceback.format_exc()}')
+        return jsonify({'error': str(e)}), 500
+
+
+@schedule_bp.route('/get-subjects-by-curriculum/<int:curriculum_id>')
+@login_required
+def get_subjects_by_curriculum(curriculum_id):
+    """Get all subjects for a specific curriculum"""
+    from flask import jsonify
+    from app.models.curriculum import Curriculum, YearLevel, Semester
+    
+    try:
+        print(f'[SUBJECTS BY CURRICULUM] Fetching subjects for curriculum {curriculum_id}')
+        
+        # Get the curriculum
+        curriculum = Curriculum.query.get(curriculum_id)
+        if not curriculum:
+            print(f'[SUBJECTS BY CURRICULUM] Curriculum {curriculum_id} not found')
+            return jsonify({'subjects': []})
+        
+        print(f'[SUBJECTS BY CURRICULUM] Curriculum found: {curriculum.curriculum_code}')
+        
+        # Get all subjects for this curriculum through year levels and semesters
+        subjects = []
+        for year_level in curriculum.year_levels:
+            for semester in year_level.semesters:
+                for subject in semester.subjects:
+                    subjects.append({
+                        'id': subject.id,
+                        'subject_code': subject.subject_code,
+                        'course_description': subject.course_description,
+                        'lec_units': float(subject.lec_units),
+                        'lab_units': float(subject.lab_units),
+                        'total_units': subject.total_units,
+                        'year_level': year_level.year_name,
+                        'semester': semester.semester_name,
+                        'display': f"{subject.subject_code} - {subject.course_description} ({subject.total_units} units)"
+                    })
+        
+        print(f'[SUBJECTS BY CURRICULUM] Found {len(subjects)} subjects')
+        
+        # Sort by year level number, semester number, then subject code
+        subjects.sort(key=lambda x: (x['year_level'], x['semester'], x['subject_code']))
+        
+        return jsonify({'subjects': subjects})
+        
+    except Exception as e:
+        print(f'[SUBJECTS BY CURRICULUM] ERROR: {str(e)}')
+        import traceback
+        print(f'[SUBJECTS BY CURRICULUM] Traceback: {traceback.format_exc()}')
+        return jsonify({'error': str(e)}), 500
+
+
 @schedule_bp.route('/get-faculty/<int:subject_id>')
 @login_required
 def get_faculty_for_subject(subject_id):
@@ -1176,6 +1489,59 @@ def get_faculty_for_subject(subject_id):
         ]
         
         return jsonify({'faculty': faculty_data})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@schedule_bp.route('/get-all-faculty')
+@login_required
+def get_all_faculty():
+    """Get all active faculty members for exam schedule modals"""
+    try:
+        # Get all active faculty
+        faculties = Faculty.query.filter_by(
+            is_active=True,
+            is_archived=False
+        ).order_by(Faculty.full_name).all()
+        
+        # Format faculty for JSON response
+        faculty_data = [
+            {
+                'id': faculty.id,
+                'full_name': faculty.full_name,
+                'department_code': faculty.department.department_code if faculty.department else '',
+                'display': f"{faculty.full_name}" + (f" - {faculty.department.department_code}" if faculty.department else "")
+            }
+            for faculty in faculties
+        ]
+        
+        return jsonify({'faculty': faculty_data})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@schedule_bp.route('/get-all-rooms')
+@login_required
+def get_all_rooms():
+    """Get all available rooms for exam schedule modals"""
+    try:
+        # Get all available rooms
+        rooms = Room.query.filter_by(is_available=True).order_by(Room.room_number).all()
+        
+        # Format rooms for JSON response
+        room_data = [
+            {
+                'id': room.id,
+                'room_number': room.room_number,
+                'building_name': room.building.building_name if room.building else '',
+                'display': f"{room.room_number}" + (f" - {room.building.building_name}" if room.building else "")
+            }
+            for room in rooms
+        ]
+        
+        return jsonify({'rooms': room_data})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1362,6 +1728,10 @@ def export_class_schedule(section_id):
         section = Section.query.get_or_404(section_id)
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
+        # Get time range from settings (default to 7-20 if not set)
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
         # Query schedules
         query = Schedule.query.filter_by(section_id=section_id, is_active=True)
         if current_settings:
@@ -1392,12 +1762,12 @@ def export_class_schedule(section_id):
         # Add column headers
         add_column_headers(ws)
         
-        # Generate and write time slots
-        time_slots = generate_time_slots()
+        # Generate and write time slots with dynamic time range
+        time_slots = generate_time_slots(start_hour=start_hour, end_hour=end_hour)
         write_time_slots(ws, time_slots)
         
-        # Place schedules in grid
-        place_schedule_in_grid(ws, schedules)
+        # Place schedules in grid with dynamic start hour
+        place_schedule_in_grid(ws, schedules, start_hour=start_hour)
         
         # Apply borders
         last_row = 11 + len(time_slots) - 1
@@ -1561,6 +1931,10 @@ def export_faculty_schedule(faculty_id):
         faculty = Faculty.query.get_or_404(faculty_id)
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
+        # Get time range from settings (default to 7-20 if not set)
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
         # Query schedules
         query = Schedule.query.filter_by(faculty_id=faculty_id, is_active=True)
         if current_settings:
@@ -1589,12 +1963,12 @@ def export_faculty_schedule(faculty_id):
         # Add column headers
         add_column_headers(ws)
         
-        # Generate and write time slots
-        time_slots = generate_time_slots()
+        # Generate and write time slots with dynamic time range
+        time_slots = generate_time_slots(start_hour=start_hour, end_hour=end_hour)
         write_time_slots(ws, time_slots)
         
-        # Place schedules in grid
-        place_schedule_in_grid(ws, schedules)
+        # Place schedules in grid with dynamic start hour
+        place_schedule_in_grid(ws, schedules, start_hour=start_hour)
         
         # Apply borders
         last_row = 11 + len(time_slots) - 1
@@ -1634,6 +2008,10 @@ def export_room_schedule(room_id):
         room = Room.query.get_or_404(room_id)
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
+        # Get time range from settings (default to 7-20 if not set)
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
         # Query schedules
         query = Schedule.query.filter_by(room_id=room_id, is_active=True)
         if current_settings:
@@ -1662,12 +2040,12 @@ def export_room_schedule(room_id):
         # Add column headers
         add_column_headers(ws)
         
-        # Generate and write time slots
-        time_slots = generate_time_slots()
+        # Generate and write time slots with dynamic time range
+        time_slots = generate_time_slots(start_hour=start_hour, end_hour=end_hour)
         write_time_slots(ws, time_slots)
         
-        # Place schedules in grid
-        place_schedule_in_grid(ws, schedules)
+        # Place schedules in grid with dynamic start hour
+        place_schedule_in_grid(ws, schedules, start_hour=start_hour)
         
         # Apply borders
         last_row = 11 + len(time_slots) - 1
@@ -1700,207 +2078,11 @@ def export_room_schedule(room_id):
         return redirect(url_for('schedule.index', room_id=room_id))
 
 
-@schedule_bp.route('/export/exam/<int:section_id>')
-@login_required
-def export_exam_schedule(section_id):
-    """Export exam schedule to Excel - table format with subject details"""
-    from flask import send_file
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    import io
-    
-    try:
-        section = Section.query.get_or_404(section_id)
-        
-        # Get current academic settings
-        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
-        
-        # Query exam schedules for this section
-        query = ExamSchedule.query.filter_by(section_id=section_id, is_active=True)
-        if current_settings:
-            query = query.filter_by(
-                academic_year=current_settings.academic_year,
-                semester=current_settings.semester,
-                exam_period=current_settings.exam_period
-            )
-        
-        exam_schedules = query.order_by(ExamSchedule.exam_date, ExamSchedule.start_time).all()
-        
-        # Create workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Exam Schedule"
-        
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
-        
-        # Add header (posting-specific, centered across A-H)
-        dept_name = section.department.department_name.upper() if section.department else 'COLLEGE'
-        add_institution_header_for_posting(ws, dept_name)
-        
-        # Add title (posting-specific, centered across A-H)
-        if current_settings:
-            semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year} - {current_settings.exam_period.upper()}"
-        else:
-            semester_text = "EXAM SCHEDULE"
-        dept_code = section.department.department_code if section.department else ''
-        section_display = f"{dept_code} {section.year_level}{section.section_name}"
-        add_schedule_title_for_posting(ws, 'EXAMINATION SCHEDULE', semester_text, section_display)
-        
-        # Define border style
-        thin_border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-        
-        # Row 10: "Units" label merged across columns C and D
-        ws['C10'] = 'Units'
-        ws['C10'].font = Font(bold=True, size=11)
-        ws['C10'].alignment = Alignment(horizontal='center', vertical='center')
-        ws['C10'].border = thin_border
-        ws.merge_cells('C10:D10')
-        # Apply border to merged cells
-        for col in range(3, 5):  # C and D
-            ws.cell(row=10, column=col).border = thin_border
-        
-        # Row 11: Column Headers
-        headers = ['Subject Code', 'Description', 'Lec', 'Lab', 'Date', 'Time', 'Room', 'Faculty']
-        for col_idx, header in enumerate(headers, start=1):
-            cell = ws.cell(row=11, column=col_idx, value=header)
-            cell.font = Font(bold=True, size=11)
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-            cell.border = thin_border
-        
-        # Data rows starting from row 12
-        row = 12
-        total_lec_units = 0
-        
-        for exam in exam_schedules:
-            # Subject code
-            subject_code = exam.subject.subject_code if exam.subject else 'TBA'
-            cell = ws.cell(row=row, column=1, value=subject_code)
-            cell.border = thin_border
-            
-            # Description
-            description = exam.subject.course_description if exam.subject else ''
-            cell = ws.cell(row=row, column=2, value=description)
-            cell.border = thin_border
-            
-            # Lecture units
-            lec_units = float(exam.subject.lec_units) if exam.subject else 0
-            cell = ws.cell(row=row, column=3, value=str(int(lec_units)))
-            cell.alignment = Alignment(horizontal='center')
-            cell.border = thin_border
-            total_lec_units += lec_units
-            
-            # Lab units
-            lab_units = float(exam.subject.lab_units) if exam.subject else 0
-            cell = ws.cell(row=row, column=4, value=str(int(lab_units)))
-            cell.alignment = Alignment(horizontal='center')
-            cell.border = thin_border
-            
-            # Exam Date
-            date_str = exam.exam_date.strftime('%b %d, %Y')
-            cell = ws.cell(row=row, column=5, value=date_str)
-            cell.border = thin_border
-            
-            # Time
-            time_str = f"{exam.start_time.strftime('%I:%M %p')}-{exam.end_time.strftime('%I:%M %p')}"
-            cell = ws.cell(row=row, column=6, value=time_str)
-            cell.border = thin_border
-            
-            # Room
-            room_display = exam.room.room_number if exam.room else 'TBA'
-            cell = ws.cell(row=row, column=7, value=room_display)
-            cell.border = thin_border
-            
-            # Faculty
-            faculty_name = exam.faculty.full_name if exam.faculty else 'TBA'
-            cell = ws.cell(row=row, column=8, value=faculty_name)
-            cell.border = thin_border
-            
-            row += 1
-        
-        # Add TOTAL row
-        cell = ws.cell(row=row, column=1, value='TOTAL')
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal='left')
-        cell.border = thin_border
-        
-        # Empty cells in TOTAL row with borders
-        for col in range(2, 3):  # Column B (Description)
-            cell = ws.cell(row=row, column=col, value='')
-            cell.border = thin_border
-        
-        cell = ws.cell(row=row, column=3, value=str(int(total_lec_units)))
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal='center')
-        cell.border = thin_border
-        
-        # Empty cells after total for proper borders
-        for col in range(4, 9):  # Columns D through H
-            cell = ws.cell(row=row, column=col, value='')
-            cell.border = thin_border
-        
-        # Signature section (skip 3 rows after TOTAL)
-        sig_start_row = row + 3
-        
-        # Prepared by: (column B)
-        ws.cell(row=sig_start_row, column=2, value='Prepared by:')
-        ws.cell(row=sig_start_row, column=2).font = Font(size=10)
-        
-        # Checked by: (column F)
-        ws.cell(row=sig_start_row, column=6, value='Checked by:')
-        ws.cell(row=sig_start_row, column=6).font = Font(size=10)
-        
-        # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
-        ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
-        
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
-        ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
-        
-        # Titles (next row)
-        ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
-        ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
-        
-        dean_title = f"Dean, {dept_name}"
-        ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
-        ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
-        ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')
-        
-        # Set column widths for table format
-        ws.column_dimensions['A'].width = 15  # Subject Code
-        ws.column_dimensions['B'].width = 35  # Description
-        ws.column_dimensions['C'].width = 8   # Lec
-        ws.column_dimensions['D'].width = 8   # Lab
-        ws.column_dimensions['E'].width = 15  # Date
-        ws.column_dimensions['F'].width = 20  # Time
-        ws.column_dimensions['G'].width = 12  # Room
-        ws.column_dimensions['H'].width = 25  # Faculty
-        
-        # Save to BytesIO
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        filename = f"{dept_code}_{section.year_level}{section.section_name}_Exam_Schedule.xlsx".replace(' ', '_')
-        
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=filename
-        )
-        
-    except Exception as e:
-        flash(f'Error exporting exam schedule: {str(e)}', 'error')
-        return redirect(url_for('schedule.index', exam_section_id=section_id))
 
 
+# ============================================================================
 # Export for Posting Routes (Simplified, print-friendly versions)
+# ============================================================================
 
 @schedule_bp.route('/export/class/<int:section_id>/posting')
 @login_required
@@ -2485,239 +2667,167 @@ def export_room_schedule_for_posting(room_id):
         return redirect(url_for('schedule.index', room_id=room_id))
 
 
-@schedule_bp.route('/export/exam/<int:section_id>/posting')
+# ============================================================================
+# PDF EXPORT ROUTES
+# ============================================================================
+
+@schedule_bp.route('/export/class/<int:section_id>/pdf')
 @login_required
-def export_exam_schedule_for_posting(section_id):
-    """Batch export - Export all exam schedules for the entire department, grouped by section"""
-    from flask import send_file
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from datetime import datetime, time as dt_time, timedelta
-    import io
-    
+def export_class_schedule_pdf(section_id):
+    """Export class schedule to PDF - weekly grid format matching Excel template"""
     try:
         section = Section.query.get_or_404(section_id)
-        
-        # Get current academic settings
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
-        # Get all sections for this department
-        department_id = section.department_id
-        if not department_id:
-            flash('Section must belong to a department for batch export', 'error')
-            return redirect(url_for('schedule.index', exam_section_id=section_id))
+        # Get time range from settings (default to 7-20 if not set)
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
         
-        # Get ALL sections for this department
-        all_sections = Section.query.filter_by(
-            department_id=department_id, 
-            is_active=True
-        ).order_by(Section.year_level, Section.section_name).all()
-        
-        # Create workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Exam Schedule"
-        
-        # Add logos (use posting-specific function with placeholder)
-        add_institution_logos_for_posting(ws)
-        
-        # Add header (posting-specific, centered across A-H)
-        dept_name = section.department.department_name.upper() if section.department else 'COLLEGE'
-        add_institution_header_for_posting(ws, dept_name)
-        
-        # Add title (posting-specific, centered across A-H)
+        # Query schedules
+        query = Schedule.query.filter_by(section_id=section_id, is_active=True)
         if current_settings:
-            semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year} - {current_settings.exam_period.upper()}"
-        else:
-            semester_text = "EXAM SCHEDULE"
-        dept_code = section.department.department_code if section.department else ''
-        add_schedule_title_for_posting(ws, 'EXAMINATION SCHEDULE - BATCH EXPORT', semester_text, f"Department: {dept_name}")
+            query = query.filter_by(
+                academic_year=current_settings.academic_year,
+                semester=current_settings.semester
+            )
+        schedules = query.order_by(Schedule.day_of_week, Schedule.start_time).all()
         
-        # Define border style
-        thin_border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
+        # Prepare metadata
+        dept_name = section.department.department_name if section.department else 'COLLEGE'
+        dept_code = section.department.department_code if section.department else ''
+        semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "CLASS SCHEDULE"
+        section_display = f"{dept_code} {section.year_level}{section.section_name}"
+        
+        # Create PDF with dynamic time range
+        output = create_pdf_schedule(
+            schedules=schedules,
+            title='CLASS SCHEDULE',
+            semester_text=semester_text,
+            section_display=section_display,
+            dept_name=dept_name.upper(),
+            filename=f"{dept_code}_{section.year_level}{section.section_name}_Schedule.pdf",
+            start_hour=start_hour,
+            end_hour=end_hour
         )
         
-        # Start row for content
-        current_row = 10
-        
-        # Loop through each section and create a separate table
-        for sect in all_sections:
-            # Query exam schedules for this specific section
-            query = ExamSchedule.query.filter_by(section_id=sect.id, is_active=True)
-            if current_settings:
-                query = query.filter_by(
-                    academic_year=current_settings.academic_year,
-                    semester=current_settings.semester,
-                    exam_period=current_settings.exam_period
-                )
-            
-            exam_schedules = query.order_by(
-                ExamSchedule.exam_date,
-                ExamSchedule.start_time
-            ).all()
-            
-            # Skip sections with no exam schedules
-            if not exam_schedules:
-                continue
-            
-            # Section Header (merged across A-H)
-            section_header = f"{dept_code} {sect.year_level}{sect.section_name}"
-            ws.merge_cells(f'A{current_row}:H{current_row}')
-            cell = ws.cell(row=current_row, column=1, value=section_header)
-            cell.font = Font(bold=True, size=12)
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-            cell.fill = PatternFill(start_color='E5E7EB', end_color='E5E7EB', fill_type='solid')
-            for col in range(1, 9):
-                ws.cell(row=current_row, column=col).border = thin_border
-            current_row += 1
-            
-            # "Units" label merged across columns C and D
-            ws.merge_cells(f'C{current_row}:D{current_row}')
-            cell = ws.cell(row=current_row, column=3, value='Units')
-            cell.font = Font(bold=True, size=11)
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-            for col in range(3, 5):
-                ws.cell(row=current_row, column=col).border = thin_border
-            current_row += 1
-            
-            # Column Headers
-            headers = ['Subject Code', 'Description', 'Lec', 'Lab', 'Date', 'Time', 'Room', 'Faculty']
-            for col_idx, header in enumerate(headers, start=1):
-                cell = ws.cell(row=current_row, column=col_idx, value=header)
-                cell.font = Font(bold=True, size=11)
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                cell.border = thin_border
-            current_row += 1
-            
-            # Data rows for this section
-            section_total_lec_units = 0
-            
-            for exam in exam_schedules:
-                # Subject code
-                subject_code = exam.subject.subject_code if exam.subject else 'TBA'
-                cell = ws.cell(row=current_row, column=1, value=subject_code)
-                cell.border = thin_border
-                
-                # Description
-                description = exam.subject.course_description if exam.subject else ''
-                cell = ws.cell(row=current_row, column=2, value=description)
-                cell.border = thin_border
-                
-                # Lecture units
-                lec_units = float(exam.subject.lec_units) if exam.subject else 0
-                cell = ws.cell(row=current_row, column=3, value=str(int(lec_units)))
-                cell.alignment = Alignment(horizontal='center')
-                cell.border = thin_border
-                section_total_lec_units += lec_units
-                
-                # Lab units
-                lab_units = float(exam.subject.lab_units) if exam.subject else 0
-                cell = ws.cell(row=current_row, column=4, value=str(int(lab_units)))
-                cell.alignment = Alignment(horizontal='center')
-                cell.border = thin_border
-                
-                # Exam Date
-                date_str = exam.exam_date.strftime('%b %d, %Y')
-                cell = ws.cell(row=current_row, column=5, value=date_str)
-                cell.border = thin_border
-                
-                # Time
-                time_str = f"{exam.start_time.strftime('%I:%M %p')}-{exam.end_time.strftime('%I:%M %p')}"
-                cell = ws.cell(row=current_row, column=6, value=time_str)
-                cell.border = thin_border
-                
-                # Room
-                room_display = exam.room.room_number if exam.room else 'TBA'
-                cell = ws.cell(row=current_row, column=7, value=room_display)
-                cell.border = thin_border
-                
-                # Faculty
-                faculty_name = exam.faculty.full_name if exam.faculty else 'TBA'
-                cell = ws.cell(row=current_row, column=8, value=faculty_name)
-                cell.border = thin_border
-                
-                current_row += 1
-            
-            # Add TOTAL row for this section
-            cell = ws.cell(row=current_row, column=1, value='TOTAL')
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal='left')
-            cell.border = thin_border
-            
-            # Empty cell for Description
-            cell = ws.cell(row=current_row, column=2, value='')
-            cell.border = thin_border
-            
-            # Total lecture units
-            cell = ws.cell(row=current_row, column=3, value=str(int(section_total_lec_units)))
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal='center')
-            cell.border = thin_border
-            
-            # Empty cells after total
-            for col in range(4, 9):
-                cell = ws.cell(row=current_row, column=col, value='')
-                cell.border = thin_border
-            
-            # Skip 3 rows before next section
-            current_row += 4
-        
-        # Signature section at the end
-        sig_start_row = current_row
-        
-        # Prepared by: (column B)
-        ws.cell(row=sig_start_row, column=2, value='Prepared by:')
-        ws.cell(row=sig_start_row, column=2).font = Font(size=10)
-        
-        # Checked by: (column F)
-        ws.cell(row=sig_start_row, column=6, value='Checked by:')
-        ws.cell(row=sig_start_row, column=6).font = Font(size=10)
-        
-        # Name placeholders (2 rows down)
-        ws.cell(row=sig_start_row + 2, column=2, value='Name of the Secretary')
-        ws.cell(row=sig_start_row + 2, column=2).font = Font(bold=True, size=10)
-        
-        ws.cell(row=sig_start_row + 2, column=6, value='Name of the Dean')
-        ws.cell(row=sig_start_row + 2, column=6).font = Font(bold=True, size=10)
-        
-        # Titles (next row)
-        ws.cell(row=sig_start_row + 3, column=2, value="Dean's Secretary")
-        ws.cell(row=sig_start_row + 3, column=2).font = Font(size=10)
-        
-        dean_title = f"Dean, {dept_name}"
-        ws.cell(row=sig_start_row + 3, column=6, value=dean_title)
-        ws.cell(row=sig_start_row + 3, column=6).font = Font(size=10)
-        ws.cell(row=sig_start_row + 3, column=6).alignment = Alignment(horizontal='center')
-        
-        # Set column widths for table format
-        ws.column_dimensions['A'].width = 15  # Subject Code
-        ws.column_dimensions['B'].width = 35  # Description
-        ws.column_dimensions['C'].width = 8   # Lec
-        ws.column_dimensions['D'].width = 8   # Lab
-        ws.column_dimensions['E'].width = 15  # Date
-        ws.column_dimensions['F'].width = 20  # Time
-        ws.column_dimensions['G'].width = 12  # Room
-        ws.column_dimensions['H'].width = 25  # Faculty
-        
-        # Save to BytesIO
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        filename = f"{dept_code}_Exam_Schedule_Batch_Export.xlsx".replace(' ', '_')
-        
+        filename = f"{dept_code}_{section.year_level}{section.section_name}_Schedule.pdf".replace(' ', '_')
         return send_file(
             output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            mimetype='application/pdf',
             as_attachment=True,
             download_name=filename
         )
         
     except Exception as e:
-        flash(f'Error exporting exam schedule batch: {str(e)}', 'error')
-        return redirect(url_for('schedule.index', exam_section_id=section_id))
+        flash(f'Error exporting PDF schedule: {str(e)}', 'error')
+        return redirect(url_for('schedule.index', section_id=section_id))
 
+
+@schedule_bp.route('/export/faculty/<int:faculty_id>/pdf')
+@login_required
+def export_faculty_schedule_pdf(faculty_id):
+    """Export faculty schedule to PDF - weekly grid format"""
+    try:
+        faculty = Faculty.query.get_or_404(faculty_id)
+        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        
+        # Get time range from settings (default to 7-20 if not set)
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
+        # Query schedules
+        query = Schedule.query.filter_by(faculty_id=faculty_id, is_active=True)
+        if current_settings:
+            query = query.filter_by(
+                academic_year=current_settings.academic_year,
+                semester=current_settings.semester
+            )
+        schedules = query.order_by(Schedule.day_of_week, Schedule.start_time).all()
+        
+        # Prepare metadata
+        dept_name = faculty.department.department_name if faculty.department else 'COLLEGE'
+        semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "FACULTY SCHEDULE"
+        faculty_display = f"{faculty.full_name}"
+        
+        # Create PDF with dynamic time range
+        output = create_pdf_schedule(
+            schedules=schedules,
+            title='FACULTY SCHEDULE',
+            semester_text=semester_text,
+            section_display=faculty_display,
+            dept_name=dept_name.upper(),
+            filename=f"{faculty.full_name.replace(' ', '_')}_Schedule.pdf",
+            start_hour=start_hour,
+            end_hour=end_hour
+        )
+        
+        filename = f"{faculty.full_name.replace(' ', '_')}_Schedule.pdf"
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        flash(f'Error exporting faculty PDF schedule: {str(e)}', 'error')
+        return redirect(url_for('schedule.index', faculty_id=faculty_id))
+
+
+@schedule_bp.route('/export/room/<int:room_id>/pdf')
+@login_required
+def export_room_schedule_pdf(room_id):
+    """Export room schedule to PDF - weekly grid format"""
+    try:
+        room = Room.query.get_or_404(room_id)
+        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        
+        # Get time range from settings (default to 7-20 if not set)
+        start_hour = current_settings.schedule_start_hour if current_settings else 7
+        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        
+        # Query schedules
+        query = Schedule.query.filter_by(room_id=room_id, is_active=True)
+        if current_settings:
+            query = query.filter_by(
+                academic_year=current_settings.academic_year,
+                semester=current_settings.semester
+            )
+        schedules = query.order_by(Schedule.day_of_week, Schedule.start_time).all()
+        
+        # Prepare metadata
+        building_name = room.building.building_name if room.building else 'Building'
+        dept_name = 'COLLEGE'  # Room schedules are typically college-wide
+        semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "ROOM SCHEDULE"
+        room_display = f"{building_name} - Room {room.room_number}"
+        
+        # Create PDF with dynamic time range
+        output = create_pdf_schedule(
+            schedules=schedules,
+            title='ROOM SCHEDULE',
+            semester_text=semester_text,
+            section_display=room_display,
+            dept_name=dept_name,
+            filename=f"Room_{room.room_number}_Schedule.pdf",
+            start_hour=start_hour,
+            end_hour=end_hour
+        )
+        
+        filename = f"Room_{room.room_number}_Schedule.pdf".replace(' ', '_')
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        flash(f'Error exporting room PDF schedule: {str(e)}', 'error')
+        return redirect(url_for('schedule.index', room_id=room_id))
+
+
+
+
+# ============================================================================
+# END OF SCHEDULE ROUTES
+# ============================================================================

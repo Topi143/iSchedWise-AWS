@@ -27,6 +27,7 @@ USE `ischedwise_db`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `user_activity_logs`;
 DROP TABLE IF EXISTS `archives`;
 DROP TABLE IF EXISTS `exam_schedules`;
 DROP TABLE IF EXISTS `schedules`;
@@ -90,7 +91,7 @@ CREATE TABLE `departments` (
   KEY `idx_department_code` (`department_code`),
   KEY `idx_is_archived` (`is_archived`),
   KEY `archived_by` (`archived_by`),
-  CONSTRAINT `departments_ibfk_1` FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT departments_ibfk_1 FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -108,8 +109,8 @@ CREATE TABLE `user_departments` (
   UNIQUE KEY `user_department_unique` (`user_id`, `department_id`),
   KEY `user_id` (`user_id`),
   KEY `department_id` (`department_id`),
-  CONSTRAINT `user_departments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `user_departments_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE
+  CONSTRAINT user_departments_ibfk_1 FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT user_departments_ibfk_2 FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -136,9 +137,9 @@ CREATE TABLE `curricula` (
   KEY `department_id` (`department_id`),
   KEY `created_by` (`created_by`),
   KEY `archived_by` (`archived_by`),
-  CONSTRAINT `curricula_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `curricula_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `curricula_ibfk_3` FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT curricula_ibfk_1 FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT curricula_ibfk_2 FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT curricula_ibfk_3 FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -154,7 +155,7 @@ CREATE TABLE `year_levels` (
   `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `curriculum_id` (`curriculum_id`),
-  CONSTRAINT `year_levels_ibfk_1` FOREIGN KEY (`curriculum_id`) REFERENCES `curricula` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT year_levels_ibfk_1 FOREIGN KEY (`curriculum_id`) REFERENCES `curricula` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -170,7 +171,7 @@ CREATE TABLE `semesters` (
   `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `year_level_id` (`year_level_id`),
-  CONSTRAINT `semesters_ibfk_1` FOREIGN KEY (`year_level_id`) REFERENCES `year_levels` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT semesters_ibfk_1 FOREIGN KEY (`year_level_id`) REFERENCES `year_levels` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -193,7 +194,7 @@ CREATE TABLE `subjects` (
   PRIMARY KEY (`id`),
   KEY `semester_id` (`semester_id`),
   KEY `idx_subject_code` (`subject_code`),
-  CONSTRAINT `subjects_ibfk_1` FOREIGN KEY (`semester_id`) REFERENCES `semesters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT subjects_ibfk_1 FOREIGN KEY (`semester_id`) REFERENCES `semesters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -215,8 +216,8 @@ CREATE TABLE `faculty` (
   KEY `idx_is_archived` (`is_archived`),
   KEY `department_id` (`department_id`),
   KEY `archived_by` (`archived_by`),
-  CONSTRAINT `faculty_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `faculty_ibfk_2` FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT faculty_ibfk_1 FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT faculty_ibfk_2 FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -243,9 +244,9 @@ CREATE TABLE `faculty_subject_assignments` (
   KEY `idx_is_archived` (`is_archived`),
   KEY `archived_by` (`archived_by`),
   KEY `idx_academic_period` (`academic_year`, `semester`),
-  CONSTRAINT `faculty_subject_assignments_ibfk_1` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `faculty_subject_assignments_ibfk_2` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-  ,CONSTRAINT `faculty_subject_assignments_ibfk_3` FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT faculty_subject_assignments_ibfk_1 FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT faculty_subject_assignments_ibfk_2 FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT faculty_subject_assignments_ibfk_3 FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -266,7 +267,7 @@ CREATE TABLE `buildings` (
   PRIMARY KEY (`id`),
   KEY `idx_is_archived` (`is_archived`),
   KEY `archived_by` (`archived_by`),
-  CONSTRAINT `buildings_ibfk_1` FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT buildings_ibfk_1 FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -283,7 +284,7 @@ CREATE TABLE `rooms` (
   `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `building_id` (`building_id`),
-  CONSTRAINT `rooms_ibfk_1` FOREIGN KEY (`building_id`) REFERENCES `buildings` (`id`) ON DELETE CASCADE
+  CONSTRAINT rooms_ibfk_1 FOREIGN KEY (`building_id`) REFERENCES `buildings` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -300,7 +301,7 @@ CREATE TABLE `sections` (
   `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `department_id` (`department_id`),
-  CONSTRAINT `sections_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE
+  CONSTRAINT sections_ibfk_1 FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -329,10 +330,10 @@ CREATE TABLE `schedules` (
   KEY `faculty_id` (`faculty_id`),
   KEY `room_id` (`room_id`),
   KEY `idx_day_time` (`day_of_week`, `start_time`, `end_time`),
-  CONSTRAINT `schedules_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `schedules_ibfk_2` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `schedules_ibfk_3` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `schedules_ibfk_4` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT schedules_ibfk_1 FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT schedules_ibfk_2 FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT schedules_ibfk_3 FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT schedules_ibfk_4 FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -361,10 +362,10 @@ CREATE TABLE `exam_schedules` (
   KEY `faculty_id` (`faculty_id`),
   KEY `room_id` (`room_id`),
   KEY `idx_exam_date_time` (`exam_date`, `start_time`, `end_time`),
-  CONSTRAINT `exam_schedules_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `exam_schedules_ibfk_2` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `exam_schedules_ibfk_3` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `exam_schedules_ibfk_4` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL
+  CONSTRAINT exam_schedules_ibfk_1 FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE,
+  CONSTRAINT exam_schedules_ibfk_2 FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE,
+  CONSTRAINT exam_schedules_ibfk_3 FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL,
+  CONSTRAINT exam_schedules_ibfk_4 FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -410,18 +411,18 @@ CREATE TABLE `archives` (
   KEY `archived_by` (`archived_by`),
   KEY `idx_archived_at` (`archived_at`),
   KEY `idx_academic` (`academic_year`, `semester`),
-  CONSTRAINT `archives_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `archives_ibfk_2` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `archives_ibfk_3` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `archives_ibfk_4` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `archives_ibfk_5` FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT archives_ibfk_1 FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE SET NULL,
+  CONSTRAINT archives_ibfk_2 FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE SET NULL,
+  CONSTRAINT archives_ibfk_3 FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL,
+  CONSTRAINT archives_ibfk_4 FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL,
+  CONSTRAINT archives_ibfk_5 FOREIGN KEY (`archived_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- (faculty_subject_assignment_archives removed)
 
 -- ============================================================================
 -- Table: academic_settings
--- Description: Stores academic year, semester, and exam period settings
+-- Description: Stores academic year, semester, exam period, and schedule time range settings
 -- ============================================================================
 
 CREATE TABLE `academic_settings` (
@@ -429,6 +430,8 @@ CREATE TABLE `academic_settings` (
   `academic_year` VARCHAR(20) NOT NULL COMMENT 'e.g., 2024-2025',
   `semester` VARCHAR(50) NOT NULL COMMENT '1st Semester, 2nd Semester, Summer',
   `exam_period` VARCHAR(20) NOT NULL COMMENT 'Prelim, Midterm, Final',
+  `schedule_start_hour` INT(11) NOT NULL DEFAULT 7 COMMENT 'Schedule start hour (0-23)',
+  `schedule_end_hour` INT(11) NOT NULL DEFAULT 20 COMMENT 'Schedule end hour (0-23)',
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -458,43 +461,25 @@ CREATE TABLE `user_activity_logs` (
   KEY `idx_action` (`action`),
   KEY `idx_entity_type` (`entity_type`),
   KEY `idx_created_at` (`created_at`),
-  CONSTRAINT `user_activity_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT user_activity_logs_ibfk_1 FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- Default Data: Admin User and Academic Settings
+-- Default Data: Test User and Academic Settings
 -- ============================================================================
 -- 
--- IMPORTANT: Change these passwords in production!
+-- Default Test Admin Account:
+--   Username: test
+--   Email: test@ischedwise.local
+--   Password: test123
 -- 
--- Default Admin Account:
---   Username: admin
---   Email: admin@norzagaray.edu
---   Password: admin123
---
--- Default Dean Account:
---   Username: dean
---   Email: dean@norzagaray.edu
---   Password: dean123
--- 
--- NOTE: Password hashes are generated using Flask's Werkzeug security
+-- NOTE: This is a TEST account for development purposes only.
+-- Change or remove this account in production!
 -- ============================================================================
 
--- Insert Default Department (needed for dean user)
-INSERT INTO `departments` (`department_code`, `department_name`, `is_active`, `created_at`) VALUES
-('CS', 'Computer Studies', 1, NOW());
-
--- Insert Default Users
--- Admin: Full system access, no department restriction
--- Dean: Assigned to Computer Studies via user_departments table
+-- Insert Test Admin User
 INSERT INTO `users` (`username`, `email`, `password_hash`, `role`, `full_name`, `is_active`, `created_at`) VALUES
-('admin', 'admin@norzagaray.edu', 'scrypt:32768:8:1$MbXUjG9DsD2erxRU$4507e0983216d49702d541146cde0e1f2bd51a7f082e41f7814e58210849a840c8e1e2555886d2a207be4e031cb7be25fcd0f8be244c4ff7ce19c8ae88c82ca3', 'admin', 'System Administrator', 1, NOW()),
-('dean', 'dean@norzagaray.edu', 'scrypt:32768:8:1$4nv83tyAzzeDALDA$4441faaf5fded903f1d0888128313306a943fd3227c5bbdeac09266a8f63ef71c7f4b51f2df985567261f080f225fbeb76d80fdfac6a23a0a074dea9861b5de5', 'dean', 'John Doe', 1, NOW());
-
--- Insert Default User-Department Assignments
--- Assign dean user to Computer Studies department
-INSERT INTO `user_departments` (`user_id`, `department_id`, `created_at`) VALUES
-(2, 1, NOW());
+('test', 'test@ischedwise.local', 'scrypt:32768:8:1$IbHKNRPHMBwwaLSn$54209a774a18fd4d8bfd5a5c3fa97144956c99d4c8cfcf0f865b892261a97fbb6bbfceb50b32319c37aeb6b4969a753299273213a6095dfc49578f5ac49685b8', 'admin', 'Test Administrator', 1, NOW());
 
 -- Insert Default Academic Settings for AY 2025-2026, 1st Semester
 INSERT INTO `academic_settings` (`academic_year`, `semester`, `exam_period`, `is_active`, `created_at`) VALUES
@@ -504,19 +489,21 @@ INSERT INTO `academic_settings` (`academic_year`, `semester`, `exam_period`, `is
 -- Database Schema Created Successfully!
 -- ============================================================================
 -- 
--- IMPORTANT: This file creates the database structure and default data.
+-- IMPORTANT: This file creates the database structure and a test admin user.
 -- 
--- Default Login Credentials (CHANGE IN PRODUCTION):
--- - Admin: username=admin, password=admin123
--- - Dean: username=dean, password=dean123
+-- Default Test Login Credentials (FOR DEVELOPMENT ONLY):
+-- - Username: test
+-- - Password: test123
+-- - Email: test@ischedwise.local
+-- - Role: Admin
 -- 
--- Optional: To populate with sample test data, run: sample_data.sql
+-- ⚠️ WARNING: Change or remove this test account in production!
 -- 
 -- Next Steps:
 -- 1. Verify all tables were created successfully
--- 2. Login with default admin credentials
--- 3. Change default passwords immediately
--- 4. (Optional) Import sample_data.sql for testing
--- 5. Start the Flask application
+-- 2. Login with test credentials (username: test, password: test123)
+-- 3. (Optional) Import sample_data.sql for testing
+-- 4. Start the Flask application: python run.py
 -- 
+-- Note: This schema is compatible with MySQL Workbench and standard MySQL
 -- ============================================================================

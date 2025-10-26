@@ -189,7 +189,7 @@ function performAutoConflictCheck(mode) {
         } else {
             // No conflicts - enable submit
             const suffix = mode === 'add' ? 'Add' : 'Edit';
-            showAutoCheckStatus(mode, 'success', '✅ No conflicts detected!');
+            showAutoCheckStatus(mode, 'success', '✅ No conflicts detected! This schedule looks good.');
             updateConflictState(mode, false);
             
             // Hide conflict/recommendation panels (desktop and mobile)
@@ -198,15 +198,14 @@ function performAutoConflictCheck(mode) {
             document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendations' + suffix + 'Mobile')?.classList.add('hidden');
             
-            // Show success explanation (desktop and mobile)
+            // Hide explanation elements when no conflicts (message already in status)
             const explanationEl = document.getElementById('aiExplanation' + suffix);
             const explanationElMobile = document.getElementById('aiExplanation' + suffix + 'Mobile');
-            const successText = '✅ No conflicts detected! This schedule looks good.';
             if (explanationEl) {
-                explanationEl.textContent = successText;
+                explanationEl.classList.add('hidden');
             }
             if (explanationElMobile) {
-                explanationElMobile.textContent = successText;
+                explanationElMobile.classList.add('hidden');
             }
         }
     })

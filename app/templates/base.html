@@ -110,6 +110,35 @@
                 font-size: 0.9375rem;
             }
         }
+        
+        /* Fix sidebar layout - prevent collapse */
+        #sidebar {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        #sidebar > .flex.flex-col.h-full {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+        
+        #sidebar .p-4.border-b {
+            flex-shrink: 0;
+        }
+        
+        #sidebar nav {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        
+        #sidebar .p-4.border-t {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -234,7 +263,7 @@
             </nav>
 
             <!-- User Info & Logout -->
-            <div class="p-4 border-t border-gray-200">
+            <div class="p-4 border-t border-gray-200 flex-shrink-0">
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div class="flex items-center mb-3">
                         <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center mr-3 flex-shrink-0">

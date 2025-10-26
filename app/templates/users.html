@@ -666,7 +666,7 @@
             </div>
             
             <div id="departmentField" class="mb-3 sm:mb-4" style="display:none;">
-                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Departments *</label>
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Programs *</label>
                 <div class="border border-gray-300 rounded-lg p-2 sm:p-3 max-h-40 sm:max-h-48 overflow-y-auto bg-white">
                     {% for dept in departments %}
                     <label class="flex items-center py-1.5 cursor-pointer hover:bg-gray-50 px-1.5 sm:px-2 rounded">
@@ -675,7 +675,7 @@
                     </label>
                     {% endfor %}
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Select one or more departments for this dean</p>
+                <p class="text-xs text-gray-500 mt-1">Select one or more programs for this dean</p>
             </div>
             
             <div class="mb-3 sm:mb-4">
@@ -1012,7 +1012,7 @@
         document.getElementById('activeCount').textContent = active;
     }
     
-    // Toggle department field based on role
+    // Toggle program field based on role
     function toggleDepartmentField() {
         const role = document.getElementById('role').value;
         const departmentField = document.getElementById('departmentField');
@@ -1022,7 +1022,7 @@
             departmentField.style.display = 'block';
         } else {
             departmentField.style.display = 'none';
-            // Uncheck all departments if not dean
+            // Uncheck all programs if not dean
             departmentCheckboxes.forEach(cb => cb.checked = false);
         }
     }
@@ -1036,7 +1036,7 @@
         document.getElementById('passwordOptional').style.display = 'none';
         document.getElementById('isActive').checked = true;
         document.getElementById('departmentField').style.display = 'none';
-        // Uncheck all department checkboxes
+        // Uncheck all program checkboxes
         document.querySelectorAll('.department-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('userModal').classList.add('show');
     }
@@ -1057,13 +1057,13 @@
                 document.getElementById('password').value = '';
                 document.getElementById('passwordOptional').style.display = 'inline';
                 
-                // Handle department checkboxes
+                // Handle program checkboxes
                 const departmentCheckboxes = document.querySelectorAll('.department-checkbox');
                 departmentCheckboxes.forEach(cb => cb.checked = false);
                 
                 if (user.role === 'dean' && user.department_ids && user.department_ids.length > 0) {
                     document.getElementById('departmentField').style.display = 'block';
-                    // Check the departments this user belongs to
+                    // Check the programs this user belongs to
                     user.department_ids.forEach(deptId => {
                         const checkbox = document.querySelector(`.department-checkbox[value="${deptId}"]`);
                         if (checkbox) checkbox.checked = true;
@@ -1098,11 +1098,11 @@
             is_active: document.getElementById('isActive').checked
         };
         
-        // Handle departments for deans
+        // Handle programs for deans
         if (document.getElementById('role').value === 'dean') {
             const checkedDepartments = document.querySelectorAll('.department-checkbox:checked');
             if (checkedDepartments.length === 0) {
-                showNotification('Please select at least one department for dean users', 'error');
+                showNotification('Please select at least one program for dean users', 'error');
                 return;
             }
             formData.department_ids = Array.from(checkedDepartments).map(cb => parseInt(cb.value));

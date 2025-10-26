@@ -798,6 +798,43 @@
                     </div>
                     
                     <div class="flex flex-col sm:flex-row gap-2">
+                        <!-- Export Dropdown -->
+                        <div class="relative inline-block text-left" id="export-dropdown">
+                            <button onclick="toggleExportMenu()" class="inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 shadow-sm transition-all">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export Report
+                                <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <!-- Dropdown Menu -->
+                            <div id="export-menu" class="hidden absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                                <div class="py-1">
+                                    <a href="#" onclick="exportExcel(); return false;" class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
+                                        <svg class="w-5 h-5 mr-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"/>
+                                            <path d="M3 8a2 2 0 012-2v10h8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">Export to Excel</div>
+                                            <div class="text-xs text-gray-500">Download as .xlsx file</div>
+                                        </div>
+                                    </a>
+                                    <a href="#" onclick="exportPDF(); return false;" class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors">
+                                        <svg class="w-5 h-5 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">Export to PDF</div>
+                                            <div class="text-xs text-gray-500">Download as .pdf file</div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <button onclick="openAIModal()" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
@@ -815,17 +852,41 @@
             <div class="bg-white rounded-xl shadow-sm p-2 sm:p-4 mb-2 sm:mb-3 border border-gray-200">
             <div class="flex items-center mb-2 sm:mb-3">
                 <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011-1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
-                <h2 class="text-xs sm:text-sm font-semibold text-gray-900">Filter by Department</h2>
+                <h2 class="text-xs sm:text-sm font-semibold text-gray-900">
+                    {% if current_user.role == 'admin' %}
+                        Filter by Program
+                    {% elif departments|length == 1 %}
+                        Program
+                    {% else %}
+                        Your Programs
+                    {% endif %}
+                </h2>
             </div>
             <div class="max-w-md">
-                <select id="filter-department" onchange="applyFilters()" class="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                    <option value="">All Departments</option>
-                    {% for dept in departments %}
-                    <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.department_code }} - {{ dept.department_name }}</option>
-                    {% endfor %}
-                </select>
+                {% if departments|length == 1 %}
+                    <!-- Single program - show as read-only badge -->
+                    <div class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-50 border-2 border-blue-200 text-sm font-medium text-blue-900">
+                        <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        {{ departments[0].department_code }} - {{ departments[0].department_name }}
+                    </div>
+                    <input type="hidden" id="filter-department" value="{{ departments[0].id }}">
+                {% else %}
+                    <!-- Multiple programs or admin - show dropdown -->
+                    <select id="filter-department" onchange="applyFilters()" class="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        {% if current_user.role == 'admin' %}
+                            <option value="">All Programs</option>
+                        {% elif departments|length > 1 %}
+                            <option value="">All My Programs</option>
+                        {% endif %}
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.department_code }} - {{ dept.department_name }}</option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
             </div>
         </div>
 
@@ -874,11 +935,11 @@
                 </div>
             </div>
 
-            <!-- Active Faculty -->
+            <!-- Faculty -->
             <div class="stat-card rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
-                        <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Active Faculty</p>
+                        <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Faculty</p>
                         <p class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{{ stats.total_faculty }}</p>
                         <div class="mt-3 flex items-center gap-2 text-xs sm:text-sm">
                             <span class="flex h-2 w-2 rounded-full bg-green-500"></span>
@@ -897,10 +958,10 @@
             <div class="stat-card rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
-                        <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Active Sections</p>
+                        <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Sections</p>
                         <p class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{{ stats.total_sections }}</p>
                         <div class="mt-3 flex items-center text-xs sm:text-sm">
-                            <span class="text-gray-600">All departments</span>
+                            <span class="text-gray-600">All programs</span>
                         </div>
                     </div>
                     <div class="stat-icon p-3 rounded-xl flex-shrink-0">
@@ -1278,7 +1339,9 @@
                         'Saturday': 'orange',
                         'Sunday': 'red'
                     } %}
-                    {% for day, count in stats.schedule_by_day.items() %}
+                    {% set day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                    {% for day in day_order %}
+                    {% set count = stats.schedule_by_day.get(day, 0) %}
                     {% set color = day_colors.get(day, 'indigo') %}
                     {% set day_percentage = (count / max_day_count * 100) if max_day_count > 0 else 0 %}
                     <div class="bg-gradient-to-br from-{{ color }}-50 to-{{ color }}-100 rounded-xl p-4 border border-{{ color }}-200 hover:shadow-md transition-all duration-200">
@@ -1456,7 +1519,7 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-bold text-white">AI Analysis Summary</h2>
-                    <p class="text-xs text-blue-100">Powered by Gemini AI</p>
+                    <p class="text-xs text-blue-100" id="ai-modal-scope">Powered by Gemini AI</p>
                 </div>
             </div>
             <button onclick="closeAIModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-1.5 transition-all">
@@ -1583,6 +1646,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setupMobileEnhancements();
     displayRoomPage(1);
     displayFacultyPage(1);
+    
+    // Note: Filter is automatically set for single-program users on page load
+    // Admin users see "All Programs" option
+    // Multi-program users can choose between their programs or "All My Programs"
 });
 
 function displayRoomPage(page) {
@@ -1774,13 +1841,19 @@ function initializeCharts() {
 
     // Weekly Distribution (Bar Chart)
     const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+    // Maintain proper day order
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const weeklyData = {{ stats.schedule_by_day|tojson }};
+    const orderedDays = dayOrder.filter(day => day in weeklyData);
+    const orderedCounts = orderedDays.map(day => weeklyData[day]);
+    
     weeklyChart = new Chart(weeklyCtx, {
         type: 'bar',
         data: {
-            labels: [{% for day in stats.schedule_by_day.keys() %}'{{ day }}',{% endfor %}],
+            labels: orderedDays,
             datasets: [{
                 label: 'Schedules',
-                data: [{% for count in stats.schedule_by_day.values() %}{{ count }},{% endfor %}],
+                data: orderedCounts,
                 backgroundColor: 'rgba(99, 102, 241, 0.8)',
                 borderColor: 'rgb(99, 102, 241)',
                 borderWidth: 2,
@@ -2038,9 +2111,27 @@ function initializeCharts() {
 
     // Weekly Detail Chart (for Weekly tab) - Enhanced bar chart
     const weeklyDetailCtx = document.getElementById('weeklyDetailChart').getContext('2d');
-    const weeklyData = {{ stats.schedule_by_day|tojson }};
-    const dayLabels = Object.keys(weeklyData);
-    const dayValues = Object.values(weeklyData);
+    const weeklyData2 = {{ stats.schedule_by_day|tojson }};
+    // Maintain proper day order
+    const dayOrder2 = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayLabels = dayOrder2.filter(day => day in weeklyData2);
+    const dayValues = dayLabels.map(day => weeklyData2[day]);
+    const dayColors = [
+        'rgba(59, 130, 246, 0.8)',    // Monday - Blue
+        'rgba(16, 185, 129, 0.8)',    // Tuesday - Green
+        'rgba(251, 191, 36, 0.8)',    // Wednesday - Yellow
+        'rgba(139, 92, 246, 0.8)',    // Thursday - Purple
+        'rgba(236, 72, 153, 0.8)',    // Friday - Pink
+        'rgba(249, 115, 22, 0.8)'     // Saturday - Orange
+    ];
+    const dayBorderColors = [
+        'rgb(59, 130, 246)',          // Monday
+        'rgb(16, 185, 129)',          // Tuesday
+        'rgb(251, 191, 36)',          // Wednesday
+        'rgb(139, 92, 246)',          // Thursday
+        'rgb(236, 72, 153)',          // Friday
+        'rgb(249, 115, 22)'           // Saturday
+    ];
     
     weeklyDetailChart = new Chart(weeklyDetailCtx, {
         type: 'bar',
@@ -2049,24 +2140,8 @@ function initializeCharts() {
             datasets: [{
                 label: 'Schedules per Day',
                 data: dayValues,
-                backgroundColor: [
-                    'rgba(59, 130, 246, 0.8)',    // Monday - Blue
-                    'rgba(16, 185, 129, 0.8)',    // Tuesday - Green
-                    'rgba(251, 191, 36, 0.8)',    // Wednesday - Yellow
-                    'rgba(139, 92, 246, 0.8)',    // Thursday - Purple
-                    'rgba(236, 72, 153, 0.8)',    // Friday - Pink
-                    'rgba(249, 115, 22, 0.8)',    // Saturday - Orange
-                    'rgba(239, 68, 68, 0.8)'      // Sunday - Red
-                ],
-                borderColor: [
-                    'rgb(59, 130, 246)',
-                    'rgb(16, 185, 129)',
-                    'rgb(251, 191, 36)',
-                    'rgb(139, 92, 246)',
-                    'rgb(236, 72, 153)',
-                    'rgb(249, 115, 22)',
-                    'rgb(239, 68, 68)'
-                ],
+                backgroundColor: dayColors.slice(0, dayLabels.length),
+                borderColor: dayBorderColors.slice(0, dayLabels.length),
                 borderWidth: 2,
                 borderRadius: 8
             }]
@@ -2166,12 +2241,50 @@ function applyFilters() {
 }
 
 function updateStatCards(stats) {
-    // Update stat card values
-    const statCards = document.querySelectorAll('.stat-card p.text-3xl');
+    // Update stat card values - use text-2xl (base class) instead of text-3xl (responsive class)
+    const statCards = document.querySelectorAll('.stat-card p.text-2xl.font-bold');
+    
     if (statCards[0]) statCards[0].textContent = stats.total_schedules;
     if (statCards[1]) statCards[1].textContent = stats.total_exam_schedules;
     if (statCards[2]) statCards[2].textContent = stats.total_faculty;
     if (statCards[3]) statCards[3].textContent = stats.total_sections;
+    
+    // Update Class Schedules badges (Lec/Lab counts)
+    const allStatCards = document.querySelectorAll('.stat-card');
+    if (allStatCards[0]) {
+        const lecBadge = allStatCards[0].querySelector('.bg-blue-50');
+        const labBadge = allStatCards[0].querySelector('.bg-purple-50');
+        if (lecBadge) lecBadge.textContent = stats.lecture_count + ' Lec';
+        if (labBadge) labBadge.textContent = stats.lab_count + ' Lab';
+    }
+    
+    // Update Exam Schedules badge (exam period)
+    if (allStatCards[1]) {
+        const examBadge = allStatCards[1].querySelector('.bg-red-50');
+        if (examBadge) {
+            const examPeriodFilter = document.getElementById('examPeriodFilter');
+            const selectedPeriod = examPeriodFilter ? examPeriodFilter.value : '';
+            examBadge.textContent = selectedPeriod || 'All Periods';
+        }
+    }
+    
+    // Update Active Faculty - assigned count
+    if (allStatCards[2]) {
+        const facultyAssigned = allStatCards[2].querySelector('.text-gray-600');
+        if (facultyAssigned) {
+            facultyAssigned.textContent = stats.faculty_with_schedules + ' assigned';
+        }
+    }
+    
+    // Update Active Sections - department info
+    if (allStatCards[3]) {
+        const sectionsInfo = allStatCards[3].querySelector('.text-gray-600');
+        if (sectionsInfo) {
+            const deptFilter = document.getElementById('filter-department');
+            const selectedDept = deptFilter ? deptFilter.options[deptFilter.selectedIndex].text : '';
+            sectionsInfo.textContent = selectedDept && deptFilter.value ? selectedDept : 'All programs';
+        }
+    }
     
     // Update progress bars
     const roomUtilPercent = stats.total_rooms > 0 ? (stats.rooms_in_use / stats.total_rooms * 100) : 0;
@@ -2205,8 +2318,9 @@ function updateCharts(stats) {
     scheduleTypeChart.update();
     
     // Update Weekly Chart
-    const days = Object.keys(stats.schedule_by_day);
-    const counts = Object.values(stats.schedule_by_day);
+    const dayOrderUpdate = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = dayOrderUpdate.filter(day => day in stats.schedule_by_day);
+    const counts = days.map(day => stats.schedule_by_day[day]);
     weeklyChart.data.labels = days;
     weeklyChart.data.datasets[0].data = counts;
     weeklyChart.update();
@@ -2259,26 +2373,77 @@ function updateCharts(stats) {
         }
     }
     
-    // Update Weekly Distribution if on weekly tab
+    // Update Weekly Detail Chart if on weekly tab
     if (document.getElementById('weekly-tab').classList.contains('active')) {
-        const maxDayCount = Math.max(...Object.values(stats.schedule_by_day), 1);
-        const weeklyContainer = document.querySelector('#weekly-tab .space-y-3');
-        if (weeklyContainer) {
-            weeklyContainer.innerHTML = '';
-            Object.entries(stats.schedule_by_day).forEach(([day, count]) => {
+        const weeklyDetailChart = Chart.getChart('weeklyDetailChart');
+        if (weeklyDetailChart) {
+            const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayLabels = dayOrder.filter(day => day in stats.schedule_by_day);
+            const dayValues = dayLabels.map(day => stats.schedule_by_day[day]);
+            weeklyDetailChart.data.labels = dayLabels;
+            weeklyDetailChart.data.datasets[0].data = dayValues;
+            weeklyDetailChart.update();
+        }
+    }
+    
+    // Update Weekly Distribution tab - Daily Breakdown Cards
+    const weeklyTab = document.getElementById('weekly-tab');
+    if (weeklyTab) {
+        // Update daily breakdown cards
+        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayColors = {
+            'Monday': 'blue',
+            'Tuesday': 'green',
+            'Wednesday': 'yellow',
+            'Thursday': 'purple',
+            'Friday': 'pink',
+            'Saturday': 'orange'
+        };
+        
+        const maxDayCount = Math.max(...dayOrder.map(day => stats.schedule_by_day[day] || 0), 1);
+        
+        // Find and update each day card
+        const dayCards = weeklyTab.querySelectorAll('.grid.grid-cols-1.sm\\:grid-cols-2 > div');
+        dayOrder.forEach((day, index) => {
+            if (dayCards[index]) {
+                const count = stats.schedule_by_day[day] || 0;
                 const percent = (count / maxDayCount * 100);
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm font-semibold text-gray-700">${day}</span>
-                        <span class="text-sm font-bold text-indigo-600">${count} schedules</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-4">
-                        <div class="progress-bar bg-gradient-to-r from-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
-                    </div>
-                `;
-                weeklyContainer.appendChild(div);
-            });
+                const color = dayColors[day];
+                
+                // Update count
+                const countElement = dayCards[index].querySelector('.text-xl.sm\\:text-2xl');
+                if (countElement) countElement.textContent = count;
+                
+                // Update progress bar
+                const progressBar = dayCards[index].querySelector('.h-2.rounded-full:not(.bg-white)');
+                if (progressBar) progressBar.style.width = percent + '%';
+                
+                // Update percentage text
+                const percentText = dayCards[index].querySelector('.mt-2.text-xs');
+                if (percentText) {
+                    percentText.textContent = maxDayCount > 0 ? `${Math.round(percent)}% of peak` : 'No data';
+                }
+            }
+        });
+        
+        // Update weekly summary stats
+        const totalSchedules = Object.values(stats.schedule_by_day).reduce((sum, count) => sum + count, 0);
+        const peakDayEntry = Object.entries(stats.schedule_by_day).sort((a, b) => b[1] - a[1])[0];
+        const peakDay = peakDayEntry ? peakDayEntry[0].substring(0, 3) : 'N/A';
+        const avgPerDay = dayOrder.length > 0 ? totalSchedules / dayOrder.length : 0;
+        
+        const summaryStats = weeklyTab.querySelectorAll('.mt-6.grid.grid-cols-1 .text-center');
+        if (summaryStats[0]) {
+            const totalElement = summaryStats[0].querySelector('.text-xl.sm\\:text-2xl');
+            if (totalElement) totalElement.textContent = totalSchedules;
+        }
+        if (summaryStats[1]) {
+            const peakElement = summaryStats[1].querySelector('.text-xl.sm\\:text-2xl');
+            if (peakElement) peakElement.textContent = peakDay;
+        }
+        if (summaryStats[2]) {
+            const avgElement = summaryStats[2].querySelector('.text-xl.sm\\:text-2xl');
+            if (avgElement) avgElement.textContent = avgPerDay.toFixed(1);
         }
     }
 }
@@ -2315,6 +2480,12 @@ function closeAIModal() {
     const modal = document.getElementById('ai-modal');
     const modalContent = document.getElementById('ai-modal-content');
     
+    // Cancel any ongoing AI summary generation
+    if (aiSummaryAbortController) {
+        aiSummaryAbortController.abort();
+        aiSummaryAbortController = null;
+    }
+    
     // Animate out
     modalContent.classList.remove('scale-100', 'opacity-100');
     modalContent.classList.add('scale-95', 'opacity-0');
@@ -2329,6 +2500,9 @@ function closeAIModal() {
 // Modals will only close when clicking the X button
 // Outside click and Escape key closing has been disabled for better user experience
 
+// Global variable to track ongoing AI fetch request
+let aiSummaryAbortController = null;
+
 // AI Summary Generation
 function generateAISummary() {
     const loading = document.getElementById('modal-ai-loading');
@@ -2340,6 +2514,14 @@ function generateAISummary() {
     const regenerateIcon = document.getElementById('regenerate-icon');
     const regenerateSpinner = document.getElementById('regenerate-spinner');
     const regenerateText = document.getElementById('regenerate-text');
+    
+    // Cancel any existing fetch request
+    if (aiSummaryAbortController) {
+        aiSummaryAbortController.abort();
+    }
+    
+    // Create new abort controller for this request
+    aiSummaryAbortController = new AbortController();
     
     // Hide all states
     content.classList.add('hidden');
@@ -2357,15 +2539,41 @@ function generateAISummary() {
         regenerateText.textContent = 'Generating...';
     }
     
-    // Get current filter
-    const department = document.getElementById('filter-department').value;
+    // Get current filter and update modal scope
+    const departmentSelect = document.getElementById('filter-department');
+    const department = departmentSelect.value;
+    const scopeElement = document.getElementById('ai-modal-scope');
+    
+    if (department) {
+        // Check if it's a hidden input (single program user) or select element
+        let departmentName;
+        if (departmentSelect.tagName === 'INPUT') {
+            // For single-program users with hidden input, get name from the visible badge
+            const badge = document.querySelector('.bg-blue-50.border-blue-200');
+            departmentName = badge ? badge.textContent.trim() : 'Selected Program';
+        } else if (departmentSelect.selectedOptions && departmentSelect.selectedOptions[0]) {
+            // For dropdown (multi-program or admin), get selected option text
+            departmentName = departmentSelect.selectedOptions[0].text;
+        } else {
+            departmentName = 'Selected Program';
+        }
+        scopeElement.textContent = `Analysis for ${departmentName}`;
+    } else {
+        scopeElement.textContent = 'Analysis for All Programs';
+    }
+    
     const params = new URLSearchParams();
     if (department) params.append('department', department);
     
-    // Fetch AI summary
-    fetch('/reports/api/ai-summary?' + params.toString())
+    // Fetch AI summary with abort signal
+    fetch('/reports/api/ai-summary?' + params.toString(), {
+        signal: aiSummaryAbortController.signal
+    })
         .then(response => response.json())
         .then(data => {
+            // Clear abort controller since request completed successfully
+            aiSummaryAbortController = null;
+            
             loading.classList.add('hidden');
             
             // Reset button state
@@ -2433,6 +2641,16 @@ function generateAISummary() {
             }
         })
         .catch(err => {
+            // Clear abort controller
+            aiSummaryAbortController = null;
+            
+            // Check if the error is due to user cancellation (abort)
+            if (err.name === 'AbortError') {
+                console.log('AI summary generation was cancelled by user');
+                // Don't show error - user intentionally cancelled
+                return;
+            }
+            
             console.error('Error fetching AI summary:', err);
             loading.classList.add('hidden');
             error.classList.remove('hidden');
@@ -2745,5 +2963,94 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     {% endif %}
 });
+
+// ============================================================================
+// EXPORT FUNCTIONALITY
+// ============================================================================
+
+function toggleExportMenu() {
+    const menu = document.getElementById('export-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('export-dropdown');
+    const menu = document.getElementById('export-menu');
+    
+    if (dropdown && menu && !dropdown.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+
+function exportExcel() {
+    // Close dropdown
+    document.getElementById('export-menu').classList.add('hidden');
+    
+    // Get current filter
+    const departmentFilter = document.getElementById('filter-department').value;
+    
+    // Build URL with filters
+    let exportUrl = '/reports/export/excel';
+    if (departmentFilter) {
+        exportUrl += '?department=' + departmentFilter;
+    }
+    
+    // Show loading state
+    const exportBtn = document.querySelector('[onclick="toggleExportMenu()"]');
+    const originalHtml = exportBtn.innerHTML;
+    exportBtn.innerHTML = `
+        <svg class="animate-spin w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Exporting...
+    `;
+    exportBtn.disabled = true;
+    
+    // Trigger download
+    window.location.href = exportUrl;
+    
+    // Reset button after delay
+    setTimeout(() => {
+        exportBtn.innerHTML = originalHtml;
+        exportBtn.disabled = false;
+    }, 2000);
+}
+
+function exportPDF() {
+    // Close dropdown
+    document.getElementById('export-menu').classList.add('hidden');
+    
+    // Get current filter
+    const departmentFilter = document.getElementById('filter-department').value;
+    
+    // Build URL with filters
+    let exportUrl = '/reports/export/pdf';
+    if (departmentFilter) {
+        exportUrl += '?department=' + departmentFilter;
+    }
+    
+    // Show loading state
+    const exportBtn = document.querySelector('[onclick="toggleExportMenu()"]');
+    const originalHtml = exportBtn.innerHTML;
+    exportBtn.innerHTML = `
+        <svg class="animate-spin w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Exporting...
+    `;
+    exportBtn.disabled = true;
+    
+    // Trigger download
+    window.location.href = exportUrl;
+    
+    // Reset button after delay
+    setTimeout(() => {
+        exportBtn.innerHTML = originalHtml;
+        exportBtn.disabled = false;
+    }, 2000);
+}
 </script>
 {% endblock %}

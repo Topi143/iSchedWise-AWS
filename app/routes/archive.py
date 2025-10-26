@@ -30,6 +30,18 @@ def index():
     # Get current academic settings
     current_settings = AcademicSettings.query.filter_by(is_active=True).first()
     
+    # Get departments for program filter
+    user_department_ids = current_user.get_department_ids()
+    if user_department_ids is not None:
+        # Dean: Only show assigned departments
+        departments = Department.query.filter(
+            Department.id.in_(user_department_ids),
+            Department.is_archived == False
+        ).order_by(Department.department_code).all()
+    else:
+        # Admin: Show all departments
+        departments = Department.query.filter_by(is_archived=False).order_by(Department.department_code).all()
+    
     # Get filter values from URL (for preserving state)
     selected_academic_year = request.args.get('academic_year', '')
     selected_semester = request.args.get('semester', '')
@@ -38,6 +50,7 @@ def index():
     return render_template('archive.html',
                          academic_years=academic_years,
                          current_settings=current_settings,
+                         departments=departments,
                          selected_academic_year=selected_academic_year,
                          selected_semester=selected_semester,
                          selected_exam_period=selected_exam_period)
@@ -883,13 +896,8 @@ def get_department_archive_stats():
 def get_archived_faculty():
     """Get all archived faculty members"""
     try:
-        # Get archived faculty
+        # Get archived faculty (no department filtering - faculty visible to all)
         query = Faculty.query.filter_by(is_archived=True)
-        
-        # Filter by department access for Deans
-        user_department_ids = current_user.get_department_ids()
-        if user_department_ids is not None:
-            query = query.filter(Faculty.department_id.in_(user_department_ids))
         
         faculty_list = query.order_by(Faculty.full_name).all()
         
@@ -993,13 +1001,8 @@ def delete_archived_faculty(faculty_id):
 def get_faculty_archive_stats():
     """Get statistics about archived faculty"""
     try:
-        # Get archived faculty
+        # Get archived faculty (no department filtering - faculty visible to all)
         query = Faculty.query.filter_by(is_archived=True)
-        
-        # Filter by department access for Deans
-        user_department_ids = current_user.get_department_ids()
-        if user_department_ids is not None:
-            query = query.filter(Faculty.department_id.in_(user_department_ids))
         
         # Total archived faculty
         total = query.count()

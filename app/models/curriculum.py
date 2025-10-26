@@ -83,7 +83,7 @@ class YearLevel(db.Model):
 
 
 class Semester(db.Model):
-    """Semester model (1st Semester, 2nd Semester, Summer)"""
+    """Semester model (1st Semester, 2nd Semester)"""
     
     __tablename__ = 'semesters'
     

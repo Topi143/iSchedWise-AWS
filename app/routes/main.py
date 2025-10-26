@@ -1,7 +1,7 @@
 """
 Main routes (index, dashboard, about)
 """
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, request
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc
 from app.extensions import db
@@ -35,30 +35,55 @@ def dashboard():
     # Get user's department access
     user_department_ids = current_user.get_department_ids()
     
-    # Build department filter query
+    # Get department filter from request
+    selected_department_id = request.args.get('department_id', type=int)
+    
+    # Get all departments the user has access to
     if user_department_ids is None:
+        # Admin - see all departments
+        available_departments = Department.query.filter_by(is_active=True).order_by(Department.department_name).all()
+    else:
+        # Dean - filter by assigned departments
+        available_departments = Department.query.filter(
+            Department.is_active == True,
+            Department.id.in_(user_department_ids)
+        ).order_by(Department.department_name).all()
+    
+    # Determine which departments to show stats for
+    if selected_department_id:
+        # Specific department selected
+        filter_department_ids = [selected_department_id]
+    elif user_department_ids is None:
+        # Admin with no filter - show all
+        filter_department_ids = None
+    else:
+        # Dean with no filter - show all their departments
+        filter_department_ids = user_department_ids
+    
+    # Build department filter query
+    if filter_department_ids is None:
         # Admin - see all departments
         dept_query = Department.query.filter_by(is_active=True)
         curriculum_query = Curriculum.query.filter_by(is_active=True)
         section_query = Section.query.filter_by(is_active=True)
         faculty_query = Faculty.query.filter_by(is_active=True)
     else:
-        # Dean - filter by assigned departments
+        # Filtered view
         dept_query = Department.query.filter(
             Department.is_active == True,
-            Department.id.in_(user_department_ids)
+            Department.id.in_(filter_department_ids)
         )
         curriculum_query = Curriculum.query.filter(
             Curriculum.is_active == True,
-            Curriculum.department_id.in_(user_department_ids)
+            Curriculum.department_id.in_(filter_department_ids)
         )
         section_query = Section.query.filter(
             Section.is_active == True,
-            Section.department_id.in_(user_department_ids)
+            Section.department_id.in_(filter_department_ids)
         )
         faculty_query = Faculty.query.filter(
             Faculty.is_active == True,
-            Faculty.department_id.in_(user_department_ids)
+            Faculty.department_id.in_(filter_department_ids)
         )
     
     # Get counts for dashboard stats
@@ -72,20 +97,20 @@ def dashboard():
     room_count = Room.query.filter_by(is_available=True).count()
     
     # Subject count - handle filtering differently
-    if user_department_ids is None:
+    if filter_department_ids is None:
         subject_count = Subject.query.count()
     else:
         from app.models.curriculum import Semester, YearLevel
         subject_count = db.session.query(Subject).join(Semester).join(YearLevel).join(Curriculum)\
-            .filter(Curriculum.department_id.in_(user_department_ids))\
+            .filter(Curriculum.department_id.in_(filter_department_ids))\
             .count()
     
     # Schedule statistics (for current academic year/semester if available)
     schedule_query = Schedule.query.filter_by(is_active=True)\
         .join(Schedule.section)
     
-    if user_department_ids:
-        schedule_query = schedule_query.filter(Section.department_id.in_(user_department_ids))
+    if filter_department_ids:
+        schedule_query = schedule_query.filter(Section.department_id.in_(filter_department_ids))
     
     if current_settings:
         schedule_query = schedule_query.filter(
@@ -99,8 +124,8 @@ def dashboard():
     exam_query = ExamSchedule.query.filter_by(is_active=True)\
         .join(ExamSchedule.section)
     
-    if user_department_ids:
-        exam_query = exam_query.filter(Section.department_id.in_(user_department_ids))
+    if filter_department_ids:
+        exam_query = exam_query.filter(Section.department_id.in_(filter_department_ids))
     
     if current_settings:
         exam_query = exam_query.filter(
@@ -114,8 +139,8 @@ def dashboard():
     recent_query = Schedule.query.filter_by(is_active=True)\
         .join(Schedule.section)
     
-    if user_department_ids:
-        recent_query = recent_query.filter(Section.department_id.in_(user_department_ids))
+    if filter_department_ids:
+        recent_query = recent_query.filter(Section.department_id.in_(filter_department_ids))
     
     recent_schedules = recent_query.order_by(desc(Schedule.created_at)).limit(5).all()
     
@@ -173,7 +198,9 @@ def dashboard():
                          recent_schedules=recent_schedules,
                          departments_overview=departments_overview,
                          faculty_workload=faculty_workload,
-                         current_settings=current_settings)
+                         current_settings=current_settings,
+                         available_departments=available_departments,
+                         selected_department_id=selected_department_id)
 
 
 @main_bp.route('/about')

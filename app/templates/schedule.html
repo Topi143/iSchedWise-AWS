@@ -94,14 +94,51 @@
 <script src="{{ url_for('static', filename='js/schedule/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/schedule/calendar.js') }}"></script>
 
-<!-- Automatic Conflict Detection System -->
+<!-- Automatic Conflict Detection Systems -->
 <script src="{{ url_for('static', filename='js/schedule/auto_conflict_check.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/auto_conflict_check_exam.js') }}"></script>
+
+<!-- AI Support for Exam Schedules -->
+<script src="{{ url_for('static', filename='js/schedule/exam_ai.js') }}"></script>
 
 <!-- Full schedule JavaScript (includes modals, filters, forms, AI) -->
-<!-- TODO: Further split schedule_full.js into modular files (modals.js, filters.js, forms.js, ai.js) -->
 <script src="{{ url_for('static', filename='js/schedule/schedule_full.js') }}"></script>
 
 <script>
+    // Export Dropdown Toggle Function
+    function toggleExportDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        
+        // Close all other dropdowns first
+        document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => {
+            if (dd.id !== dropdownId) {
+                dd.classList.add('hidden');
+            }
+        });
+        
+        // Toggle the target dropdown
+        dropdown.classList.toggle('hidden');
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        // Check if click is outside any dropdown container
+        if (!event.target.closest('.relative.inline-block')) {
+            document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => {
+                dd.classList.add('hidden');
+            });
+        }
+    });
+    
+    // Close dropdowns with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => {
+                dd.classList.add('hidden');
+            });
+        }
+    });
+
     // Toast Notification System (matches department.html)
     function showToast(message, type = 'success') {
         const container = document.getElementById('toastContainer');

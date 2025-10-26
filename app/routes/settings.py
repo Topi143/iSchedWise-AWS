@@ -400,10 +400,25 @@ def update():
         academic_year = request.form.get('academic_year')
         semester = request.form.get('semester')
         exam_period = request.form.get('exam_period')
+        schedule_start_hour = request.form.get('schedule_start_hour', type=int)
+        schedule_end_hour = request.form.get('schedule_end_hour', type=int)
         
         # Validate required fields
         if not all([academic_year, semester, exam_period]):
             flash('Academic year, semester, and exam period are required.', 'error')
+            return redirect(url_for('settings.index'))
+        
+        # Validate time range
+        if schedule_start_hour is None or schedule_end_hour is None:
+            flash('Schedule start and end hours are required.', 'error')
+            return redirect(url_for('settings.index'))
+        
+        if not (0 <= schedule_start_hour <= 23 and 0 <= schedule_end_hour <= 23):
+            flash('Schedule hours must be between 0 and 23.', 'error')
+            return redirect(url_for('settings.index'))
+        
+        if schedule_start_hour >= schedule_end_hour:
+            flash('Schedule start hour must be before end hour.', 'error')
             return redirect(url_for('settings.index'))
         
         # Get current active settings to check if they're changing
@@ -461,6 +476,8 @@ def update():
             academic_year=academic_year,
             semester=semester,
             exam_period=exam_period,
+            schedule_start_hour=schedule_start_hour,
+            schedule_end_hour=schedule_end_hour,
             is_active=True
         )
         

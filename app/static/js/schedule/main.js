@@ -72,10 +72,15 @@ function showClassDetail() {
     const master = document.getElementById('class-master');
     const detail = document.getElementById('class-detail');
     
-    if (master && detail && window.innerWidth <= 768) {
-        master.classList.add('hide-on-mobile');
+    if (master && detail) {
+        // Always show detail panel when a section is selected
         detail.classList.remove('hidden');
         detail.classList.add('flex');
+        
+        // On mobile, hide the master panel
+        if (window.innerWidth <= 1024) { // lg breakpoint
+            master.classList.add('hide-on-mobile');
+        }
     }
 }
 
@@ -101,10 +106,15 @@ function showFacultyDetail() {
     const master = document.getElementById('faculty-master');
     const detail = document.getElementById('faculty-detail');
     
-    if (master && detail && window.innerWidth <= 768) {
-        master.classList.add('hide-on-mobile');
+    if (master && detail) {
+        // Always show detail panel when a faculty is selected
         detail.classList.remove('hidden');
         detail.classList.add('flex');
+        
+        // On mobile/tablet, hide the master panel
+        if (window.innerWidth < 768) { // md breakpoint
+            master.classList.add('hide-on-mobile');
+        }
     }
 }
 
@@ -130,10 +140,15 @@ function showRoomDetail() {
     const master = document.getElementById('room-master');
     const detail = document.getElementById('room-detail');
     
-    if (master && detail && window.innerWidth <= 768) {
-        master.classList.add('hide-on-mobile');
+    if (master && detail) {
+        // Always show detail panel when a room is selected
         detail.classList.remove('hidden');
         detail.classList.add('flex');
+        
+        // On mobile/tablet, hide the master panel
+        if (window.innerWidth < 768) { // md breakpoint
+            master.classList.add('hide-on-mobile');
+        }
     }
 }
 
@@ -159,9 +174,14 @@ function showExamDetail() {
     const master = document.getElementById('exam-master');
     const detail = document.getElementById('exam-detail');
     
-    if (master && detail && window.innerWidth <= 768) {
-        master.classList.add('hide-on-mobile');
+    if (master && detail) {
+        // Always show detail panel when an exam section is selected
         detail.classList.remove('hidden');
         detail.classList.add('flex');
+        
+        // On mobile/tablet, hide the master panel
+        if (window.innerWidth < 768) { // md breakpoint
+            master.classList.add('hide-on-mobile');
+        }
     }
 }

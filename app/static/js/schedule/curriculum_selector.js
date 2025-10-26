@@ -346,6 +346,56 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                             schedule_type: document.getElementById('schedule_type_edit').value
                         });
                     }, 100);
+                } else if (scheduleData.subject_id && subjectSelect.value && mode === 'exam_edit') {
+                    // For exam edit mode, ALWAYS load all faculty (not filtered by subject)
+                    fetch('/schedule/get-all-faculty')
+                        .then(response => response.json())
+                        .then(data => {
+                            const facultySelect = document.getElementById('faculty_id_exam_edit');
+                            facultySelect.innerHTML = '<option value="">Select a faculty...</option>';
+                            
+                            if (data.faculty && data.faculty.length > 0) {
+                                data.faculty.forEach(faculty => {
+                                    const option = document.createElement('option');
+                                    option.value = faculty.id;
+                                    option.textContent = faculty.full_name;
+                                    
+                                    // Pre-select if matches
+                                    if (scheduleData.faculty_id && faculty.id === scheduleData.faculty_id) {
+                                        option.selected = true;
+                                    }
+                                    
+                                    facultySelect.appendChild(option);
+                                });
+                            }
+                        })
+                        .catch(error => console.error('Error loading faculty:', error));
+                    
+                    // Load rooms if room_id exists
+                    if (scheduleData.room_id) {
+                        fetch('/schedule/get-all-rooms')
+                            .then(response => response.json())
+                            .then(data => {
+                                const roomSelect = document.getElementById('room_id_exam_edit');
+                                roomSelect.innerHTML = '<option value="">Select a room...</option>';
+                                
+                                if (data.rooms && data.rooms.length > 0) {
+                                    data.rooms.forEach(room => {
+                                        const option = document.createElement('option');
+                                        option.value = room.id;
+                                        option.textContent = room.display;
+                                        
+                                        // Pre-select if matches
+                                        if (room.id === scheduleData.room_id) {
+                                            option.selected = true;
+                                        }
+                                        
+                                        roomSelect.appendChild(option);
+                                    });
+                                }
+                            })
+                            .catch(error => console.error('Error loading rooms:', error));
+                    }
                 }
             } else {
                 subjectSelect.innerHTML = '<option value="">No subjects available</option>';

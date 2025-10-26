@@ -17,7 +17,7 @@ class ExamSchedule(db.Model):
     exam_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
-    semester = db.Column(db.String(50), nullable=True)  # '1st Semester', '2nd Semester', 'Summer'
+    semester = db.Column(db.String(50), nullable=True)  # '1st Semester', '2nd Semester'
     academic_year = db.Column(db.String(20), nullable=True)  # e.g., '2024-2025'
     exam_period = db.Column(db.String(20), nullable=True)  # 'Prelim', 'Midterm', 'Final'
     is_active = db.Column(db.Boolean, default=True, nullable=False)
