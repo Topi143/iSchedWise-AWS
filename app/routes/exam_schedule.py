@@ -873,7 +873,7 @@ def export_for_posting(section_id):
                 continue
             
             # Section Header (merged across A-H)
-            section_header = f"{dept_code} {sect.year_level}{sect.section_name}"
+            section_header = f"{dept_code}-{sect.year_level}{sect.section_name}"
             ws.merge_cells(f'A{current_row}:H{current_row}')
             cell = ws.cell(row=current_row, column=1, value=section_header)
             cell.font = Font(bold=True, size=12)
@@ -1093,7 +1093,7 @@ def export_exam_schedule(section_id):
         else:
             semester_text = "EXAM SCHEDULE"
         dept_code = section.department.department_code if section.department else ''
-        section_display = f"{dept_code} {section.year_level}{section.section_name}"
+        section_display = f"{dept_code}-{section.year_level}{section.section_name}"
         add_schedule_title_for_posting(ws, 'EXAMINATION SCHEDULE', semester_text, section_display)
         
         # Define border style
@@ -1301,7 +1301,7 @@ def export_exam_schedule_pdf(section_id):
         else:
             semester_text = "EXAM SCHEDULE"
         
-        section_display = f"{dept_code} {section.year_level}{section.section_name}"
+        section_display = f"{dept_code}-{section.year_level}{section.section_name}"
         
         # Import PDF creation function from schedule.py
         from app.routes.schedule import create_pdf_schedule

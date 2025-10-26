@@ -1962,7 +1962,7 @@ def export_class_schedule(section_id):
         # Add title
         dept_code = section.department.department_code if section.department else ''
         semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "CLASS SCHEDULE"
-        section_display = f"{dept_code} {section.year_level}{section.section_name}"
+        section_display = f"{dept_code}-{section.year_level}{section.section_name}"
         add_schedule_title(ws, 'CLASS SCHEDULE', semester_text, section_display)
         
         # Add column headers
@@ -2223,7 +2223,7 @@ def export_class_schedule_for_posting(section_id):
         # Add title (posting-specific, centered across A-H)
         dept_code = section.department.department_code if section.department else ''
         semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "CLASS SCHEDULE"
-        section_display = f"{dept_code} {section.year_level}{section.section_name}"
+        section_display = f"{dept_code}-{section.year_level}{section.section_name}"
         add_schedule_title_for_posting(ws, 'CLASS SCHEDULE', semester_text, section_display)
         
         # Define border style
@@ -2717,9 +2717,13 @@ def export_room_schedule_for_posting(room_id):
             cell = ws.cell(row=row, column=6, value=time_str)
             cell.border = thin_border
             
-            # Section
-            section_name = schedule.section.section_name if schedule.section else 'TBA'
-            cell = ws.cell(row=row, column=7, value=section_name)
+            # Section - Show as BSCS-4A format
+            if schedule.section:
+                dept_code = schedule.section.department.department_code if schedule.section.department else ''
+                section_display = f"{dept_code}-{schedule.section.year_level}{schedule.section.section_name}"
+            else:
+                section_display = 'TBA'
+            cell = ws.cell(row=row, column=7, value=section_display)
             cell.border = thin_border
             
             # Faculty
@@ -2845,7 +2849,7 @@ def export_class_schedule_pdf(section_id):
         dept_name = section.department.department_name if section.department else 'COLLEGE'
         dept_code = section.department.department_code if section.department else ''
         semester_text = f"{current_settings.semester.upper()}, AY {current_settings.academic_year}" if current_settings else "CLASS SCHEDULE"
-        section_display = f"{dept_code} {section.year_level}{section.section_name}"
+        section_display = f"{dept_code}-{section.year_level}{section.section_name}"
         
         # Create PDF with dynamic time range
         output = create_pdf_schedule(
