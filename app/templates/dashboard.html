@@ -446,9 +446,11 @@
                     {% else %}
                     <div class="text-center py-6 sm:py-8">
                         <p class="text-xs sm:text-sm text-gray-500">No programs available</p>
+                        {% if current_user.is_admin %}
                         <a href="{{ url_for('department.index') }}" class="inline-block mt-2 text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium">
                             Add Program →
                         </a>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>

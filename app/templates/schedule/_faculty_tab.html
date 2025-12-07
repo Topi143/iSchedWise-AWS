@@ -11,7 +11,6 @@
                             </svg>
                         </div>
                         Faculty Members
-                        <span id="faculty-count-badge" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200">{{ faculties|length }}</span>
                     </h3>
                     
                     <!-- Search Input -->
@@ -320,10 +319,10 @@
                                                     {% elif schedule.schedule_type == 'lab' %}bg-green-50 border-green-600 hover:bg-green-100
                                                     {% else %}bg-purple-50 border-purple-600 hover:bg-purple-100{% endif %}"
                                                     style="top: {{ start_pos }}px; height: {{ duration }}px; border-left-width: 3px;"
-                                                    title="{{ schedule.subject.subject_code }} - {{ schedule.subject.course_description }}&#10;Section: {{ schedule.section.section_name }}&#10;{{ schedule.room.room_number if schedule.room else 'TBA' }}&#10;{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}">
+                                                    title="{{ schedule.subject.subject_code }} - {{ schedule.subject.course_description }}&#10;Section: {{ schedule.section.department.department_code if schedule.section.department else '' }}-{{ schedule.section.section_name }}&#10;{{ schedule.room.room_number if schedule.room else 'TBA' }}&#10;{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}">
                                                     <div class="text-xs font-semibold text-gray-900 truncate">{{ schedule.subject.subject_code }}</div>
                                                     {% if duration >= 60 %}
-                                                    <div class="text-xs text-gray-600 truncate">{{ schedule.section.section_name }}</div>
+                                                    <div class="text-xs text-gray-600 truncate">{{ schedule.section.department.department_code if schedule.section.department else '' }}-{{ schedule.section.section_name }}</div>
                                                     {% endif %}
                                                     <div class="text-xs text-gray-500 mt-0.5">
                                                         {{ schedule.start_time.strftime('%I:%M %p') }}

@@ -12,7 +12,7 @@ from app.models.exam_schedule import ExamSchedule
 from app.models.department import Department, Section
 from app.models.curriculum import Subject
 from app.models.faculty import Faculty
-from app.models.building import Room
+from app.models.building import Room, Building
 from app.models.settings import AcademicSettings
 from app.decorators import role_required
 from app.utils.activity_logger import log_create, log_edit, log_delete
@@ -796,6 +796,11 @@ def export_for_posting(section_id):
     try:
         section = Section.query.get_or_404(section_id)
         
+        # Check if section or its department is archived
+        if section.is_archived or (section.department and section.department.is_archived):
+            flash('Cannot export archived section exam schedules.', 'error')
+            return redirect(url_for('schedule.index'))
+        
         # Get current academic settings
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
@@ -854,8 +859,19 @@ def export_for_posting(section_id):
         
         # Loop through each section and create a separate table
         for sect in all_sections:
-            # Query exam schedules for this specific section
-            query = ExamSchedule.query.filter_by(section_id=sect.id, is_active=True)
+            # Query exam schedules for this specific section, excluding archived faculty and rooms
+            query = ExamSchedule.query.filter_by(section_id=sect.id, is_active=True)\
+                .outerjoin(Faculty, ExamSchedule.faculty_id == Faculty.id)\
+                .outerjoin(Room, ExamSchedule.room_id == Room.id)\
+                .outerjoin(Building, Room.building_id == Building.id)\
+                .filter(
+                    or_(ExamSchedule.faculty_id == None,
+                        and_(Faculty.is_active == True, Faculty.is_archived == False)),
+                    or_(ExamSchedule.room_id == None,
+                        and_(Room.is_available == True,
+                            or_(Building.id == None,
+                                and_(Building.is_active == True, Building.is_archived == False))))
+                )
             if current_settings:
                 query = query.filter_by(
                     academic_year=current_settings.academic_year,
@@ -1051,11 +1067,36 @@ def export_exam_schedule(section_id):
     try:
         section = Section.query.get_or_404(section_id)
         
+        # Check if section or its department is archived
+        if section.is_archived or (section.department and section.department.is_archived):
+            flash('Cannot export archived section exam schedules.', 'error')
+            return redirect(url_for('schedule.index'))
+        
         # Get current academic settings
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
-        # Query exam schedules for this section
-        query = ExamSchedule.query.filter_by(section_id=section_id, is_active=True)
+        # Query exam schedules for this section - exclude archived faculty and rooms
+        query = ExamSchedule.query.filter_by(section_id=section_id, is_active=True)\
+            .outerjoin(Faculty, ExamSchedule.faculty_id == Faculty.id)\
+            .outerjoin(Room, ExamSchedule.room_id == Room.id)\
+            .outerjoin(Building, Room.building_id == Building.id)\
+            .filter(
+                or_(
+                    ExamSchedule.faculty_id == None,
+                    and_(Faculty.is_active == True, Faculty.is_archived == False)
+                ),
+                or_(
+                    ExamSchedule.room_id == None,
+                    and_(
+                        Room.is_available == True,
+                        or_(
+                            Building.id == None,
+                            and_(Building.is_active == True, Building.is_archived == False)
+                        )
+                    )
+                )
+            )
+        
         if current_settings:
             query = query.filter_by(
                 academic_year=current_settings.academic_year,
@@ -1264,10 +1305,36 @@ def export_exam_schedule_pdf(section_id):
     """Export exam schedule to PDF - weekly grid format"""
     try:
         section = Section.query.get_or_404(section_id)
+        
+        # Check if section or its department is archived
+        if section.is_archived or (section.department and section.department.is_archived):
+            flash('Cannot export archived section exam schedules.', 'error')
+            return redirect(url_for('schedule.index'))
+        
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         
-        # Query exam schedules
-        query = ExamSchedule.query.filter_by(section_id=section_id, is_active=True)
+        # Query exam schedules - exclude archived faculty and rooms
+        query = ExamSchedule.query.filter_by(section_id=section_id, is_active=True)\
+            .outerjoin(Faculty, ExamSchedule.faculty_id == Faculty.id)\
+            .outerjoin(Room, ExamSchedule.room_id == Room.id)\
+            .outerjoin(Building, Room.building_id == Building.id)\
+            .filter(
+                or_(
+                    ExamSchedule.faculty_id == None,
+                    and_(Faculty.is_active == True, Faculty.is_archived == False)
+                ),
+                or_(
+                    ExamSchedule.room_id == None,
+                    and_(
+                        Room.is_available == True,
+                        or_(
+                            Building.id == None,
+                            and_(Building.is_active == True, Building.is_archived == False)
+                        )
+                    )
+                )
+            )
+        
         if current_settings:
             query = query.filter_by(
                 academic_year=current_settings.academic_year,
@@ -1327,3 +1394,61 @@ def export_exam_schedule_pdf(section_id):
     except Exception as e:
         flash(f'Error exporting exam PDF schedule: {str(e)}', 'error')
         return redirect(url_for('schedule.index', exam_section_id=section_id))
+
+
+@exam_schedule_bp.route('/cleanup-archived', methods=['POST'])
+@login_required
+@role_required('Admin')
+def cleanup_archived():
+    """Delete exam schedules that have archived sections, departments, faculty, or rooms"""
+    try:
+        # Get all active exam schedules
+        all_exam_schedules = ExamSchedule.query.filter_by(is_active=True).all()
+        
+        deleted_count = 0
+        deleted_details = []
+        
+        for exam in all_exam_schedules:
+            if exam.has_archived_relationships():
+                # Build detail string for logging
+                reason_parts = []
+                if exam.section and exam.section.is_archived:
+                    reason_parts.append(f"archived section: {exam.section.section_name}")
+                if exam.section and exam.section.department and exam.section.department.is_archived:
+                    reason_parts.append(f"archived department: {exam.section.department.department_name}")
+                if exam.faculty and exam.faculty.is_archived:
+                    reason_parts.append(f"archived faculty: {exam.faculty.full_name}")
+                if exam.room and not exam.room.is_available:
+                    reason_parts.append(f"unavailable room: {exam.room.room_number}")
+                if exam.room and exam.room.building and exam.room.building.is_archived:
+                    reason_parts.append(f"archived building: {exam.room.building.building_name}")
+                
+                detail = f"{exam.subject.subject_code if exam.subject else 'N/A'} - {', '.join(reason_parts)}"
+                deleted_details.append(detail)
+                
+                # Log deletion
+                from app.utils.activity_logger import log_delete
+                log_delete('exam_schedule', exam.id, f'{exam.subject.subject_code} - {exam.section.section_name}', {
+                    'reason': 'Cleanup: ' + ', '.join(reason_parts),
+                    'exam_date': str(exam.exam_date) if exam.exam_date else None
+                })
+                
+                db.session.delete(exam)
+                deleted_count += 1
+        
+        db.session.commit()
+        
+        if deleted_count > 0:
+            flash(f'Successfully deleted {deleted_count} exam schedule(s) with archived relationships.', 'success')
+            # Optionally log details
+            print(f"[CLEANUP] Deleted exam schedules:\n" + "\n".join(deleted_details))
+        else:
+            flash('No exam schedules with archived relationships found.', 'info')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error cleaning up archived exam schedules: {str(e)}', 'danger')
+        import traceback
+        traceback.print_exc()
+    
+    return redirect(url_for('schedule.index'))

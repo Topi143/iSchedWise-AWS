@@ -5,6 +5,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Department, Section
+from app.models.schedule import Schedule
+from app.models.exam_schedule import ExamSchedule
 from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
 department_bp = Blueprint('department', __name__, url_prefix='/program')
@@ -176,7 +178,7 @@ def toggle_status():
 @department_bp.route('/archive', methods=['POST'])
 @login_required
 def archive():
-    """Archive a department and all its active curricula"""
+    """Archive a department, all its active curricula, and delete all schedules from its sections"""
     try:
         department_id = request.form.get('department_id', '').strip()
         archive_reason = request.form.get('archive_reason', 'Manual archive by user').strip()
@@ -192,7 +194,43 @@ def archive():
         
         department_code = department.department_code
         
-        # Check if department has active curricula and archive them first
+        # Get all section IDs from this department
+        section_ids = [section.id for section in department.sections]
+        
+        # Count schedules that will be deleted
+        class_schedules_count = 0
+        exam_schedules_count = 0
+        
+        if section_ids:
+            # Find and delete class schedules from sections in this department
+            class_schedules = Schedule.query.filter(
+                Schedule.section_id.in_(section_ids),
+                Schedule.is_active == True
+            ).all()
+            
+            for schedule in class_schedules:
+                # Log deletion
+                log_delete('schedule', schedule.id, 
+                          f'{schedule.subject.subject_code if schedule.subject else "N/A"} - {schedule.section.section_name if schedule.section else "N/A"}',
+                          {'reason': f'Department archived: {department_code}', 'department': department_code})
+                db.session.delete(schedule)
+                class_schedules_count += 1
+            
+            # Find and delete exam schedules from sections in this department
+            exam_schedules = ExamSchedule.query.filter(
+                ExamSchedule.section_id.in_(section_ids),
+                ExamSchedule.is_active == True
+            ).all()
+            
+            for exam_schedule in exam_schedules:
+                # Log deletion
+                log_delete('exam_schedule', exam_schedule.id,
+                          f'{exam_schedule.subject.subject_code if exam_schedule.subject else "N/A"} - {exam_schedule.section.section_name if exam_schedule.section else "N/A"}',
+                          {'reason': f'Department archived: {department_code}', 'department': department_code})
+                db.session.delete(exam_schedule)
+                exam_schedules_count += 1
+        
+        # Check if department has active curricula and archive them
         active_curricula = [c for c in department.curricula if not c.is_archived]
         archived_curricula_count = 0
         
@@ -208,20 +246,17 @@ def archive():
         # Archive department using helper method
         department.archive(user_id=current_user.id, reason=archive_reason)
         
-        # Log activity
+        # Log department archive activity
         log_archive('department', department.id, department_code, {
             'reason': archive_reason,
-            'curricula_archived': archived_curricula_count
+            'curricula_archived': archived_curricula_count,
+            'deleted_class_schedules': class_schedules_count,
+            'deleted_exam_schedules': exam_schedules_count
         })
         
         db.session.commit()
         
-        # Success message includes curriculum count if any were archived
-        if archived_curricula_count > 0:
-            flash(f'Department "{department_code}" and {archived_curricula_count} curricula have been archived successfully!', 'success')
-        else:
-            flash(f'Department "{department_code}" has been archived successfully!', 'success')
-        
+        flash(f'Department "{department_code}" has been archived successfully!', 'success')
         return redirect(url_for('department.index'))
         
     except Exception as e:

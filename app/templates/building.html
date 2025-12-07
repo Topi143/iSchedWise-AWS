@@ -62,7 +62,7 @@
         transform: translateX(2px);
     }
     
-    /* Toast Notifications - Enhanced design */
+    /* Toast Notifications */
     .toast-container {
         position: fixed;
         top: 1rem;
@@ -71,70 +71,37 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        max-width: 400px;
+        max-width: 90vw;
     }
     
     .toast {
         display: flex;
         align-items: center;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         transform: translateX(400px);
-        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        min-width: 300px;
-        border: 1px solid #e5e7eb;
+        animation: slideIn 0.3s ease forwards;
+        min-width: 250px;
+        max-width: 400px;
     }
     
     .toast.removing {
-        animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        animation: slideOut 0.3s ease forwards;
     }
     
     @keyframes slideIn {
-        to {
-            transform: translateX(0);
-        }
+        to { transform: translateX(0); }
     }
     
     @keyframes slideOut {
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
+        to { transform: translateX(400px); opacity: 0; }
     }
     
-    .toast-success {
-        border-left: 4px solid #10b981;
-        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-    }
-    
-    .toast-error {
-        border-left: 4px solid #ef4444;
-        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
-    }
-    
-    .toast-info {
-        border-left: 4px solid #3b82f6;
-        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
-    }
-    
-    .toast-progress {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        height: 3px;
-        background: currentColor;
-        opacity: 0.3;
-        animation: progress 5s linear forwards;
-        border-radius: 0 0 0.75rem 0.75rem;
-    }
-    
-    @keyframes progress {
-        to {
-            width: 0;
-        }
-    }
+    .toast-success { border-left: 4px solid #10b981; }
+    .toast-error { border-left: 4px solid #ef4444; }
+    .toast-info { border-left: 4px solid #3b82f6; }
     
     /* Modal animations */
     @keyframes scaleIn {
@@ -930,30 +897,35 @@
         toast.className = `toast toast-${type}`;
         
         const icons = {
-            success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>',
-            error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>',
-            info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+            success: `<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            error: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            danger: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            info: `<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`
         };
         
         const colors = {
-            success: '#10b981',
-            error: '#ef4444',
-            info: '#3b82f6'
+            success: 'text-green-800',
+            error: 'text-red-800',
+            danger: 'text-red-800',
+            info: 'text-blue-800'
         };
         
         toast.innerHTML = `
-            <div class="mr-3">
-                <svg class="w-6 h-6" style="color: ${colors[type]}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    ${icons[type]}
-                </svg>
-            </div>
-            <div class="flex-1 text-sm text-gray-700">${message}</div>
+            ${icons[type] || icons.success}
+            <p class="${colors[type] || colors.success} font-medium flex-1">${message}</p>
             <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
-            <div class="toast-progress" style="width: 100%; color: ${colors[type]}"></div>
         `;
         
         container.appendChild(toast);

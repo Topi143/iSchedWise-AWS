@@ -343,21 +343,36 @@
         }
         window.history.replaceState({}, '', url);
         
-        const sectionItems = document.querySelectorAll('.section-list-item');
-        const sectionList = document.getElementById('sectionList');
+        const yearLevelFilter = document.getElementById('yearLevelFilter');
+        const yearLevel = yearLevelFilter ? yearLevelFilter.value : '';
+        
+        const sectionItems = document.querySelectorAll('#sectionList .section-list-item');
         let visibleCount = 0;
         
         sectionItems.forEach(item => {
             const itemDeptId = item.getAttribute('data-department-id');
+            const itemText = item.textContent;
+            
+            // Extract year level from section text
+            const yearLevelMatch = itemText.match(/Year\s+(\d)|[-\s](\d)[A-Z]/);
+            const itemYearLevel = yearLevelMatch ? (yearLevelMatch[1] || yearLevelMatch[2]) : '';
+            
             let shouldShow = false;
             
-            if (departmentId === '') {
-                shouldShow = true;
-            } else if (itemDeptId === departmentId) {
-                shouldShow = true;
-            } else if (itemDeptId === '' && departmentId === 'none') {
-                shouldShow = true;
+            // Check department filter
+            let deptMatch = false;
+            if (departmentId === '' || departmentId === itemDeptId || (itemDeptId === '' && departmentId === 'none')) {
+                deptMatch = true;
             }
+            
+            // Check year level filter
+            let yearLevelFilterMatch = false;
+            if (yearLevel === '' || itemYearLevel === yearLevel) {
+                yearLevelFilterMatch = true;
+            }
+            
+            // Show only if both filters match
+            shouldShow = deptMatch && yearLevelFilterMatch;
             
             if (shouldShow) {
                 item.style.display = '';
@@ -395,21 +410,146 @@
         }
         window.history.replaceState({}, '', url);
         
+        const yearLevelFilter = document.getElementById('examYearLevelFilter');
+        const yearLevel = yearLevelFilter ? yearLevelFilter.value : '';
+        
         const sectionItems = document.querySelectorAll('#examSectionList .section-list-item');
-        const sectionList = document.getElementById('examSectionList');
         let visibleCount = 0;
         
         sectionItems.forEach(item => {
             const itemDeptId = item.getAttribute('data-department-id');
+            const itemText = item.textContent;
+            
+            // Extract year level from section text
+            const yearLevelMatch = itemText.match(/Year\s+(\d)|[-\s](\d)[A-Z]/);
+            const itemYearLevel = yearLevelMatch ? (yearLevelMatch[1] || yearLevelMatch[2]) : '';
+            
             let shouldShow = false;
             
-            if (departmentId === '') {
-                shouldShow = true;
-            } else if (itemDeptId === departmentId) {
-                shouldShow = true;
-            } else if (itemDeptId === '' && departmentId === 'none') {
-                shouldShow = true;
+            // Check department filter
+            let deptMatch = false;
+            if (departmentId === '' || departmentId === itemDeptId || (itemDeptId === '' && departmentId === 'none')) {
+                deptMatch = true;
             }
+            
+            // Check year level filter
+            let yearLevelFilterMatch = false;
+            if (yearLevel === '' || itemYearLevel === yearLevel) {
+                yearLevelFilterMatch = true;
+            }
+            
+            // Show only if both filters match
+            shouldShow = deptMatch && yearLevelFilterMatch;
+            
+            if (shouldShow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        const badge = document.getElementById('exam-section-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount;
+        }
+    }
+
+    // Filter by Year Level Function (for Class tab)
+    function filterByYearLevel(yearLevel) {
+        const url = new URL(window.location.href);
+        if (yearLevel) {
+            url.searchParams.set('year_level', yearLevel);
+        } else {
+            url.searchParams.delete('year_level');
+        }
+        window.history.replaceState({}, '', url);
+        
+        const departmentFilter = document.getElementById('departmentFilter');
+        const departmentId = departmentFilter ? departmentFilter.value : '';
+        
+        const sectionItems = document.querySelectorAll('#sectionList .section-list-item');
+        let visibleCount = 0;
+        
+        sectionItems.forEach(item => {
+            const itemDeptId = item.getAttribute('data-department-id');
+            const itemText = item.textContent;
+            
+            // Extract year level from section text (e.g., "BSCS-1A" -> "1", "Year 1 A" -> "1")
+            const yearLevelMatch = itemText.match(/Year\s+(\d)|[-\s](\d)[A-Z]/);
+            const itemYearLevel = yearLevelMatch ? (yearLevelMatch[1] || yearLevelMatch[2]) : '';
+            
+            let shouldShow = false;
+            
+            // Check department filter
+            let deptMatch = false;
+            if (departmentId === '' || departmentId === itemDeptId || (itemDeptId === '' && departmentId === 'none')) {
+                deptMatch = true;
+            }
+            
+            // Check year level filter
+            let yearLevelFilterMatch = false;
+            if (yearLevel === '' || itemYearLevel === yearLevel) {
+                yearLevelFilterMatch = true;
+            }
+            
+            // Show only if both filters match
+            shouldShow = deptMatch && yearLevelFilterMatch;
+            
+            if (shouldShow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        const badge = document.getElementById('section-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount;
+        }
+    }
+
+    // Filter by Year Level Function (for Exam tab)
+    function filterExamByYearLevel(yearLevel) {
+        const url = new URL(window.location.href);
+        if (yearLevel) {
+            url.searchParams.set('exam_year_level', yearLevel);
+        } else {
+            url.searchParams.delete('exam_year_level');
+        }
+        window.history.replaceState({}, '', url);
+        
+        const departmentFilter = document.getElementById('examDepartmentFilter');
+        const departmentId = departmentFilter ? departmentFilter.value : '';
+        
+        const sectionItems = document.querySelectorAll('#examSectionList .section-list-item');
+        let visibleCount = 0;
+        
+        sectionItems.forEach(item => {
+            const itemDeptId = item.getAttribute('data-department-id');
+            const itemText = item.textContent;
+            
+            // Extract year level from section text (e.g., "BSCS-1A" -> "1", "Year 1 A" -> "1")
+            const yearLevelMatch = itemText.match(/Year\s+(\d)|[-\s](\d)[A-Z]/);
+            const itemYearLevel = yearLevelMatch ? (yearLevelMatch[1] || yearLevelMatch[2]) : '';
+            
+            let shouldShow = false;
+            
+            // Check department filter
+            let deptMatch = false;
+            if (departmentId === '' || departmentId === itemDeptId || (itemDeptId === '' && departmentId === 'none')) {
+                deptMatch = true;
+            }
+            
+            // Check year level filter
+            let yearLevelFilterMatch = false;
+            if (yearLevel === '' || itemYearLevel === yearLevel) {
+                yearLevelFilterMatch = true;
+            }
+            
+            // Show only if both filters match
+            shouldShow = deptMatch && yearLevelFilterMatch;
             
             if (shouldShow) {
                 item.style.display = '';
@@ -2364,6 +2504,27 @@
         const examViewPreference = localStorage.getItem('examViewPreference') || 'table';
         if (document.getElementById('examTableView')) {
             switchExamView(examViewPreference);
+        }
+        
+        // Restore year level filters from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Restore class tab year level filter
+        const yearLevel = urlParams.get('year_level');
+        if (yearLevel) {
+            const yearLevelFilter = document.getElementById('yearLevelFilter');
+            if (yearLevelFilter) {
+                yearLevelFilter.value = yearLevel;
+            }
+        }
+        
+        // Restore exam tab year level filter
+        const examYearLevel = urlParams.get('exam_year_level');
+        if (examYearLevel) {
+            const examYearLevelFilter = document.getElementById('examYearLevelFilter');
+            if (examYearLevelFilter) {
+                examYearLevelFilter.value = examYearLevel;
+            }
         }
     });
 

@@ -11,7 +11,7 @@
 -- 
 -- Alternatively, you can run this script directly in phpMyAdmin SQL tab
 -- ============================================================================
-
+drop database ischedwise_db;
 -- Create Database (if not exists)
 CREATE DATABASE IF NOT EXISTS `ischedwise_db` 
 DEFAULT CHARACTER SET utf8mb4 

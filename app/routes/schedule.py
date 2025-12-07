@@ -2505,9 +2505,13 @@ def export_faculty_schedule_for_posting(faculty_id):
             cell = ws.cell(row=row, column=7, value=room_display)
             cell.border = thin_border
             
-            # Section
-            section_name = schedule.section.section_name if schedule.section else 'TBA'
-            cell = ws.cell(row=row, column=8, value=section_name)
+            # Section - Show as BSCS-4A format
+            if schedule.section:
+                dept_code = schedule.section.department.department_code if schedule.section.department else ''
+                section_display = f"{dept_code}-{schedule.section.section_name}"
+            else:
+                section_display = 'TBA'
+            cell = ws.cell(row=row, column=8, value=section_display)
             cell.border = thin_border
             
             row += 1
@@ -2979,6 +2983,67 @@ def export_room_schedule_pdf(room_id):
         return redirect(url_for('schedule.index', room_id=room_id))
 
 
+
+
+# ============================================================================
+
+
+@schedule_bp.route('/cleanup-archived', methods=['POST'])
+@login_required
+@role_required('Admin')
+def cleanup_archived():
+    """Delete class schedules that have archived sections, departments, faculty, or rooms"""
+    try:
+        # Get all active schedules
+        all_schedules = Schedule.query.filter_by(is_active=True).all()
+        
+        deleted_count = 0
+        deleted_details = []
+        
+        for schedule in all_schedules:
+            if schedule.has_archived_relationships():
+                # Build detail string for logging
+                reason_parts = []
+                if schedule.section and schedule.section.is_archived:
+                    reason_parts.append(f"archived section: {schedule.section.section_name}")
+                if schedule.section and schedule.section.department and schedule.section.department.is_archived:
+                    reason_parts.append(f"archived department: {schedule.section.department.department_name}")
+                if schedule.faculty and schedule.faculty.is_archived:
+                    reason_parts.append(f"archived faculty: {schedule.faculty.full_name}")
+                if schedule.room and not schedule.room.is_available:
+                    reason_parts.append(f"unavailable room: {schedule.room.room_number}")
+                if schedule.room and schedule.room.building and schedule.room.building.is_archived:
+                    reason_parts.append(f"archived building: {schedule.room.building.building_name}")
+                
+                detail = f"{schedule.subject.subject_code if schedule.subject else 'N/A'} - {', '.join(reason_parts)}"
+                deleted_details.append(detail)
+                
+                # Log deletion
+                from app.utils.activity_logger import log_delete
+                log_delete('schedule', schedule.id, f'{schedule.subject.subject_code} - {schedule.section.section_name}', {
+                    'reason': 'Cleanup: ' + ', '.join(reason_parts),
+                    'day_of_week': schedule.day_of_week
+                })
+                
+                db.session.delete(schedule)
+                deleted_count += 1
+        
+        db.session.commit()
+        
+        if deleted_count > 0:
+            flash(f'Successfully deleted {deleted_count} class schedule(s) with archived relationships.', 'success')
+            # Optionally log details
+            print(f"[CLEANUP] Deleted class schedules:\n" + "\n".join(deleted_details))
+        else:
+            flash('No class schedules with archived relationships found.', 'info')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error cleaning up archived class schedules: {str(e)}', 'danger')
+        import traceback
+        traceback.print_exc()
+    
+    return redirect(url_for('schedule.index'))
 
 
 # ============================================================================

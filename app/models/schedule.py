@@ -34,6 +34,29 @@ class Schedule(db.Model):
     def __repr__(self):
         return f'<Schedule {self.id}: {self.day_of_week} {self.start_time}-{self.end_time}>'
 
+    def has_archived_relationships(self):
+        """Check if this schedule has any archived relationships"""
+        # Check section
+        if self.section and self.section.is_archived:
+            return True
+        
+        # Check department (through section)
+        if self.section and self.section.department and self.section.department.is_archived:
+            return True
+        
+        # Check faculty
+        if self.faculty and self.faculty.is_archived:
+            return True
+        
+        # Check room and building (through room)
+        if self.room:
+            if not self.room.is_available:
+                return True
+            if self.room.building and self.room.building.is_archived:
+                return True
+        
+        return False
+
     def to_dict(self):
         """Convert schedule to dictionary"""
         return {

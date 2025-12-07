@@ -314,6 +314,10 @@ Once connected via SSH:
 sudo apt update
 sudo apt upgrade -y
 
+# Add deadsnakes PPA (required for Python 3.11)
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update
+
 # Install Python 3.11 and pip
 sudo apt install -y python3.11 python3.11-venv python3-pip
 
@@ -437,10 +441,10 @@ When nano opens, **type or paste** this content:
 # Flask Configuration
 FLASK_APP=run.py
 FLASK_ENV=production
-SECRET_KEY=PASTE_YOUR_GENERATED_SECRET_KEY_HERE
+SECRET_KEY=64cc9009f2edacac016997a313c193a6b7ba0767e1fa346a6792bb39046321e0
 
 # Database Configuration
-DATABASE_URL=mysql+pymysql://admin:YOUR_RDS_PASSWORD@YOUR_RDS_ENDPOINT/ischedwise_db
+DATABASE_URL=mysql+pymysql://admin:12345678@ischedwise-db.cw3g6si0u96s.us-east-1.rds.amazonaws.com/ischedwise_db
 
 # Email Configuration (Optional - for password reset feature)
 MAIL_SERVER=smtp.gmail.com
@@ -516,8 +520,8 @@ chmod 600 .env
 ```bash
 cd /var/www/ischedwise
 
-# Create virtual environment (Ubuntu 24.04 uses Python 3.12)
-python3 -m venv venv
+# Create virtual environment using Python 3.11
+python3.11 -m venv venv
 
 # Activate virtual environment
 source venv/bin/activate
@@ -533,6 +537,11 @@ pip install gunicorn
 
 # Verify installation
 pip list
+
+# IMPORTANT: If you encounter "ModuleNotFoundError: No module named 'pymysql'" later,
+# force install using the venv's pip directly:
+./venv/bin/pip install pymysql
+./venv/bin/pip install -r requirements.txt
 ```
 
 ### Step 5: Update Configuration for Production
@@ -544,23 +553,37 @@ nano config/config.py
 Ensure ProductionConfig uses environment variables:
 ```python
 class ProductionConfig(Config):
+    """Production configuration"""
     DEBUG = False
     TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI')
-    # Other production settings...
+
+    # Remove the @property decorator - SECRET_KEY must be a class attribute
+    # Override the parent class SECRET_KEY
+    def __init__(self):
+        super().__init__()
+        secret_key = os.environ.get('SECRET_KEY')
+        if not secret_key:
+            raise ValueError("SECRET_KEY must be set in production environment")
+        self.SECRET_KEY = secret_key
 ```
 
 ### Step 6: Test Application
 ```bash
 cd /var/www/ischedwise
-source venv/bin/activate
 
+# CRITICAL: Always use the venv's Python directly to avoid module errors
 # Test database connection
-python3 -c "from app import create_app; app = create_app(); print('App created successfully!')"
+./venv/bin/python -c "from app import create_app; app = create_app(); print('App created successfully')"
+
+# If you get "ModuleNotFoundError: No module named 'pymysql'", run:
+# ./venv/bin/pip install pymysql
+# ./venv/bin/pip install -r requirements.txt
+# Then retry the test command above
 
 # Run Flask app (test)
 export FLASK_ENV=production
-python3 run.py
+# Use explicit path to ensure venv is used
+./venv/bin/python run.py
 
 # Should see:
 # * Running on http://0.0.0.0:5000
@@ -1094,6 +1117,51 @@ sudo journalctl -u ischedwise -n 50
 # 2. Permission issues - check file ownership
 # 3. Port conflicts - check if socket exists
 ```
+
+### ModuleNotFoundError: No module named 'pymysql'
+This error means dependencies were not installed in the virtual environment, or the wrong Python interpreter is being used.
+
+**Solution 1: Force Install into Venv (Fixes 99% of issues)**
+Run these commands to force installation into the specific virtual environment:
+```bash
+cd /var/www/ischedwise
+./venv/bin/pip install pymysql
+./venv/bin/pip install -r requirements.txt
+```
+
+**Solution 2: Verify Installation**
+Check if the package is actually installed in the venv:
+```bash
+./venv/bin/pip list | grep PyMySQL
+```
+If this returns nothing, the installation failed. Check for error messages.
+
+**Solution 3: Verify the venv Python can import pymysql**
+Test if pymysql is accessible to the venv's Python:
+```bash
+# This should print the version number
+./venv/bin/python -c "import pymysql; print(pymysql.__version__)"
+
+# If you get ModuleNotFoundError, pymysql is NOT in your venv
+# Force reinstall:
+./venv/bin/pip install --force-reinstall pymysql
+```
+
+**Solution 4: Use explicit path for running (CRITICAL)**
+Always run scripts using the full path to the venv python:
+```bash
+# Deactivate if venv is activated (to avoid confusion)
+deactivate
+
+# Run using the venv's Python directly
+cd /var/www/ischedwise
+./venv/bin/python run.py
+```
+
+**Why this happens:**
+- `pip install` might have installed to system Python, not the venv
+- Using `python3` instead of the venv's `python` can cause issues
+- Virtual environment not activated, or wrong environment activated
 
 ### Can't Connect to Database
 ```bash

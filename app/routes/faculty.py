@@ -7,6 +7,7 @@ from sqlalchemy import func, or_
 from app.extensions import db
 from app.models import Faculty, FacultySubjectAssignment, Department, Subject, Curriculum, YearLevel, Semester
 from app.models.schedule import Schedule
+from app.models.exam_schedule import ExamSchedule
 from app.models.settings import AcademicSettings
 from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
@@ -257,7 +258,7 @@ def edit():
 @faculty_bp.route('/archive', methods=['POST'])
 @login_required
 def archive():
-    """Archive a faculty member"""
+    """Archive a faculty member and delete all schedules assigned to them"""
     try:
         faculty_id = request.form.get('faculty_id', '').strip()
         archive_reason = request.form.get('archive_reason', 'Manual archive by user').strip()
@@ -273,15 +274,51 @@ def archive():
         
         faculty_name = faculty.full_name
         
+        # Count schedules that will be deleted
+        class_schedules_count = 0
+        exam_schedules_count = 0
+        
+        # Find and delete class schedules assigned to this faculty
+        class_schedules = Schedule.query.filter(
+            Schedule.faculty_id == int(faculty_id),
+            Schedule.is_active == True
+        ).all()
+        
+        for schedule in class_schedules:
+            # Log deletion
+            log_delete('schedule', schedule.id, 
+                      f'{schedule.subject.subject_code if schedule.subject else "N/A"} - {schedule.section.section_name if schedule.section else "N/A"}',
+                      {'reason': f'Faculty archived: {faculty_name}', 'faculty': faculty_name})
+            db.session.delete(schedule)
+            class_schedules_count += 1
+        
+        # Find and delete exam schedules assigned to this faculty
+        exam_schedules = ExamSchedule.query.filter(
+            ExamSchedule.faculty_id == int(faculty_id),
+            ExamSchedule.is_active == True
+        ).all()
+        
+        for exam_schedule in exam_schedules:
+            # Log deletion
+            log_delete('exam_schedule', exam_schedule.id,
+                      f'{exam_schedule.subject.subject_code if exam_schedule.subject else "N/A"} - {exam_schedule.section.section_name if exam_schedule.section else "N/A"}',
+                      {'reason': f'Faculty archived: {faculty_name}', 'faculty': faculty_name})
+            db.session.delete(exam_schedule)
+            exam_schedules_count += 1
+        
         # Archive faculty using helper method
         faculty.archive(user_id=current_user.id, reason=archive_reason)
         
-        # Log activity
-        log_archive('faculty', faculty.id, faculty_name, {'reason': archive_reason})
+        # Log faculty archive activity
+        log_archive('faculty', faculty.id, faculty_name, {
+            'reason': archive_reason,
+            'deleted_class_schedules': class_schedules_count,
+            'deleted_exam_schedules': exam_schedules_count
+        })
         
         db.session.commit()
         
-        flash(f'Faculty member {faculty_name} has been archived successfully!', 'success')
+        flash(f'Faculty member "{faculty_name}" has been archived successfully!', 'success')
         params = build_redirect_params()
         return redirect(url_for('faculty.index', **params))
         
@@ -501,3 +538,171 @@ def unassign_subject():
         db.session.rollback()
         flash(f'An error occurred while removing the assignment: {str(e)}', 'error')
         return redirect(url_for('faculty.index'))
+
+
+@faculty_bp.route('/api/list', methods=['GET'])
+@login_required
+def api_list():
+    """API endpoint for dynamically loading faculty list with pagination"""
+    try:
+        # Get current academic settings
+        active_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        if not active_settings:
+            return jsonify({'error': 'No active academic settings found'}), 400
+        
+        # Pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        department_id = request.args.get('department_id', type=int)
+        search_query = request.args.get('search', '').strip()
+        
+        # Build query
+        query = Faculty.query.filter_by(is_archived=False)
+        
+        # Apply department filter
+        if department_id:
+            query = query.filter_by(department_id=department_id)
+        
+        # Apply search filter
+        if search_query:
+            query = query.filter(Faculty.full_name.ilike(f'%{search_query}%'))
+        
+        # Order by name
+        query = query.order_by(Faculty.full_name)
+        
+        # Paginate
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        # Calculate workloads for paginated results
+        faculty_list = []
+        for faculty in pagination.items:
+            # Get assignments for current academic period
+            assignments = FacultySubjectAssignment.query\
+                .filter_by(
+                    faculty_id=faculty.id,
+                    academic_year=active_settings.academic_year,
+                    semester=active_settings.semester,
+                    is_archived=False
+                )\
+                .all()
+            
+            assigned_units = sum(a.subject.total_units for a in assignments if a.subject)
+            assigned_count = len(assignments)
+            
+            # Get schedules
+            schedules = Schedule.query\
+                .filter_by(faculty_id=faculty.id, is_active=True)\
+                .all()
+            
+            schedule_units = sum(s.subject.total_units for s in schedules if s.subject)
+            class_count = len(schedules)
+            
+            faculty_data = {
+                'id': faculty.id,
+                'full_name': faculty.full_name,
+                'department_id': faculty.department_id,
+                'department_name': faculty.department.department_name if faculty.department else None,
+                'department_code': faculty.department.department_code if faculty.department else None,
+                'workload': {
+                    'assigned_count': assigned_count,
+                    'assigned_units': float(assigned_units),
+                    'schedule_units': float(schedule_units),
+                    'class_count': class_count,
+                    'total_units': float(schedule_units) if schedule_units else float(assigned_units)
+                }
+            }
+            faculty_list.append(faculty_data)
+        
+        return jsonify({
+            'faculties': faculty_list,
+            'pagination': {
+                'page': pagination.page,
+                'per_page': pagination.per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@faculty_bp.route('/api/detail/<int:faculty_id>', methods=['GET'])
+@login_required
+def api_detail(faculty_id):
+    """API endpoint for fetching detailed faculty information"""
+    try:
+        # Get current academic settings
+        active_settings = AcademicSettings.query.filter_by(is_active=True).first()
+        if not active_settings:
+            return jsonify({'error': 'No active academic settings found'}), 400
+        
+        faculty = Faculty.query.get(faculty_id)
+        if not faculty or faculty.is_archived:
+            return jsonify({'error': 'Faculty not found'}), 404
+        
+        # Get assignments
+        assignments = FacultySubjectAssignment.query.filter_by(
+            faculty_id=faculty.id,
+            academic_year=active_settings.academic_year,
+            semester=active_settings.semester,
+            is_archived=False
+        ).all()
+        
+        assignments_data = []
+        for assignment in assignments:
+            if assignment.subject:
+                semester = assignment.subject.semester
+                year_level = semester.year_level if semester else None
+                curriculum = year_level.curriculum if year_level else None
+                
+                assignments_data.append({
+                    'id': assignment.id,
+                    'subject_id': assignment.subject_id,
+                    'subject_code': assignment.subject.subject_code,
+                    'course_description': assignment.subject.course_description,
+                    'total_units': float(assignment.subject.total_units),
+                    'curriculum_code': curriculum.curriculum_code if curriculum else None,
+                    'year_name': year_level.year_name if year_level else None,
+                    'semester_name': semester.semester_name if semester else None
+                })
+        
+        # Get schedules
+        schedules = Schedule.query.filter_by(
+            faculty_id=faculty.id,
+            is_active=True
+        ).all()
+        
+        schedules_data = []
+        for schedule in schedules:
+            schedules_data.append({
+                'id': schedule.id,
+                'subject_code': schedule.subject.subject_code if schedule.subject else None,
+                'section_name': schedule.section.section_name if schedule.section else None,
+                'day_of_week': schedule.day_of_week,
+                'start_time': schedule.start_time.strftime('%H:%M') if schedule.start_time else None,
+                'end_time': schedule.end_time.strftime('%H:%M') if schedule.end_time else None,
+                'room_number': schedule.room.room_number if schedule.room else None,
+                'building_name': schedule.room.building.building_name if schedule.room and schedule.room.building else None
+            })
+        
+        return jsonify({
+            'faculty': {
+                'id': faculty.id,
+                'full_name': faculty.full_name,
+                'department_id': faculty.department_id,
+                'department_name': faculty.department.department_name if faculty.department else None,
+                'department_code': faculty.department.department_code if faculty.department else None
+            },
+            'assignments': assignments_data,
+            'schedules': schedules_data,
+            'academic_context': {
+                'academic_year': active_settings.academic_year,
+                'semester': active_settings.semester
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

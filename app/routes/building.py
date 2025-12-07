@@ -5,6 +5,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Building, Room
+from app.models.schedule import Schedule
+from app.models.exam_schedule import ExamSchedule
 from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 
 building_bp = Blueprint('building', __name__, url_prefix='/buildings')
@@ -143,19 +145,56 @@ def archive():
         building_name = building.building_name
         room_count = building.room_count
         
+        # Get all room IDs from this building
+        room_ids = [room.id for room in building.rooms]
+        
+        # Count schedules that will be deleted
+        class_schedules_count = 0
+        exam_schedules_count = 0
+        
+        if room_ids:
+            # Find and delete class schedules using rooms from this building
+            class_schedules = Schedule.query.filter(
+                Schedule.room_id.in_(room_ids),
+                Schedule.is_active == True
+            ).all()
+            
+            for schedule in class_schedules:
+                # Log deletion
+                log_delete('schedule', schedule.id, 
+                          f'{schedule.subject.subject_code if schedule.subject else "N/A"} - {schedule.section.section_name if schedule.section else "N/A"}',
+                          {'reason': f'Building archived: {building_name}', 'room': schedule.room.room_number if schedule.room else 'N/A'})
+                db.session.delete(schedule)
+                class_schedules_count += 1
+            
+            # Find and delete exam schedules using rooms from this building
+            exam_schedules = ExamSchedule.query.filter(
+                ExamSchedule.room_id.in_(room_ids),
+                ExamSchedule.is_active == True
+            ).all()
+            
+            for exam_schedule in exam_schedules:
+                # Log deletion
+                log_delete('exam_schedule', exam_schedule.id,
+                          f'{exam_schedule.subject.subject_code if exam_schedule.subject else "N/A"} - {exam_schedule.section.section_name if exam_schedule.section else "N/A"}',
+                          {'reason': f'Building archived: {building_name}', 'room': exam_schedule.room.room_number if exam_schedule.room else 'N/A'})
+                db.session.delete(exam_schedule)
+                exam_schedules_count += 1
+        
         # Archive building using helper method
         building.archive(user_id=current_user.id, reason=archive_reason)
         
-        # Log activity
-        log_archive('building', building.id, building_name, {'reason': archive_reason, 'room_count': room_count})
+        # Log building archive activity
+        log_archive('building', building.id, building_name, {
+            'reason': archive_reason, 
+            'room_count': room_count,
+            'deleted_class_schedules': class_schedules_count,
+            'deleted_exam_schedules': exam_schedules_count
+        })
         
         db.session.commit()
         
-        if room_count > 0:
-            flash(f'Building "{building_name}" and {room_count} room(s) have been archived successfully!', 'success')
-        else:
-            flash(f'Building "{building_name}" has been archived successfully!', 'success')
-        
+        flash(f'Building "{building_name}" has been archived successfully!', 'success')
         return redirect(url_for('building.index'))
         
     except Exception as e:

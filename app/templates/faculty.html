@@ -82,24 +82,24 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        max-width: 400px;
+        max-width: 90vw;
     }
     
     .toast {
         display: flex;
         align-items: center;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         background: white;
-        border-radius: 0.75rem;
+        border-radius: 0.5rem;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         transform: translateX(400px);
-        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        min-width: 300px;
-        border: 1px solid #e5e7eb;
+        animation: slideIn 0.3s ease forwards;
+        min-width: 250px;
+        max-width: 400px;
     }
     
     .toast.removing {
-        animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        animation: slideOut 0.3s ease forwards;
     }
     
     @keyframes slideIn {
@@ -117,34 +117,18 @@
     
     .toast-success {
         border-left: 4px solid #10b981;
-        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
     }
     
     .toast-error {
         border-left: 4px solid #ef4444;
-        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    }
+    
+    .toast-danger {
+        border-left: 4px solid #ef4444;
     }
     
     .toast-info {
         border-left: 4px solid #3b82f6;
-        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
-    }
-    
-    .toast-progress {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        height: 3px;
-        background: currentColor;
-        opacity: 0.3;
-        animation: progress 5s linear forwards;
-        border-radius: 0 0 0.75rem 0.75rem;
-    }
-    
-    @keyframes progress {
-        to {
-            width: 0;
-        }
     }
     
     .subject-badge {
@@ -475,44 +459,39 @@
                     </button>
                 </div>
                 
-                <!-- Department Filter -->
+                <!-- Search Bar -->
                 <div class="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0">
-                    <select id="departmentFilter" onchange="filterByDepartment(this.value)" class="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Select Department...</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}">{{ dept.department_code }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- Empty State: No Filter Selected -->
-                <div id="noFilterState" class="flex-1 flex items-center justify-center p-3 sm:p-6">
-                    <div class="text-center max-w-xs px-2">
-                        <div class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-50 flex items-center justify-center mb-3 sm:mb-4">
-                            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">Select a Department</h3>
-                        <p class="text-[10px] sm:text-xs text-gray-500 leading-relaxed">Please select a department from the dropdown above to view faculties.</p>
+                        <input 
+                            type="text" 
+                            id="facultySearchInput" 
+                            placeholder="Search faculties..." 
+                            class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            oninput="handleFacultySearch(this.value)"
+                        >
                     </div>
                 </div>
                 
-                <!-- Empty State: No Faculties in Department -->
+                <!-- Empty State: No Faculties in Search -->
                 <div id="noFacultyState" class="flex-1 hidden items-center justify-center p-3 sm:p-6">
                     <div class="text-center max-w-xs px-2">
                         <div class="mx-auto h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-50 flex items-center justify-center mb-3 sm:mb-4">
                             <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
                         <h3 class="text-xs sm:text-sm font-semibold text-gray-900 mb-1.5 sm:mb-2">No Faculties Found</h3>
-                        <p class="text-[10px] sm:text-xs text-gray-500 leading-relaxed">There are no faculties in this department.</p>
+                        <p class="text-[10px] sm:text-xs text-gray-500 leading-relaxed">No faculties match your search criteria.</p>
                     </div>
                 </div>
                 
                 <!-- Faculty List -->
-                <div class="flex-1 overflow-y-auto hidden" id="facultyList">
+                <div class="flex-1 overflow-y-auto" id="facultyList">
                     {% for faculty in faculties %}
                     <div class="faculty-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer {% if selected_faculty and selected_faculty.id == faculty.id %}selected{% endif %}" 
                          data-department-id="{{ faculty.department_id if faculty.department_id else '' }}"
@@ -1224,7 +1203,236 @@
 
 {% block extra_js %}
 <script>
-    // Toast Notification System
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+    
+    const FacultyState = {
+        currentPage: 1,
+        perPage: 20,
+        totalPages: 1,
+        isLoading: false,
+        hasMore: true,
+        searchQuery: '',
+        selectedFacultyId: null,
+        faculties: [],
+        scrollPosition: 0,
+        
+        // Load state from localStorage
+        loadState() {
+            try {
+                const saved = localStorage.getItem('facultyState');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    this.selectedFacultyId = state.selectedFacultyId || null;
+                    this.searchQuery = state.searchQuery || '';
+                    this.scrollPosition = state.scrollPosition || 0;
+                }
+            } catch (e) {
+                console.error('Error loading state:', e);
+            }
+        },
+        
+        // Save state to localStorage
+        saveState() {
+            try {
+                // Get current scroll position from faculty list
+                const listContainer = document.getElementById('facultyList');
+                if (listContainer) {
+                    this.scrollPosition = listContainer.scrollTop;
+                }
+                
+                localStorage.setItem('facultyState', JSON.stringify({
+                    selectedFacultyId: this.selectedFacultyId,
+                    searchQuery: this.searchQuery,
+                    scrollPosition: this.scrollPosition
+                }));
+            } catch (e) {
+                console.error('Error saving state:', e);
+            }
+        },
+        
+        // Restore scroll position
+        restoreScrollPosition() {
+            try {
+                const listContainer = document.getElementById('facultyList');
+                if (listContainer && this.scrollPosition > 0) {
+                    // Use setTimeout to ensure DOM is fully rendered
+                    setTimeout(() => {
+                        listContainer.scrollTop = this.scrollPosition;
+                    }, 100);
+                }
+            } catch (e) {
+                console.error('Error restoring scroll position:', e);
+            }
+        },
+        
+        // Reset pagination
+        resetPagination() {
+            this.currentPage = 1;
+            this.hasMore = true;
+            this.faculties = [];
+            this.scrollPosition = 0;
+        }
+    };
+    
+    // ============================================================================
+    // DYNAMIC FACULTY LIST LOADING
+    // ============================================================================
+    
+    async function loadFacultyList(append = false) {
+        if (FacultyState.isLoading) return;
+        if (!append && !FacultyState.hasMore) return;
+        
+        const listContainer = document.getElementById('facultyList');
+        const noFacultyState = document.getElementById('noFacultyState');
+        
+        // Show loading indicator
+        if (!append) {
+            listContainer.innerHTML = '<div class="p-4 text-center text-gray-500"><svg class="animate-spin h-5 w-5 mx-auto" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
+        }
+        
+        FacultyState.isLoading = true;
+        
+        try {
+            const params = new URLSearchParams({
+                page: append ? FacultyState.currentPage + 1 : FacultyState.currentPage,
+                per_page: FacultyState.perPage
+            });
+            
+            if (FacultyState.searchQuery) {
+                params.append('search', FacultyState.searchQuery);
+            }
+            
+            const response = await fetch(`/faculty/api/list?${params}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                if (append) {
+                    FacultyState.faculties.push(...data.faculties);
+                    FacultyState.currentPage++;
+                } else {
+                    FacultyState.faculties = data.faculties;
+                }
+                
+                FacultyState.totalPages = data.pagination.pages;
+                FacultyState.hasMore = data.pagination.has_next;
+                
+                renderFacultyList();
+                updateFacultyCount(data.pagination.total);
+                
+                // Restore scroll position after rendering
+                if (!append) {
+                    FacultyState.restoreScrollPosition();
+                }
+                
+                // Show appropriate state
+                if (data.faculties.length === 0 && !append) {
+                    if (FacultyState.departmentFilter) {
+                        showNoFacultyState();
+                    } else {
+                        showNoFilterState();
+                    }
+                } else {
+                    showFacultyList();
+                }
+            } else {
+                showToast(data.error || 'Failed to load faculty list', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading faculty:', error);
+            showToast('Failed to load faculty list', 'error');
+        } finally {
+            FacultyState.isLoading = false;
+        }
+    }
+    
+    function renderFacultyList() {
+        const listContainer = document.getElementById('facultyList');
+        
+        if (FacultyState.faculties.length === 0) {
+            listContainer.innerHTML = '';
+            return;
+        }
+        
+        const html = FacultyState.faculties.map(faculty => `
+            <div class="faculty-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer ${FacultyState.selectedFacultyId === faculty.id ? 'selected' : ''}" 
+                 data-faculty-id="${faculty.id}"
+                 data-department-id="${faculty.department_id || ''}"
+                 onclick="selectFaculty(${faculty.id}, '${faculty.full_name.replace(/'/g, "\\'")}')">
+                <div class="p-3 sm:p-4">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-bold text-gray-900 truncate">${faculty.full_name}</h4>
+                            ${faculty.department_name 
+                                ? `<p class="text-sm text-gray-600 truncate mt-0.5">${faculty.department_name}</p>`
+                                : '<p class="text-sm text-gray-400 truncate mt-0.5">No Program</p>'
+                            }
+                        </div>
+                    </div>
+                    <div class="flex items-center flex-wrap gap-2 text-xs">
+                        <span class="flex items-center text-gray-600">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            ${faculty.workload.assigned_count} ${faculty.workload.assigned_count === 1 ? 'Subject' : 'Subjects'}
+                        </span>
+                        ${faculty.workload.assigned_units > 0 ? `
+                            <span class="flex items-center ${faculty.workload.assigned_units > 18 ? 'text-red-600 font-semibold' : 'text-gray-600'}">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                ${faculty.workload.assigned_units.toFixed(1)} units
+                            </span>
+                        ` : ''}
+                        ${faculty.workload.class_count > 0 ? `
+                            <span class="flex items-center text-gray-600">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                ${faculty.workload.class_count} ${faculty.workload.class_count === 1 ? 'class' : 'classes'}
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        listContainer.innerHTML = html;
+        
+        // Add infinite scroll listener and save scroll position
+        listContainer.onscroll = () => {
+            // Save scroll position periodically
+            if (FacultyState.scrollPosition !== listContainer.scrollTop) {
+                FacultyState.scrollPosition = listContainer.scrollTop;
+                // Debounce the save to localStorage
+                clearTimeout(window.scrollSaveTimeout);
+                window.scrollSaveTimeout = setTimeout(() => {
+                    FacultyState.saveState();
+                }, 300);
+            }
+            
+            // Load more on scroll
+            if (FacultyState.hasMore && !FacultyState.isLoading) {
+                const scrolledToBottom = listContainer.scrollHeight - listContainer.scrollTop <= listContainer.clientHeight + 100;
+                if (scrolledToBottom) {
+                    loadFacultyList(true);
+                }
+            }
+        };
+    }
+    
+    function updateFacultyCount(total) {
+        const badge = document.getElementById('faculty-count-badge');
+        if (badge) {
+            badge.textContent = total;
+        }
+    }
+    
+    // ============================================================================
+    // TOAST NOTIFICATION SYSTEM
+    // ============================================================================
+    
     function showToast(message, type = 'success') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
@@ -1237,6 +1445,9 @@
             error: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>`,
+            danger: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
             info: `<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>`
@@ -1245,6 +1456,7 @@
         const colors = {
             success: 'text-green-800',
             error: 'text-red-800',
+            danger: 'text-red-800',
             info: 'text-blue-800'
         };
         
@@ -1256,7 +1468,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
-            <div class="toast-progress" style="width: 100%; color: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'}"></div>
         `;
         
         container.appendChild(toast);
@@ -1270,70 +1481,140 @@
         setTimeout(() => toast.remove(), 300);
     }
     
-    // Show flash messages as toasts on page load
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+    
     document.addEventListener('DOMContentLoaded', function() {
+        // Show flash messages as toasts
         const flashMessages = document.getElementById('flashMessages');
         if (flashMessages) {
             const messages = flashMessages.querySelectorAll('[data-message]');
             messages.forEach((msg, index) => {
                 setTimeout(() => {
                     showToast(msg.dataset.message, msg.dataset.category);
-                }, index * 100); // Stagger the toasts
+                }, index * 100);
             });
         }
         
-        // Restore department filter from URL
+        // Load saved state
+        FacultyState.loadState();
+        
+        // Check URL parameters (override saved state if present)
         const urlParams = new URLSearchParams(window.location.search);
-        const departmentId = urlParams.get('department_id');
+        const searchParam = urlParams.get('search');
         const facultyId = urlParams.get('faculty_id');
         
-        if (departmentId) {
-            const filterSelect = document.getElementById('departmentFilter');
-            if (filterSelect) {
-                // Set dropdown value
-                filterSelect.value = departmentId;
-                // Apply filter
-                filterByDepartment(departmentId);
-            }
-        } else if (facultyId) {
-            // If faculty is selected but no department filter, auto-detect department
-            const selectedFacultyItem = document.querySelector(`.faculty-list-item[data-department-id]`);
-            const facultyItems = document.querySelectorAll('.faculty-list-item');
-            
-            // Find the selected faculty's department
-            let selectedDeptId = null;
-            facultyItems.forEach(item => {
-                const itemId = item.onclick?.toString().match(/selectFaculty\((\d+)/)?.[1];
-                if (itemId == facultyId) {
-                    selectedDeptId = item.getAttribute('data-department-id');
-                }
-            });
-            
-            // Auto-select the department if found
-            if (selectedDeptId) {
-                const filterSelect = document.getElementById('departmentFilter');
-                if (filterSelect) {
-                    filterSelect.value = selectedDeptId;
-                    filterByDepartment(selectedDeptId);
-                }
-            } else {
-                // No department found, show empty state
-                showNoFilterState();
-            }
-        } else {
-            // No filter selected, show empty state
-            showNoFilterState();
+        // Set search input value if search param exists
+        const searchInput = document.getElementById('facultySearchInput');
+        if (searchParam && searchInput) {
+            searchInput.value = searchParam;
+            FacultyState.searchQuery = searchParam;
+        } else if (FacultyState.searchQuery && searchInput) {
+            searchInput.value = FacultyState.searchQuery;
         }
         
+        // Load faculty list (always load, even without search)
+        loadFacultyList();
+        
         // On mobile, if a faculty is selected, show the detail panel
-        if (window.innerWidth <= 768) {
-            if (facultyId) {
-                handleMobileSelection();
-            }
+        if (window.innerWidth <= 768 && facultyId) {
+            handleMobileSelection();
         }
     });
+    
+    // ============================================================================
+    // FILTER & SEARCH FUNCTIONS
+    // ============================================================================
+    
+    let searchTimeout;
+    function handleFacultySearch(searchTerm) {
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Debounce search - wait 300ms after user stops typing
+        searchTimeout = setTimeout(() => {
+            FacultyState.searchQuery = searchTerm.trim();
+            FacultyState.resetPagination();
+            FacultyState.saveState();
+            
+            // Update URL without reloading
+            const url = new URL(window.location.href);
+            if (searchTerm.trim()) {
+                url.searchParams.set('search', searchTerm.trim());
+            } else {
+                url.searchParams.delete('search');
+            }
+            url.searchParams.delete('faculty_id');
+            window.history.replaceState({}, '', url);
+            
+            // Load faculty list
+            loadFacultyList();
+        }, 300);
+    }
 
-    // Master-Detail View Switching for Mobile
+    // ============================================================================
+    // SELECTION FUNCTIONS
+    // ============================================================================
+    
+    function selectFaculty(id, name) {
+        FacultyState.selectedFacultyId = id;
+        FacultyState.saveState();
+        
+        // Update UI to show selected state
+        document.querySelectorAll('.faculty-list-item').forEach(item => {
+            const facultyId = item.getAttribute('data-faculty-id');
+            if (facultyId == id) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+        
+        // Check if mobile view
+        if (window.innerWidth <= 768) {
+            const url = new URL(window.location.href);
+            const currentFacultyId = url.searchParams.get('faculty_id');
+            
+            // If this faculty is already selected (loaded on page), just show the detail panel
+            if (currentFacultyId && currentFacultyId == id) {
+                handleMobileSelection();
+                return;
+            }
+        }
+        
+        // Navigate to faculty detail page
+        const url = new URL(window.location.href);
+        url.searchParams.set('faculty_id', id);
+        window.location.href = url.toString();
+    }
+
+    // ============================================================================
+    // UI STATE FUNCTIONS
+    // ============================================================================
+    
+    function showNoFacultyState() {
+        const noFacultyState = document.getElementById('noFacultyState');
+        const facultyList = document.getElementById('facultyList');
+        
+        if (noFacultyState) noFacultyState.classList.remove('hidden');
+        if (facultyList) facultyList.classList.add('hidden');
+    }
+    
+    function showFacultyList() {
+        const noFacultyState = document.getElementById('noFacultyState');
+        const facultyList = document.getElementById('facultyList');
+        
+        if (noFacultyState) noFacultyState.classList.add('hidden');
+        if (facultyList) facultyList.classList.remove('hidden');
+    }
+
+    // ============================================================================
+    // MOBILE VIEW FUNCTIONS
+    // ============================================================================
+    
     function showMasterView() {
         const container = document.getElementById('faculty-container');
         if (container) {
@@ -1349,31 +1630,24 @@
     }
     
     function handleMobileSelection() {
-        // Only switch views on mobile screens
         if (window.innerWidth <= 768) {
             showDetailView();
         }
     }
-
-    // Faculty Selection Function
-    function selectFaculty(id, name) {
-        // Get current URL parameters
-        const url = new URL(window.location.href);
-        const currentFacultyId = url.searchParams.get('faculty_id');
-        
-        // Check if mobile view
-        if (window.innerWidth <= 768) {
-            // If this faculty is already selected (loaded on page), just show the detail panel
-            if (currentFacultyId && currentFacultyId == id) {
-                handleMobileSelection();
-                return; // Don't redirect
+    
+    function closeMobileDetailView() {
+        showMasterView();
+    }
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            const container = document.getElementById('faculty-container');
+            if (container) {
+                container.classList.remove('mobile-detail-view');
             }
         }
-        
-        // Preserve existing URL parameters (like department filter)
-        url.searchParams.set('faculty_id', id);
-        window.location.href = url.toString();
-    }
+    });
     
     // Close mobile detail view (back to list)
     function closeMobileDetailView() {
@@ -1389,138 +1663,14 @@
     });
 
     // Helper function to show/hide empty state
-    function showNoFilterState() {
-        const noFilterState = document.getElementById('noFilterState');
-        const noFacultyState = document.getElementById('noFacultyState');
-        const facultyList = document.getElementById('facultyList');
-        
-        if (noFilterState) {
-            noFilterState.classList.remove('hidden');
-            noFilterState.classList.add('flex');
-        }
-        if (noFacultyState) {
-            noFacultyState.classList.add('hidden');
-            noFacultyState.classList.remove('flex');
-        }
-        if (facultyList) {
-            facultyList.classList.add('hidden');
-        }
-        
-        // Update count badge to 0
-        const badge = document.getElementById('faculty-count-badge');
-        if (badge) {
-            badge.textContent = '0';
-        }
-    }
-    
-    function showNoFacultyState() {
-        const noFilterState = document.getElementById('noFilterState');
-        const noFacultyState = document.getElementById('noFacultyState');
-        const facultyList = document.getElementById('facultyList');
-        
-        if (noFilterState) {
-            noFilterState.classList.add('hidden');
-            noFilterState.classList.remove('flex');
-        }
-        if (noFacultyState) {
-            noFacultyState.classList.remove('hidden');
-            noFacultyState.classList.add('flex');
-        }
-        if (facultyList) {
-            facultyList.classList.add('hidden');
-        }
-        
-        // Update count badge to 0
-        const badge = document.getElementById('faculty-count-badge');
-        if (badge) {
-            badge.textContent = '0';
-        }
-    }
-    
-    function showFacultyList() {
-        const noFilterState = document.getElementById('noFilterState');
-        const noFacultyState = document.getElementById('noFacultyState');
-        const facultyList = document.getElementById('facultyList');
-        
-        if (noFilterState) {
-            noFilterState.classList.add('hidden');
-            noFilterState.classList.remove('flex');
-        }
-        if (noFacultyState) {
-            noFacultyState.classList.add('hidden');
-            noFacultyState.classList.remove('flex');
-        }
-        if (facultyList) {
-            facultyList.classList.remove('hidden');
-        }
-    }
-
-    // Filter by Department Function
-    function filterByDepartment(departmentId) {
-        // Update URL to preserve filter across page reloads
-        const url = new URL(window.location.href);
-        if (departmentId) {
-            url.searchParams.set('department_id', departmentId);
-        } else {
-            url.searchParams.delete('department_id');
-            showNoFilterState(); // Show empty state
-            return; // Exit early when no filter selected
-        }
-        // Keep faculty_id if present
-        window.history.replaceState({}, '', url);
-        
-        // Apply client-side filtering
-        const facultyItems = document.querySelectorAll('.faculty-list-item');
-        const facultyList = document.getElementById('facultyList');
-        let visibleCount = 0;
-        
-        facultyItems.forEach(item => {
-            const itemDeptId = item.getAttribute('data-department-id');
-            let shouldShow = false;
-            
-            if (itemDeptId === departmentId) {
-                // Match department ID
-                shouldShow = true;
-            } else if (itemDeptId === '' && departmentId === 'none') {
-                // Show faculty with no department when "none" is selected
-                shouldShow = true;
-            }
-            
-            if (shouldShow) {
-                item.style.display = '';
-                visibleCount++;
-            } else {
-                item.style.display = 'none';
-            }
-        });
-        
-        // Update count badge
-        const badge = document.getElementById('faculty-count-badge');
-        if (badge) {
-            badge.textContent = visibleCount;
-        }
-        
-        // Show appropriate state based on visible count
-        if (visibleCount === 0) {
-            showNoFacultyState(); // Show "No Faculties Found" state
-        } else {
-            showFacultyList(); // Show faculty list
-        }
-    }
+    // ============================================================================
+    // MODAL FUNCTIONS
+    // ============================================================================
 
     // Add Faculty Modal
     function openAddFacultyModal() {
         document.getElementById('addFacultyModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
-        
-        // Pre-select department if filter is active
-        const departmentFilter = document.getElementById('departmentFilter');
-        const departmentDropdown = document.getElementById('department_id');
-        
-        if (departmentFilter && departmentDropdown && departmentFilter.value) {
-            // Set the department dropdown to match the current filter
-            departmentDropdown.value = departmentFilter.value;
-        }
     }
 
     function closeAddFacultyModal() {

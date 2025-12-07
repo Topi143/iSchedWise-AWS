@@ -782,15 +782,8 @@
             .then(data => {
                 if (data.success) {
                     showToast(data.message, 'success');
-                    // Update the displayed values if returned
-                    if (data.department) {
-                        if (data.department.full_department_name !== null) {
-                            document.getElementById('fullDeptName' + deptId).value = data.department.full_department_name;
-                        }
-                        if (data.department.secretary_name !== null) {
-                            document.getElementById('secretaryName' + deptId).value = data.department.secretary_name;
-                        }
-                    }
+                    // No need to update input values - they already contain what the user entered
+                    // The server has saved them successfully
                 } else {
                     showToast(data.message, 'error');
                 }

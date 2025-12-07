@@ -5,6 +5,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Department, Curriculum, YearLevel, Semester, Subject
+from app.models.schedule import Schedule
+from app.models.exam_schedule import ExamSchedule
 from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
 import pandas as pd
 import io
@@ -799,7 +801,7 @@ def delete_subject():
 @curriculum_bp.route('/archive', methods=['POST'])
 @login_required
 def archive():
-    """Archive a curriculum"""
+    """Archive a curriculum and delete all related schedules"""
     try:
         curriculum_id = request.form.get('curriculum_id', '').strip()
         archive_reason = request.form.get('archive_reason', 'Manual archive by user').strip()
@@ -815,13 +817,60 @@ def archive():
         
         curriculum_code = curriculum.curriculum_code
         
+        # Collect all subject IDs from the curriculum
+        subject_ids = []
+        for year_level in curriculum.year_levels:
+            for semester in year_level.semesters:
+                for subject in semester.subjects:
+                    subject_ids.append(subject.id)
+        
+        # Delete all class schedules using subjects from this curriculum
+        class_schedules_count = 0
+        if subject_ids:
+            class_schedules = Schedule.query.filter(
+                Schedule.subject_id.in_(subject_ids),
+                Schedule.is_active == True
+            ).all()
+            
+            for schedule in class_schedules:
+                log_delete('schedule', schedule.id, f"Schedule for {schedule.subject.subject_code}", {
+                    'reason': f'Curriculum archived: {curriculum_code}',
+                    'section': schedule.section.section_name if schedule.section else 'N/A',
+                    'subject': schedule.subject.subject_code if schedule.subject else 'N/A',
+                    'day': schedule.day_of_week,
+                    'time': f"{schedule.start_time} - {schedule.end_time}"
+                })
+                db.session.delete(schedule)
+                class_schedules_count += 1
+        
+        # Delete all exam schedules using subjects from this curriculum
+        exam_schedules_count = 0
+        if subject_ids:
+            exam_schedules = ExamSchedule.query.filter(
+                ExamSchedule.subject_id.in_(subject_ids),
+                ExamSchedule.is_active == True
+            ).all()
+            
+            for exam_schedule in exam_schedules:
+                log_delete('exam_schedule', exam_schedule.id, f"Exam schedule for {exam_schedule.subject.subject_code}", {
+                    'reason': f'Curriculum archived: {curriculum_code}',
+                    'section': exam_schedule.section.section_name if exam_schedule.section else 'N/A',
+                    'subject': exam_schedule.subject.subject_code if exam_schedule.subject else 'N/A',
+                    'exam_date': str(exam_schedule.exam_date),
+                    'time': f"{exam_schedule.start_time} - {exam_schedule.end_time}"
+                })
+                db.session.delete(exam_schedule)
+                exam_schedules_count += 1
+        
         # Archive curriculum using helper method
         curriculum.archive(user_id=current_user.id, reason=archive_reason)
         
-        # Log activity
+        # Log activity with deletion counts
         log_archive('curriculum', curriculum.id, curriculum_code, {
             'department': curriculum.department.department_code,
-            'reason': archive_reason
+            'reason': archive_reason,
+            'deleted_class_schedules': class_schedules_count,
+            'deleted_exam_schedules': exam_schedules_count
         })
         
         db.session.commit()

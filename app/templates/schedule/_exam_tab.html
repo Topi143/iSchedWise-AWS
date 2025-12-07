@@ -11,12 +11,11 @@
                             </svg>
                         </div>
                         Exam Sections
-                        <span id="exam-section-count-badge" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200">{{ exam_sections|length }}</span>
                     </h3>
                     
                     <!-- Program Filter - Only show if user has more than 1 department -->
                     {% if departments|length > 1 %}
-                    <select id="examDepartmentFilter" onchange="filterExamByDepartment(this.value)" class="w-full px-3 py-2 text-sm border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="examDepartmentFilter" onchange="filterExamByDepartment(this.value)" class="w-full px-3 py-2 text-sm border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2">
                         <option value="">All Programs</option>
                         {% for dept in departments %}
                         <option value="{{ dept.id }}" {% if exam_department_filter == dept.id %}selected{% endif %}>{{ dept.department_code }}</option>
@@ -24,10 +23,20 @@
                     </select>
                     {% elif departments|length == 1 %}
                     <!-- Single Program Display -->
-                    <div class="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-700 rounded-lg font-medium">
+                    <div class="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-700 rounded-lg font-medium mb-2">
                         {{ departments[0].department_code }} - {{ departments[0].department_name }}
                     </div>
                     {% endif %}
+                    
+                    <!-- Year Level Filter -->
+                    <select id="examYearLevelFilter" onchange="filterExamByYearLevel(this.value)" class="w-full px-3 py-2 text-sm border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Year Levels</option>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                        <option value="5">5th Year</option>
+                    </select>
                 </div>
                 
                 <!-- Section List -->
