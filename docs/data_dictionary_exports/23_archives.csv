@@ -1,0 +1,25 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+section_id,Original section ID (NULL if section was deleted),int,11,FK -> sections.id,No,NULL
+subject_id,Original subject ID (NULL if subject was deleted),int,11,FK -> subjects.id,No,NULL
+faculty_id,Original faculty ID (NULL if faculty was deleted),int,11,FK -> faculty.id,No,NULL
+room_id,Original room ID (NULL if room was deleted),int,11,FK -> rooms.id,No,NULL
+section_name,Snapshot of the section name at archive time,varchar,100,,No,NULL
+subject_code,Snapshot of the subject code at archive time,varchar,50,,No,NULL
+course_description,Snapshot of the course description at archive time,varchar,255,,No,NULL
+faculty_name,Snapshot of the faculty full name at archive time,varchar,100,,No,NULL
+room_number,Snapshot of the room number at archive time,varchar,20,,No,NULL
+building_name,Snapshot of the building name at archive time,varchar,100,,No,NULL
+program_name,Snapshot of the program name at archive time,varchar,100,,No,NULL
+day_of_week,Day of week for class schedules; NULL for exam archives,varchar,20,,No,NULL
+exam_date,Exam date for exam archives; NULL for class schedule archives,date,--,,No,NULL
+start_time,Start time of the archived schedule,time,--,,Yes,--
+end_time,End time of the archived schedule,time,--,,Yes,--
+semester,Semester label of the archived schedule,varchar,50,,No,NULL
+academic_year,Academic year of the archived schedule,varchar,20,,No,NULL
+schedule_type,"Type of session: lecture, lab, or exam",varchar,20,,No,'lecture'
+exam_period,"Exam period for exam archives: Prelim, Midterm, Final",varchar,20,,No,NULL
+original_schedule_id,PK of the original schedule or exam_schedule record,int,11,,No,NULL
+archived_by,ID of the user who triggered the archive action,int,11,FK -> users.id,No,NULL
+archive_reason,Reason provided for archiving,varchar,255,,No,NULL
+archived_at,Timestamp when the record was archived,datetime,--,,No,NULL

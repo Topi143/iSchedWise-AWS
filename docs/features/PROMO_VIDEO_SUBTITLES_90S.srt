@@ -1,0 +1,43 @@
+1
+00:00:00,000 --> 00:00:06,000
+Scheduling should not feel like crisis management.
+
+2
+00:00:06,000 --> 00:00:14,000
+Meet iSchedWise V4, your all-in-one academic scheduling system.
+
+3
+00:00:14,000 --> 00:00:24,000
+Build class schedules faster with a guided, streamlined workflow.
+
+4
+00:00:24,000 --> 00:00:34,000
+Catch conflicts instantly before they become real problems.
+
+5
+00:00:34,000 --> 00:00:44,000
+Balance teaching loads and assign the right faculty with confidence.
+
+6
+00:00:44,000 --> 00:00:53,000
+Optimize rooms and facilities with real-time availability tracking.
+
+7
+00:00:53,000 --> 00:01:01,000
+Give each role the right access: full control for Admin, focused control for Deans.
+
+8
+00:01:01,000 --> 00:01:09,000
+Archive past records safely without losing institutional history.
+
+9
+00:01:09,000 --> 00:01:17,000
+Export reports in seconds for meetings, audits, and compliance.
+
+10
+00:01:17,000 --> 00:01:24,000
+Need a boost? Use AI-powered suggestions to speed up planning.
+
+11
+00:01:24,000 --> 00:01:30,000
+iSchedWise V4. Plan smarter. Schedule better. Lead with clarity.

@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Distribution Report - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'reports/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="reports-content bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Weekly Distribution</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if academic_year and semester %}
+                                {{ semester }}, A.Y. {{ academic_year }}
+                            {% else %}
+                                Schedule distribution by day
+                            {% endif %}
+                        </p>
+                    </div>
+                    <!-- Program Filter -->
+                    <div class="reports-toolbar flex items-center gap-2 flex-shrink-0">
+                        {% if programs|length > 1 %}
+                        <select id="filter-program" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                            <option value="">All Programs</option>
+                            {% for dept in programs %}
+                            <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.program_code }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif programs|length == 1 %}
+                        <input type="hidden" id="filter-program" value="{{ programs[0].id }}">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{{ programs[0].program_code }}</span>
+                        {% else %}
+                        <input type="hidden" id="filter-program" value="">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+            <!-- Weekly Chart -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <h2 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Weekly Schedule Distribution
+                    </h2>
+                </div>
+                <div class="chart-container-large">
+                    <canvas id="weeklyDetailChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily Breakdown -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                <h3 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Daily Breakdown
+                </h3>
+                
+                <div id="daily-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    {% set max_day_count = stats.schedule_by_day.values()|max if stats.schedule_by_day else 1 %}
+                    {% set day_colors = {
+                        'Monday': 'blue',
+                        'Tuesday': 'green', 
+                        'Wednesday': 'yellow',
+                        'Thursday': 'purple',
+                        'Friday': 'pink',
+                        'Saturday': 'orange',
+                        'Sunday': 'red'
+                    } %}
+                    {% set day_order = operation_days|default(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) %}
+                    {% for day in day_order %}
+                    {% set count = stats.schedule_by_day.get(day, 0) %}
+                    {% set color = day_colors.get(day, 'indigo') %}
+                    {% set day_percentage = (count / max_day_count * 100) if max_day_count > 0 else 0 %}
+                    <div class="rounded-lg p-3 sm:p-4 border hover:shadow-sm transition-all duration-200
+                        {% if color == 'blue' %}bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800
+                        {% elif color == 'green' %}bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800
+                        {% elif color == 'yellow' %}bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800
+                        {% elif color == 'purple' %}bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800
+                        {% elif color == 'pink' %}bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800
+                        {% elif color == 'orange' %}bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800
+                        {% else %}bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800
+                        {% endif %}" data-day="{{ day }}">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wide
+                                {% if color == 'blue' %}text-blue-900 dark:text-blue-300
+                                {% elif color == 'green' %}text-green-900 dark:text-green-300
+                                {% elif color == 'yellow' %}text-yellow-900 dark:text-yellow-300
+                                {% elif color == 'purple' %}text-purple-900 dark:text-purple-300
+                                {% elif color == 'pink' %}text-pink-900 dark:text-pink-300
+                                {% elif color == 'orange' %}text-orange-900 dark:text-orange-300
+                                {% else %}text-indigo-900 dark:text-indigo-300
+                                {% endif %}">{{ day[:3] }}</span>
+                            <span class="text-lg sm:text-xl font-bold day-count
+                                {% if color == 'blue' %}text-blue-700 dark:text-blue-400
+                                {% elif color == 'green' %}text-green-700 dark:text-green-400
+                                {% elif color == 'yellow' %}text-yellow-700 dark:text-yellow-400
+                                {% elif color == 'purple' %}text-purple-700 dark:text-purple-400
+                                {% elif color == 'pink' %}text-pink-700 dark:text-pink-400
+                                {% elif color == 'orange' %}text-orange-700 dark:text-orange-400
+                                {% else %}text-indigo-700 dark:text-indigo-400
+                                {% endif %}">{{ count }}</span>
+                        </div>
+                        <div class="w-full bg-white/50 dark:bg-gray-700 rounded-full h-1.5">
+                            <div class="h-1.5 rounded-full transition-all duration-500 day-bar
+                                {% if color == 'blue' %}bg-blue-500
+                                {% elif color == 'green' %}bg-green-500
+                                {% elif color == 'yellow' %}bg-yellow-500
+                                {% elif color == 'purple' %}bg-purple-500
+                                {% elif color == 'pink' %}bg-pink-500
+                                {% elif color == 'orange' %}bg-orange-500
+                                {% else %}bg-indigo-500
+                                {% endif %}" style="width: {{ day_percentage }}%"></div>
+                        </div>
+                        <div class="mt-1.5 text-xs day-pct
+                            {% if color == 'blue' %}text-blue-700 dark:text-blue-300
+                            {% elif color == 'green' %}text-green-700 dark:text-green-300
+                            {% elif color == 'yellow' %}text-yellow-700 dark:text-yellow-300
+                            {% elif color == 'purple' %}text-purple-700 dark:text-purple-300
+                            {% elif color == 'pink' %}text-pink-700 dark:text-pink-300
+                            {% elif color == 'orange' %}text-orange-700 dark:text-orange-300
+                            {% else %}text-indigo-700 dark:text-indigo-300
+                            {% endif %}">
+                            {% if max_day_count > 0 %}
+                                {{ "%.0f"|format(day_percentage) }}% of peak
+                            {% else %}
+                                No data
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Weekly Summary -->
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div class="text-center">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total Schedules</p>
+                        <p class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white" id="weekly-total">{{ stats.schedule_by_day.values()|sum }}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Peak Day</p>
+                        <p class="text-lg sm:text-xl font-bold text-indigo-600" id="weekly-peak">
+                            {% if stats.schedule_by_day %}
+                                {% set peak_day = stats.schedule_by_day|dictsort(by='value', reverse=True)|first %}
+                                {{ peak_day[0][:3] }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Average/Day</p>
+                        <p class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white" id="weekly-avg">
+                            {% if stats.schedule_by_day %}
+                                {{ "%.1f"|format(stats.schedule_by_day.values()|sum / stats.schedule_by_day|length) }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================================
+// WEEKLY DISTRIBUTION PAGE - Scoped JavaScript
+// ============================================================================
+
+let weeklyDetailChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+});
+
+function initializeCharts() {
+    const weeklyDetailCtx = document.getElementById('weeklyDetailChart').getContext('2d');
+    const weeklyData = {{ stats.schedule_by_day|tojson }};
+    const dayOrder = {{ operation_days|default(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])|tojson }};
+    const dayLabels = dayOrder.filter(day => day in weeklyData);
+    const dayValues = dayLabels.map(day => weeklyData[day]);
+    const dayColors = [
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(251, 191, 36, 0.8)',
+        'rgba(139, 92, 246, 0.8)',
+        'rgba(236, 72, 153, 0.8)',
+        'rgba(249, 115, 22, 0.8)'
+    ];
+    const dayBorderColors = [
+        'rgb(59, 130, 246)',
+        'rgb(16, 185, 129)',
+        'rgb(251, 191, 36)',
+        'rgb(139, 92, 246)',
+        'rgb(236, 72, 153)',
+        'rgb(249, 115, 22)'
+    ];
+    
+    weeklyDetailChart = new Chart(weeklyDetailCtx, {
+        type: 'bar',
+        data: {
+            labels: dayLabels,
+            datasets: [{
+                label: 'Schedules per Day',
+                data: dayValues,
+                backgroundColor: dayColors.slice(0, dayLabels.length),
+                borderColor: dayBorderColors.slice(0, dayLabels.length),
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0, font: { size: 12 } } },
+                x: { ticks: { font: { size: 11 } } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y + ' schedules';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function applyFilters() {
+    const program = document.getElementById('filter-program').value;
+    const params = new URLSearchParams();
+    if (program) params.append('program', program);
+    params.append('include', 'counts,weekly');
+    
+    fetch('/reports/api/filtered-data?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            const stats = data.stats;
+            
+            // Update chart
+            const dayOrder = {{ operation_days|default(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])|tojson }};
+            const dayLabels = dayOrder.filter(day => day in stats.schedule_by_day);
+            const dayValues = dayLabels.map(day => stats.schedule_by_day[day]);
+            weeklyDetailChart.data.labels = dayLabels;
+            weeklyDetailChart.data.datasets[0].data = dayValues;
+            weeklyDetailChart.update();
+            
+            // Update daily breakdown cards
+            const maxDayCount = Math.max(...dayOrder.map(day => stats.schedule_by_day[day] || 0), 1);
+            
+            dayOrder.forEach(day => {
+                const card = document.querySelector(`[data-day="${day}"]`);
+                if (card) {
+                    const count = stats.schedule_by_day[day] || 0;
+                    const percent = (count / maxDayCount * 100);
+                    
+                    const countEl = card.querySelector('.day-count');
+                    if (countEl) countEl.textContent = count;
+                    
+                    const barEl = card.querySelector('.day-bar');
+                    if (barEl) barEl.style.width = percent + '%';
+                    
+                    const pctEl = card.querySelector('.day-pct');
+                    if (pctEl) pctEl.textContent = maxDayCount > 0 ? `${Math.round(percent)}% of peak` : 'No data';
+                }
+            });
+            
+            // Update summary stats
+            const totalSchedules = Object.values(stats.schedule_by_day).reduce((sum, count) => sum + count, 0);
+            const peakDayEntry = Object.entries(stats.schedule_by_day).sort((a, b) => b[1] - a[1])[0];
+            const peakDay = peakDayEntry ? peakDayEntry[0].substring(0, 3) : 'N/A';
+            const avgPerDay = dayOrder.length > 0 ? totalSchedules / dayOrder.length : 0;
+            
+            document.getElementById('weekly-total').textContent = totalSchedules;
+            document.getElementById('weekly-peak').textContent = peakDay;
+            document.getElementById('weekly-avg').textContent = avgPerDay.toFixed(1);
+        })
+        .catch(error => console.error('Error fetching filtered data:', error));
+}
+</script>
+{% endblock %}

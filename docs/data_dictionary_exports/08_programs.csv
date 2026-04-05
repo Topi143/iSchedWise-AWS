@@ -1,0 +1,16 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+program_code,"Short code for the program, e.g., 'BSCS', 'BSHM'",varchar,20,,Yes,--
+program_name,"Full program name, e.g., 'Bachelor of Science in CS'",varchar,200,,Yes,--
+department_id,Department that owns this program,int,11,FK -> departments.id,No,NULL
+program_logo,File path to the program logo image,varchar,255,,No,NULL
+year_levels,"Total number of year levels (e.g., 4 for BSCS, 2 for ACT)",int,11,,Yes,4
+shared_program_code,Code of a sibling program that shares section names,varchar,50,,No,NULL
+shared_until_year,Last year level at which sections use the shared code,int,11,,No,NULL
+is_active,Whether the program is currently active,tinyint(1),--,,Yes,1
+is_archived,Soft-delete flag following the standard archive pattern,tinyint(1),--,,Yes,0
+archived_by,ID of the user who archived this program,int,11,FK -> users.id,No,NULL
+archived_at,Timestamp when the program was archived,datetime,--,,No,NULL
+archive_reason,Reason provided for archiving the program,varchar,255,,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

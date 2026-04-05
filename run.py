@@ -4,6 +4,7 @@ Main application entry point using factory pattern
 """
 import os
 from app import create_app
+from app.extensions import socketio
 
 # Get configuration from environment or default to development
 config_name = os.environ.get('FLASK_ENV', 'development')
@@ -12,7 +13,11 @@ config_name = os.environ.get('FLASK_ENV', 'development')
 app = create_app(config_name)
 
 if __name__ == '__main__':
-    # Run the application on local network
-    # host='0.0.0.0' makes it accessible on local network
-    # Use your machine's IP address to access from other devices
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use Socket.IO runner so /socket.io requests are served by Flask-SocketIO.
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=5000,
+        debug=True,
+        allow_unsafe_werkzeug=True
+    )

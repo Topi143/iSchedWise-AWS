@@ -1,0 +1,51 @@
+<!-- Room Availability Modal -->
+<div id="room-availability-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onclick="if (event.target === this) closeRoomAvailabilityModal()">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-5xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-orange-500 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-10 4h6m-2 6h2a2 2 0 002-2V7a2 2 0 00-2-2h-2M7 21h2a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-sm sm:text-base font-semibold text-white">All Room Availability</h2>
+                    <p class="text-orange-100 text-xs" id="modal-room-availability-shown">Showing 0 of 0 rooms</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeRoomAvailabilityModal()" class="text-white hover:bg-orange-400 rounded-lg p-1.5 transition-colors" aria-label="Close room availability modal">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)] dark:bg-gray-900">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div class="flex flex-wrap gap-2">
+                    <span class="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs px-2.5 py-1 rounded-full font-medium" id="modal-room-availability-count">0 rooms</span>
+                    <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs px-2.5 py-1 rounded-full font-medium" id="modal-room-availability-with-schedule">With Class Schedule: 0</span>
+                    <span class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs px-2.5 py-1 rounded-full font-medium" id="modal-room-availability-no-schedule">No Schedule: 0</span>
+                </div>
+                <div class="flex flex-col gap-2 w-full sm:w-auto">
+                    <div id="modal-room-building-filter-wrap" class="hidden">
+                        <select id="modal-room-building-filter" onchange="filterRoomAvailabilityByBuilding(this.value)" class="w-full sm:w-56 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                            <option value="">All Buildings</option>
+                        </select>
+                    </div>
+                    <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 w-full sm:w-auto" id="modalAvailabilityTabs">
+                        <button onclick="switchAvailabilityTab('all')" id="modalAvailabilityTab-all" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm">All</button>
+                        <button onclick="switchAvailabilityTab('has-schedule')" id="modalAvailabilityTab-has-schedule" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">With Schedule</button>
+                        <button onclick="switchAvailabilityTab('no-schedule')" id="modalAvailabilityTab-no-schedule" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">No Schedule</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="room-availability-modal-list" class="grid grid-cols-1 lg:grid-cols-2 gap-3"></div>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-800 px-4 sm:px-6 py-3 flex justify-end border-t border-gray-100 dark:border-gray-700">
+            <button onclick="closeRoomAvailabilityModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-all">Close</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,26 @@
+{# Shared form rendering macros for schedule class/exam forms #}
+
+{% macro section_legend(number, title, palette='blue') %}
+    {% set palettes = {
+        'blue': {
+            'bg': 'bg-blue-100 dark:bg-blue-900/30',
+            'text': 'text-blue-600 dark:text-blue-400'
+        },
+        'green': {
+            'bg': 'bg-green-100 dark:bg-green-900/30',
+            'text': 'text-green-600 dark:text-green-400'
+        },
+        'orange': {
+            'bg': 'bg-orange-100 dark:bg-orange-900/30',
+            'text': 'text-orange-600 dark:text-orange-400'
+        }
+    } %}
+    {% set color = palettes.get(palette, palettes['blue']) %}
+
+    <legend class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700 w-full mb-1">
+        <div class="w-5 h-5 rounded-md {{ color.bg }} flex items-center justify-center flex-shrink-0">
+            <span class="text-[10px] font-bold {{ color.text }}">{{ number }}</span>
+        </div>
+        <span class="text-[11px] font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-[0.04em]">{{ title }}</span>
+    </legend>
+{% endmacro %}

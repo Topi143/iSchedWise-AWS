@@ -1,0 +1,57 @@
+curriculum 
+- act ( 2nd )
+- quick action of semester
+- room recommendations based on subject ( pag major ng cs lab lang bawal sa gym )
+
+- faculty units utilization 
+- unused rooms peek
+- unavailable faculty peeks ( sa report )
+- makikita dapat ung units ng mga prof
+
+
+user logs
+
+available today for evaluation
+
+ON REPORTS
+schedule for faculty evaluation
+monday to saturday
+filtered by buildings
+then faculty available that day and buildings
+
+
+new format on the faculty excel
+
+
+faculty line up generate only the schedule of that faculty
+
+fix login session only one login acc per user
+
+APPENDICES (SYSTEM RELATED)
+A. Software and Hardware Requirements Specifications
+B. Project Cost Estimation Report
+C. System Diagrams
+	3.1 Flow Chart done
+	3.2 DFD stopped at process 10
+	3.3 ERD
+	3.4 Data Dictionary
+D. User Manual
+E. Gantt Chart
+
+quick export
+
+unused building and time its vacant
+
+
+todo
+export on the archived schedule is not working
+full darkmode implementation stopped at reports
+responsiveness implementation not started
+same all lecture schedule different lab in the exam
+on algorithm add atleast 30 to 1hr break lecture
+
+in class should have both lecture and lab
+
+
+
+time conflict pathfit1 beed1c and cs1c

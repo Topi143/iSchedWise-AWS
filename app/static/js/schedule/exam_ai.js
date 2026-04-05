@@ -19,16 +19,6 @@ function checkExamScheduleWithAI(mode) {
     const endTimeEl = document.getElementById('end_time_exam' + suffix);
     
     // Log which elements were found
-    console.log('[AI CHECK EXAM] Element check:', {
-        sectionId: sectionIdEl ? 'FOUND' : 'MISSING',
-        subjectId: subjectIdEl ? 'FOUND' : 'MISSING',
-        facultyId: facultyIdEl ? 'FOUND' : 'MISSING',
-        roomId: roomIdEl ? 'FOUND' : 'MISSING',
-        examDate: examDateEl ? 'FOUND' : 'MISSING',
-        startTime: startTimeEl ? 'FOUND' : 'MISSING',
-        endTime: endTimeEl ? 'FOUND' : 'MISSING'
-    });
-    
     const sectionId = sectionIdEl?.value;
     const subjectId = subjectIdEl?.value || null;
     const facultyId = facultyIdEl?.value || null;
@@ -39,11 +29,6 @@ function checkExamScheduleWithAI(mode) {
     const examScheduleId = mode === 'edit' ? document.getElementById('exam_schedule_id_edit')?.value : null;
     
     // Debug logging
-    console.log('[AI CHECK EXAM] Form data:', {
-        sectionId, subjectId, facultyId, roomId, 
-        examDate, startTime, endTime, examScheduleId
-    });
-    
     // Validate ALL required fields (including subject, faculty, and room)
     if (!sectionId || !subjectId || !facultyId || !roomId || !examDate || !startTime || !endTime) {
         const missing = [];
@@ -71,29 +56,19 @@ function checkExamScheduleWithAI(mode) {
     
     // Show loading state
     const aiPanel = document.getElementById('aiAssistantExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const aiPanelMobile = document.getElementById('aiAssistantExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
     const loadingDiv = document.getElementById('aiLoadingExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const loadingDivMobile = document.getElementById('aiLoadingExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
     
     if (aiPanel) aiPanel.classList.remove('hidden');
-    if (aiPanelMobile) aiPanelMobile.classList.remove('hidden');
     if (loadingDiv) loadingDiv.classList.remove('hidden');
-    if (loadingDivMobile) loadingDivMobile.classList.remove('hidden');
     
     // Hide previous results
     const conflictsContainer = document.getElementById('aiConflictsExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const conflictsContainerMobile = document.getElementById('aiConflictsExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
     const recommendationsContainer = document.getElementById('aiRecommendationsExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const recommendationsContainerMobile = document.getElementById('aiRecommendationsExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
     const explanationDiv = document.getElementById('aiExplanationExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const explanationDivMobile = document.getElementById('aiExplanationExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
     
     if (conflictsContainer) conflictsContainer.classList.add('hidden');
-    if (conflictsContainerMobile) conflictsContainerMobile.classList.add('hidden');
     if (recommendationsContainer) recommendationsContainer.classList.add('hidden');
-    if (recommendationsContainerMobile) recommendationsContainerMobile.classList.add('hidden');
     if (explanationDiv) explanationDiv.classList.add('hidden');
-    if (explanationDivMobile) explanationDivMobile.classList.add('hidden');
     
     // Call AI API
     fetch('/exam-schedule/ai-check-conflicts', {
@@ -113,7 +88,6 @@ function checkExamScheduleWithAI(mode) {
         })
     })
     .then(response => {
-        console.log('[AI CHECK EXAM] Response status:', response.status, response.statusText);
         if (!response.ok) {
             return response.json().catch(() => {
                 throw new Error(`Server error (${response.status}: ${response.statusText})`);
@@ -126,15 +100,17 @@ function checkExamScheduleWithAI(mode) {
     .then(data => {
         // Hide loading
         if (loadingDiv) loadingDiv.classList.add('hidden');
-        if (loadingDivMobile) loadingDivMobile.classList.add('hidden');
-        
-        console.log('[AI CHECK EXAM] Response:', data);
-        
         if (!data.ai_enabled) {
             if (aiPanel) aiPanel.classList.add('hidden');
-            if (aiPanelMobile) aiPanelMobile.classList.add('hidden');
             showToast('AI features are not enabled', 'info');
             return;
+        }
+        
+        // Handle schedule hours warning (non-blocking)
+        if (data.schedule_hours_warning) {
+            displayExamScheduleHoursWarning(mode, data.schedule_hours_warning);
+        } else {
+            displayExamScheduleHoursWarning(mode, null);
         }
         
         // Display conflicts
@@ -144,33 +120,9 @@ function checkExamScheduleWithAI(mode) {
             if (conflictsContainer) {
                 conflictsContainer.classList.remove('hidden');
                 conflictsContainer.innerHTML = `
-                    <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div class="flex items-start">
-                            <svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div>
-                                <h5 class="text-sm font-semibold text-green-800">No Conflicts Detected</h5>
-                                <p class="text-xs text-green-700 mt-1">This exam schedule looks good! You can proceed with scheduling.</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            if (conflictsContainerMobile) {
-                conflictsContainerMobile.classList.remove('hidden');
-                conflictsContainerMobile.innerHTML = `
-                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div class="flex items-start">
-                            <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div>
-                                <h5 class="text-[10px] font-semibold text-green-800">No Conflicts</h5>
-                                <p class="text-[9px] text-green-700 mt-0.5">Exam schedule is clear!</p>
-                            </div>
-                        </div>
+                    <div class="flex items-center gap-2 py-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                        <p class="text-xs font-medium text-gray-600">No conflicts detected — you can proceed.</p>
                     </div>
                 `;
             }
@@ -194,21 +146,13 @@ function checkExamScheduleWithAI(mode) {
             type: error.constructor.name
         });
         if (loadingDiv) loadingDiv.classList.add('hidden');
-        if (loadingDivMobile) loadingDivMobile.classList.add('hidden');
         
         if (conflictsContainer) {
             conflictsContainer.classList.remove('hidden');
             conflictsContainer.innerHTML = `
-                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div class="flex items-start">
-                        <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div>
-                            <h5 class="text-sm font-semibold text-red-800">❌ Network error - Please check your connection</h5>
-                            <p class="text-xs text-red-700 mt-1">${error.message}</p>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-2 py-2">
+                    <span class="w-2 h-2 rounded-full bg-red-400 flex-shrink-0"></span>
+                    <p class="text-xs font-medium text-red-700 dark:text-red-300">Network error — ${error.message}</p>
                 </div>
             `;
         }
@@ -216,189 +160,334 @@ function checkExamScheduleWithAI(mode) {
 }
 
 /**
- * Display exam conflicts in the UI
+ * Display exam conflicts in the UI - Enhanced design matching class modal
  * @param {Array} conflicts - Array of conflict objects
  * @param {string} mode - 'add' or 'edit'
  */
 function displayExamConflicts(conflicts, mode) {
-    const conflictsContainer = document.getElementById('aiConflictsExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const conflictsContainerMobile = document.getElementById('aiConflictsExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
+    const suffix = mode === 'add' ? 'Add' : 'Edit';
+    const conflictsContainer = document.getElementById('aiConflictsExam' + suffix);
+    const conflictsList = document.getElementById('aiConflictsListExam' + suffix);
     
-    if (!conflictsContainer && !conflictsContainerMobile) return;
+    if (!conflictsList) return;
     
-    // Clear containers
-    if (conflictsContainer) conflictsContainer.innerHTML = '';
-    if (conflictsContainerMobile) conflictsContainerMobile.innerHTML = '';
+    // Clear list
+    if (conflictsList) conflictsList.innerHTML = '';
     
-    conflicts.forEach(conflict => {
-        // Desktop version - use createElement for proper Tailwind classes
-        if (conflictsContainer) {
+    // Render conflicts with clearer hierarchy and cleaner spacing
+    if (conflictsList) {
+        conflicts.forEach((conflict, index) => {
+            const severity = conflict.severity || 'high';
+            const severityConfig = getExamSeverityConfig(severity);
+            const details = conflict.details || {};
+            const type = conflict.type || 'section';
+            const icon = getExamConflictTypeIcon(type);
+            const label = type.replace('_batch', ' (batch)').replace(/_/g, ' ');
+            
+            // Build detail fragments separated by ·
+            const detailParts = [];
+            if (details.subject) detailParts.push(details.subject);
+            if (details.date) detailParts.push(details.date);
+            if (details.time) detailParts.push(details.time);
+            const detailHtml = detailParts.length > 0
+                ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">${detailParts.join(' · ')}</p>` : '';
+            
             const conflictDiv = document.createElement('div');
-            conflictDiv.className = 'p-2 bg-red-50 border border-red-200 rounded-lg text-sm';
+            conflictDiv.className = `p-3 rounded-xl ${severityConfig.cardClass} mb-2.5 last:mb-0 bg-white dark:bg-gray-900/35 shadow-sm`;
             conflictDiv.innerHTML = `
-                <div class="flex items-start space-x-2">
-                    <span class="text-red-600 font-semibold">${conflict.type.toUpperCase()}:</span>
-                    <div class="flex-1">
-                        <p class="text-red-800">${conflict.message}</p>
-                        ${conflict.details ? `
-                            <p class="text-red-600 text-xs mt-1">
-                                ${conflict.details.subject || ''} • ${conflict.details.date || ''} ${conflict.details.time || ''}
-                            </p>
-                        ` : ''}
+                <div class="flex items-start gap-2.5">
+                    <span class="mt-0.5 ${severityConfig.iconClass}">${icon}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="text-[10px] font-bold tracking-wide uppercase ${severityConfig.messageClass}">${examEscapeHtml(label)}</span>
+                            <span class="px-1.5 py-0.5 rounded ${severityConfig.badgeClass}">${severity.toUpperCase()}</span>
+                        </div>
+                        <p class="text-xs font-semibold ${severityConfig.messageClass} leading-normal">${conflict.message}</p>
+                        ${detailHtml}
                     </div>
                 </div>
             `;
-            conflictsContainer.appendChild(conflictDiv);
-        }
-        
-        // Mobile version (more compact)
-        if (conflictsContainerMobile) {
-            const conflictDivMobile = document.createElement('div');
-            conflictDivMobile.className = 'p-2 bg-red-50 border border-red-200 rounded-lg';
-            conflictDivMobile.innerHTML = `
-                <div class="flex items-start space-x-1.5">
-                    <span class="text-red-600 font-semibold text-[10px]">${conflict.type.toUpperCase()}:</span>
-                    <div class="flex-1">
-                        <p class="text-red-800 text-[10px]">${conflict.message}</p>
-                        ${conflict.details ? `
-                            <p class="text-red-600 text-[9px] mt-0.5">
-                                ${conflict.details.subject || ''} • ${conflict.details.date || ''} ${conflict.details.time || ''}
-                            </p>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            conflictsContainerMobile.appendChild(conflictDivMobile);
-        }
-    });
+            conflictsList.appendChild(conflictDiv);
+        });
+    }
     
     if (conflictsContainer) conflictsContainer.classList.remove('hidden');
-    if (conflictsContainerMobile) conflictsContainerMobile.classList.remove('hidden');
 }
 
 /**
- * Display AI recommendations for exam scheduling
+ * Get icon SVG based on exam conflict type
+ */
+function getExamConflictTypeIcon(type) {
+    const icons = {
+        section: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>',
+        faculty: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>',
+        proctor: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>',
+        room: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>',
+        duplicate: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>',
+        time_invalid: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+        proctor_unavailable: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>'
+    };
+    return icons[type] || icons.section;
+}
+
+/**
+ * Get styling configuration based on exam conflict severity
+ */
+function getExamSeverityConfig(severity) {
+    const configs = {
+        critical: {
+            messageClass: 'text-red-700 dark:text-red-300',
+            iconClass: 'text-red-500 dark:text-red-400',
+            cardClass: 'bg-red-50/90 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50',
+            badgeClass: 'text-[9px] font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+        },
+        high: {
+            messageClass: 'text-orange-700 dark:text-orange-300',
+            iconClass: 'text-orange-500 dark:text-orange-400',
+            cardClass: 'bg-orange-50/90 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-900/50',
+            badgeClass: 'text-[9px] font-semibold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
+        },
+        medium: {
+            messageClass: 'text-amber-700 dark:text-amber-300',
+            iconClass: 'text-amber-500 dark:text-amber-400',
+            cardClass: 'bg-amber-50/90 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50',
+            badgeClass: 'text-[9px] font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+        },
+        low: {
+            messageClass: 'text-blue-700 dark:text-blue-300',
+            iconClass: 'text-blue-500 dark:text-blue-400',
+            cardClass: 'bg-blue-50/90 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/50',
+            badgeClass: 'text-[9px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+        }
+    };
+    return configs[severity] || configs.high;
+}
+
+/**
+ * Display AI recommendations for exam scheduling - Enhanced design matching class modal
  * @param {Array} recommendations - Array of recommendation objects
  * @param {string} mode - 'add' or 'edit'
  */
-function displayExamRecommendations(recommendations, mode) {
-    const recommendationsContainer = document.getElementById('aiRecommendationsExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const recommendationsContainerMobile = document.getElementById('aiRecommendationsExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
+function displayExamRecommendations(recommendations, mode, readOnly) {
+    const suffix = mode === 'add' ? 'Add' : 'Edit';
+    const recommendationsContainer = document.getElementById('aiRecommendationsExam' + suffix);
+    const recommendationsList = document.getElementById('aiRecommendationsListExam' + suffix);
+    readOnly = readOnly === true;
     
-    if (!recommendationsContainer && !recommendationsContainerMobile) return;
+    if (!recommendationsList) return;
     
-    const recommendationsList = document.createElement('div');
-    recommendationsList.className = 'space-y-3';
+    // Clear list
+    if (recommendationsList) recommendationsList.innerHTML = '';
     
-    const recommendationsListMobile = document.createElement('div');
-    recommendationsListMobile.className = 'space-y-2';
+    if (recommendations.length === 0) {
+        if (recommendationsContainer) recommendationsContainer.classList.add('hidden');
+        return;
+    }
     
-    recommendations.forEach(rec => {
-        // Desktop version
-        if (recommendationsContainer) {
+    // Lightweight type config: thin border + emoji label
+    const typeConfig = {
+        time: {
+            border: 'border-gray-200 dark:border-gray-700',
+            btnBg: 'bg-white dark:bg-gray-800 hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20',
+            btnBorder: 'border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600/60',
+            btnText: 'text-gray-700 dark:text-gray-200',
+            badgeBg: 'bg-gray-100 dark:bg-gray-700', badgeText: 'text-gray-600 dark:text-gray-300',
+            label: 'Available Time Slots'
+        },
+        time_slot: {
+            border: 'border-gray-200 dark:border-gray-700',
+            btnBg: 'bg-white dark:bg-gray-800 hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20',
+            btnBorder: 'border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600/60',
+            btnText: 'text-gray-700 dark:text-gray-200',
+            badgeBg: 'bg-gray-100 dark:bg-gray-700', badgeText: 'text-gray-600 dark:text-gray-300',
+            label: 'Available Time Slots'
+        },
+        date: {
+            border: 'border-gray-200 dark:border-gray-700',
+            btnBg: 'bg-white dark:bg-gray-800 hover:bg-indigo-50/70 dark:hover:bg-indigo-900/20',
+            btnBorder: 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600/60',
+            btnText: 'text-gray-700 dark:text-gray-200',
+            badgeBg: 'bg-gray-100 dark:bg-gray-700', badgeText: 'text-gray-600 dark:text-gray-300',
+            label: 'Alternative Dates'
+        },
+        room: {
+            border: 'border-gray-200 dark:border-gray-700',
+            btnBg: 'bg-white dark:bg-gray-800 hover:bg-amber-50/70 dark:hover:bg-amber-900/20',
+            btnBorder: 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600/60',
+            btnText: 'text-gray-700 dark:text-gray-200',
+            badgeBg: 'bg-gray-100 dark:bg-gray-700', badgeText: 'text-gray-600 dark:text-gray-300',
+            label: 'Available Rooms'
+        },
+        faculty: {
+            border: 'border-gray-200 dark:border-gray-700',
+            btnBg: 'bg-white dark:bg-gray-800 hover:bg-green-50/70 dark:hover:bg-green-900/20',
+            btnBorder: 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600/60',
+            btnText: 'text-gray-700 dark:text-gray-200',
+            badgeBg: 'bg-gray-100 dark:bg-gray-700', badgeText: 'text-gray-600 dark:text-gray-300',
+            label: 'Available Proctors'
+        }
+    };
+    
+    // Generate unique IDs for collapsible sections
+    const sectionId = `exam_rec_${mode}_${Date.now()}`;
+    
+    recommendations.forEach((rec, recIndex) => {
+        // Skip recommendations with no options
+        if (!rec.options || rec.options.length === 0) {
+            return;
+        }
+        
+        const config = typeConfig[rec.type] || typeConfig.room;
+        const uniqueId = `${sectionId}_${recIndex}`;
+        const isExpanded = recIndex === 0; // First section expanded by default
+        const maxVisibleOptions = 3; // Show first 3 options, rest in "show more"
+        
+        // Desktop version - Enhanced collapsible cards with quick actions
+        if (recommendationsList) {
             const recDiv = document.createElement('div');
-            recDiv.className = 'p-3 bg-blue-50 border border-blue-200 rounded-lg';
+            recDiv.className = `bg-white dark:bg-gray-900/35 border ${config.border} rounded-xl overflow-hidden mb-2.5 last:mb-0 shadow-sm`;
             
-            let optionsHTML = '';
-            
-            if (rec.type === 'time') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyExamTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'date') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyExamDate('${opt.exam_date}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'room') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyExamRoom('${opt.room_id}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'faculty') {
-                optionsHTML = rec.options.map(opt => 
-                    `<button type="button" onclick="applyExamFaculty('${opt.faculty_id}', '${mode}')" 
-                            class="px-3 py-1 text-sm bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            }
+            // Generate options HTML with improved design
+            const generateOptionsHTML = (options, type) => {
+                const visibleOptions = options.slice(0, maxVisibleOptions);
+                const hiddenOptions = options.slice(maxVisibleOptions);
+                
+                let html = '<div class="grid grid-cols-1 gap-1.5">';
+                
+                visibleOptions.forEach((opt, idx) => {
+                    html += generateExamOptionButton(opt, idx, type, config, mode, readOnly);
+                });
+                
+                html += '</div>';
+                
+                // Add "show more" section if there are hidden options
+                if (hiddenOptions.length > 0) {
+                    html += `
+                        <div id="moreExamOptions_${uniqueId}" class="hidden mt-2">
+                            <div class="grid grid-cols-1 gap-1.5">
+                                ${hiddenOptions.map((opt, idx) => generateExamOptionButton(opt, idx + maxVisibleOptions, type, config, mode, readOnly)).join('')}
+                            </div>
+                        </div>
+                        <button type="button" onclick="toggleExamMoreOptions('${uniqueId}', this)" data-more-count="${hiddenOptions.length}"
+                                class="mt-2 text-xs ${config.btnText} hover:underline flex items-center gap-1 mx-auto">
+                            <span class="toggle-text">Show ${hiddenOptions.length} more</span>
+                            <svg class="w-3 h-3 transition-transform toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    `;
+                }
+                
+                return html;
+            };
             
             recDiv.innerHTML = `
-                <h6 class="text-sm font-semibold text-blue-800 mb-2">${rec.message}</h6>
-                <div class="flex flex-wrap gap-2">
-                    ${optionsHTML}
+                <button type="button" onclick="toggleExamRecommendationSection('${uniqueId}')" 
+                        class="w-full px-3.5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors">
+                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">${config.label}</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] font-semibold ${config.badgeBg} ${config.badgeText} px-1.5 py-0.5 rounded-full">${rec.options.length}</span>
+                        <svg id="examChevron_${uniqueId}" class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </button>
+                <div id="examContent_${uniqueId}" class="px-3.5 pb-3.5 ${isExpanded ? '' : 'hidden'}">
+                    ${generateOptionsHTML(rec.options, rec.type)}
                 </div>
             `;
             
             recommendationsList.appendChild(recDiv);
         }
-        
-        // Mobile version
-        if (recommendationsContainerMobile) {
-            const recDivMobile = document.createElement('div');
-            recDivMobile.className = 'p-2 bg-blue-50 border border-blue-200 rounded-lg';
-            
-            let optionsHTMLMobile = '';
-            
-            if (rec.type === 'time') {
-                optionsHTMLMobile = rec.options.slice(0, 2).map(opt => 
-                    `<button type="button" onclick="applyExamTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" 
-                            class="px-2 py-1 text-[10px] bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'date') {
-                optionsHTMLMobile = rec.options.slice(0, 2).map(opt => 
-                    `<button type="button" onclick="applyExamDate('${opt.exam_date}', '${mode}')" 
-                            class="px-2 py-1 text-[10px] bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'room') {
-                optionsHTMLMobile = rec.options.slice(0, 2).map(opt => 
-                    `<button type="button" onclick="applyExamRoom('${opt.room_id}', '${mode}')" 
-                            class="px-2 py-1 text-[10px] bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            } else if (rec.type === 'faculty') {
-                optionsHTMLMobile = rec.options.slice(0, 2).map(opt => 
-                    `<button type="button" onclick="applyExamFaculty('${opt.faculty_id}', '${mode}')" 
-                            class="px-2 py-1 text-[10px] bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors">
-                        ${opt.display}
-                    </button>`
-                ).join('');
-            }
-            
-            recDivMobile.innerHTML = `
-                <h6 class="text-[10px] font-semibold text-blue-800 mb-1.5">${rec.message}</h6>
-                <div class="flex flex-wrap gap-1.5">
-                    ${optionsHTMLMobile}
-                </div>
-            `;
-            
-            recommendationsListMobile.appendChild(recDivMobile);
-        }
     });
     
-    if (recommendationsContainer) {
-        recommendationsContainer.innerHTML = '';
-        recommendationsContainer.appendChild(recommendationsList);
-        recommendationsContainer.classList.remove('hidden');
-    }
+    if (recommendationsContainer) recommendationsContainer.classList.remove('hidden');
+}
+
+/**
+ * Get confidence badge class based on score
+ */
+function getExamConfidenceBadgeClass(confidence) {
+    if (confidence >= 80) return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300';
+    if (confidence >= 60) return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
+    if (confidence >= 40) return 'bg-amber-100 text-amber-700 ring-1 ring-amber-300';
+    return 'bg-red-100 text-red-700 ring-1 ring-red-300';
+}
+
+/**
+ * Generate exam option button HTML based on type
+ */
+function generateExamOptionButton(opt, idx, type, config, mode, readOnly) {
+    readOnly = readOnly === true;
+    const baseClasses = readOnly
+        ? `flex items-center gap-2 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 rounded-lg`
+        : `group flex items-center gap-2 px-3 py-2 text-xs ${config.btnBg} border ${config.btnBorder} rounded-lg transition-all cursor-pointer`;
+    const reasonHtml = opt.reason ? `<span class="text-[10px] text-gray-500 dark:text-gray-400 truncate"> · ${opt.reason}</span>` : '';
     
-    if (recommendationsContainerMobile) {
-        recommendationsContainerMobile.innerHTML = '';
-        recommendationsContainerMobile.appendChild(recommendationsListMobile);
-        recommendationsContainerMobile.classList.remove('hidden');
+    // Handle both 'time' and 'time_slot' types (backend uses 'time_slot')
+    if (type === 'time' || type === 'time_slot') {
+        if (readOnly) {
+            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200">${opt.display}</span>${reasonHtml}</div>`;
+        }
+        return `<button type="button" onclick="applyExamTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" class="${baseClasses}">
+            <span class="font-medium ${config.btnText}">${opt.display}</span>${reasonHtml}
+        </button>`;
+    } else if (type === 'date') {
+        if (readOnly) {
+            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200">${opt.display}</span>${reasonHtml}</div>`;
+        }
+        return `<button type="button" onclick="applyExamDate('${opt.exam_date}', '${mode}', '${opt.display}')" class="${baseClasses}">
+            <span class="font-medium ${config.btnText}">${opt.display}</span>${reasonHtml}
+        </button>`;
+    } else if (type === 'room') {
+        if (readOnly) {
+            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200 truncate">${opt.display}</span>${reasonHtml}</div>`;
+        }
+        return `<button type="button" onclick="applyExamRoom(${opt.room_id}, '${mode}', '${opt.display.replace(/'/g, "\\'")}')" class="${baseClasses} text-left">
+            <span class="font-medium ${config.btnText} truncate">${opt.display}</span>${reasonHtml}
+        </button>`;
+    } else if (type === 'faculty') {
+        if (readOnly) {
+            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200 truncate">${opt.display}</span>${reasonHtml}</div>`;
+        }
+        return `<button type="button" onclick="applyExamFaculty(${opt.faculty_id}, '${mode}', '${opt.display.replace(/'/g, "\\'")}')" class="${baseClasses} text-left">
+            <span class="font-medium ${config.btnText} truncate">${opt.display}</span>${reasonHtml}
+        </button>`;
+    }
+    return '';
+}
+
+/**
+ * Toggle exam recommendation section visibility
+ */
+function toggleExamRecommendationSection(id) {
+    const content = document.getElementById('examContent_' + id);
+    const chevron = document.getElementById('examChevron_' + id);
+    
+    if (content && chevron) {
+        content.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180');
+    }
+}
+
+/**
+ * Toggle exam more options visibility
+ */
+function toggleExamMoreOptions(id, btn) {
+    const moreOptions = document.getElementById('moreExamOptions_' + id);
+    if (moreOptions && btn) {
+        moreOptions.classList.toggle('hidden');
+        const textSpan = btn.querySelector('.toggle-text');
+        const icon = btn.querySelector('.toggle-icon');
+        const moreCount = btn.dataset.moreCount || moreOptions.querySelectorAll('button').length;
+        
+        if (moreOptions.classList.contains('hidden')) {
+            textSpan.textContent = `Show ${moreCount} more`;
+            icon.classList.remove('rotate-180');
+        } else {
+            textSpan.textContent = 'Show less';
+            icon.classList.add('rotate-180');
+        }
     }
 }
 
@@ -409,33 +498,13 @@ function displayExamRecommendations(recommendations, mode) {
  */
 function displayExamAIExplanation(explanation, mode) {
     const explanationDiv = document.getElementById('aiExplanationExam' + (mode === 'add' ? 'Add' : 'Edit'));
-    const explanationDivMobile = document.getElementById('aiExplanationExam' + (mode === 'add' ? 'Add' : 'Edit') + 'Mobile');
     
     if (explanationDiv) {
         explanationDiv.innerHTML = `
-            <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                    </svg>
-                    <div>
-                        <h5 class="text-sm font-semibold text-purple-800">AI Analysis</h5>
-                        <p class="text-xs text-purple-700 mt-1 whitespace-pre-wrap">${explanation}</p>
-                    </div>
-                </div>
-            </div>
+            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">AI Analysis</p>
+            <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">${explanation}</p>
         `;
         explanationDiv.classList.remove('hidden');
-    }
-    
-    if (explanationDivMobile) {
-        explanationDivMobile.innerHTML = `
-            <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <h5 class="text-[10px] font-semibold text-purple-800 mb-1">AI Analysis</h5>
-                <p class="text-[9px] text-purple-700 whitespace-pre-wrap">${explanation}</p>
-            </div>
-        `;
-        explanationDivMobile.classList.remove('hidden');
     }
 }
 
@@ -443,11 +512,42 @@ function displayExamAIExplanation(explanation, mode) {
 // Apply AI Recommendations for Exam Schedules
 // ============================================================================
 
+// Helper function for visual feedback when applying AI suggestions
+function highlightExamField(elementId, duration = 2000) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    // Add highlight classes
+    element.classList.add('ring-2', 'ring-green-500', 'ring-offset-1', 'bg-green-50');
+    element.style.transition = 'all 0.3s ease';
+    
+    // Remove highlight after duration
+    setTimeout(() => {
+        element.classList.remove('ring-2', 'ring-green-500', 'ring-offset-1', 'bg-green-50');
+    }, duration);
+}
+
 function applyExamTimeSlot(startTime, endTime, mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
-    document.getElementById('start_time_exam' + suffix).value = startTime;
-    document.getElementById('end_time_exam' + suffix).value = endTime;
-    showToast('Time slot applied! Auto-rechecking conflicts...', 'success');
+    const startField = document.getElementById('start_time_exam' + suffix);
+    const endField = document.getElementById('end_time_exam' + suffix);
+    
+    if (startField) startField.value = startTime;
+    if (endField) endField.value = endTime;
+    
+    // Visual feedback
+    highlightExamField('start_time_exam' + suffix);
+    highlightExamField('end_time_exam' + suffix);
+    
+    // Format display time for toast
+    const formatTime = (t) => {
+        const [h, m] = t.split(':');
+        const hour = parseInt(h);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${m} ${ampm}`;
+    };
+    showToast(`Time applied: ${formatTime(startTime)} - ${formatTime(endTime)}`, 'success');
     
     // Trigger auto-recheck
     if (typeof scheduleAutoExamConflictCheck === 'function') {
@@ -455,10 +555,16 @@ function applyExamTimeSlot(startTime, endTime, mode) {
     }
 }
 
-function applyExamDate(examDate, mode) {
+function applyExamDate(examDate, mode, displayText = '') {
     const suffix = mode === 'add' ? '_add' : '_edit';
-    document.getElementById('exam_date' + suffix).value = examDate;
-    showToast('Exam date applied! Auto-rechecking conflicts...', 'success');
+    const dateField = document.getElementById('exam_date' + suffix);
+    
+    if (dateField) dateField.value = examDate;
+    
+    // Visual feedback
+    highlightExamField('exam_date' + suffix);
+    
+    showToast(`Date applied: ${displayText || examDate}`, 'success');
     
     // Trigger auto-recheck
     if (typeof scheduleAutoExamConflictCheck === 'function') {
@@ -466,10 +572,23 @@ function applyExamDate(examDate, mode) {
     }
 }
 
-function applyExamRoom(roomId, mode) {
+function applyExamRoom(roomId, mode, displayText = '') {
     const suffix = mode === 'add' ? '_add' : '_edit';
-    document.getElementById('room_id_exam' + suffix).value = roomId;
-    showToast('Room applied! Auto-rechecking conflicts...', 'success');
+    const hiddenInput = document.getElementById('room_id_exam' + suffix);
+    const searchInput = document.getElementById('room_search_exam' + suffix);
+    
+    // Update hidden input value
+    if (hiddenInput) hiddenInput.value = roomId;
+    
+    // Update visible search input with display text
+    if (searchInput && displayText) {
+        searchInput.value = displayText;
+    }
+    
+    // Visual feedback
+    highlightExamField('room_search_exam' + suffix);
+    
+    showToast(`Room applied: ${displayText || 'Selected'}`, 'success');
     
     // Trigger auto-recheck
     if (typeof scheduleAutoExamConflictCheck === 'function') {
@@ -477,13 +596,76 @@ function applyExamRoom(roomId, mode) {
     }
 }
 
-function applyExamFaculty(facultyId, mode) {
+function applyExamFaculty(facultyId, mode, displayText = '') {
     const suffix = mode === 'add' ? '_add' : '_edit';
-    document.getElementById('faculty_id_exam' + suffix).value = facultyId;
-    showToast('Faculty applied! Auto-rechecking conflicts...', 'success');
+    const suffixCap = mode === 'add' ? 'Add' : 'Edit';
+    const hiddenSelect = document.getElementById('faculty_id_exam' + suffix);
+    const facultyTrigger = document.getElementById('facultyTriggerExam' + suffixCap);
+    const facultyDisplay = document.getElementById('facultyDisplayExam' + suffixCap);
+    
+    // Update hidden select value
+    if (hiddenSelect) hiddenSelect.value = facultyId;
+    
+    // Update visible faculty display
+    if (facultyDisplay && displayText) {
+        const nameParts = displayText.split(' ');
+        const initials = nameParts.length >= 2 
+            ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+            : displayText.substring(0, 2).toUpperCase();
+        
+        facultyDisplay.innerHTML = `
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-green-700 text-xs font-bold">${initials}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-900 truncate">${displayText}</div>
+                <div class="text-xs text-gray-500">Applied from AI suggestion</div>
+            </div>
+        `;
+    }
+    
+    // Visual feedback
+    highlightExamField('facultyTriggerExam' + suffixCap);
+    
+    showToast(`Faculty applied: ${displayText || 'Selected'}`, 'success');
     
     // Trigger auto-recheck
     if (typeof scheduleAutoExamConflictCheck === 'function') {
         scheduleAutoExamConflictCheck(mode);
     }
+}
+
+/**
+ * Display schedule hours warning for exam schedules (non-blocking)
+ * @param {string} mode - Either 'add' or 'edit'
+ * @param {string} warning - Schedule hours warning message or null
+ */
+function displayExamScheduleHoursWarning(mode, warning) {
+    const suffixCap = mode === 'add' ? 'Add' : 'Edit';
+    
+    // Get the warning container (should exist in HTML)
+    const warningContainer = document.getElementById('examScheduleHoursWarning' + suffixCap);
+    
+    if (!warningContainer) {
+        return;
+    }
+    
+    if (!warning) {
+        // Clear warning
+        warningContainer.innerHTML = '';
+        warningContainer.classList.add('hidden');
+        return;
+    }
+    
+    warningContainer.classList.remove('hidden');
+    
+    // Display as red error (blocking)
+    warningContainer.innerHTML = `
+        <div class="flex items-center gap-2 px-3 py-2 mt-2 bg-red-50 border border-red-200 rounded-lg">
+            <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-xs text-red-700"><strong>Invalid Time:</strong> ${warning}</p>
+        </div>
+    `;
 }

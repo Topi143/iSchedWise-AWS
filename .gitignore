@@ -24,6 +24,7 @@ wheels/
 venv/
 env/
 ENV/
+.venv/
 
 # Flask
 instance/
@@ -39,6 +40,7 @@ instance/
 # IDE
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 *~
@@ -57,7 +59,14 @@ migrations/
 # Temporary files
 *.tmp
 *.bak
+~$*.docx
+~$*.xlsx
+
+# Test/cache artifacts
+.pytest_cache/
 
 # Uploads
 app/static/uploads/department_logos/*
 !app/static/uploads/department_logos/.gitkeep
+app/static/uploads/institution_logos/*
+!app/static/uploads/institution_logos/.gitkeep

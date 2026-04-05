@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+
+{% block title %}Superadmin Dashboard - iSchedWise{% endblock %}
+
+{% block extra_css %}
+<style>
+    .superadmin-scroll::-webkit-scrollbar,
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .superadmin-scroll::-webkit-scrollbar-track,
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .superadmin-scroll::-webkit-scrollbar-thumb,
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+    }
+
+    .superadmin-scroll::-webkit-scrollbar-thumb:hover,
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.6);
+    }
+
+    .dark .superadmin-scroll::-webkit-scrollbar-thumb,
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.6);
+    }
+
+    .panel-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: border-color 0.15s ease;
+    }
+
+    .panel-card:hover {
+        border-color: #d1d5db;
+    }
+
+    .dark .panel-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .dark .panel-card:hover {
+        border-color: #4b5563;
+    }
+
+    .kpi-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: all 0.15s ease;
+    }
+
+    .dark .kpi-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .kpi-card:hover {
+        border-color: #d1d5db;
+    }
+
+    .dark .kpi-card:hover {
+        border-color: #4b5563;
+    }
+
+    .status-pill {
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        line-height: 1;
+        font-weight: 600;
+        padding: 0.35rem 0.625rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .feed-item {
+        padding: 0.625rem 0.125rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .feed-item:last-child {
+        border-bottom: none;
+    }
+
+    .dark .feed-item {
+        border-bottom-color: #334155;
+    }
+
+    .mini-bar {
+        transition: height 0.4s ease;
+    }
+
+    .action-link {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.625rem;
+        transition: all 0.15s ease;
+        text-decoration: none;
+    }
+
+    .action-link:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+    }
+
+    .dark .action-link {
+        border-color: #374151;
+        color: #e5e7eb;
+    }
+
+    .dark .action-link:hover {
+        border-color: #475569;
+        background: #111827;
+    }
+
+    .action-button {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        transition: all 0.15s ease;
+    }
+
+    .action-button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .table-head {
+        font-size: 0.6875rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .dark .table-head {
+        color: #94a3b8;
+    }
+
+    @media (max-width: 1023px) {
+        .superadmin-container {
+            padding: 0.5rem;
+        }
+
+        .superadmin-scroll {
+            padding-bottom: 0.75rem;
+        }
+    }
+
+    @media (max-width: 639px) {
+        .superadmin-container {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+        }
+
+        .superadmin-scroll {
+            overflow: visible !important;
+            height: auto !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3 superadmin-container">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                    <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3v2m0 4h6m6-5a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Superadmin Command Dashboard</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Security and backup operations in one view</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto sm:ml-auto justify-end">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Updated: <span id="dashboardLastUpdated">--</span></span>
+                        <button id="refreshSuperAdminBtn" onclick="reloadDashboardData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto superadmin-scroll space-y-3 pb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                <div class="kpi-card rounded-lg p-3 sm:p-4">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">Logins Today</p>
+                            <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white" id="kpiLoginsToday">--</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="kpiSecurityEventsHint">--</p>
+                        </div>
+                        <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card rounded-lg p-3 sm:p-4">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">Total Users</p>
+                            <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white" id="kpiTotalUsers">--</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="kpiUsersHint">--</p>
+                        </div>
+                        <div class="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M3 20h10v-2a5 5 0 00-10 0v2zm9-9a4 4 0 110-8 4 4 0 010 8zm6 1a3 3 0 110-6 3 3 0 010 6z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div class="panel-card p-4">
+                    <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                        <div>
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">7-Day Login Trend</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Daily login volume over the last 7 days</p>
+                        </div>
+                        <span class="status-pill bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200" id="loginTrendPeak">Peak: --</span>
+                    </div>
+                    <div id="loginTrendBars" class="flex items-end gap-2 min-h-[130px]" aria-live="polite"></div>
+                </div>
+
+                <div class="panel-card p-4">
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Actions</h2>
+                    <div class="space-y-2">
+                        <a href="{{ url_for('settings.index') }}#system" class="action-link text-gray-700 dark:text-gray-200">
+                            <span>System Settings</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </a>
+                        <a href="{{ url_for('reports.activity_report') }}" class="action-link text-gray-700 dark:text-gray-200">
+                            <span>Activity Report</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </a>
+                        <a href="{{ url_for('user.index') }}" class="action-link text-gray-700 dark:text-gray-200">
+                            <span>User Management</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </a>
+                        <button id="runBackupBtn" onclick="triggerBackup()" class="action-button bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/35 dark:text-red-300 dark:border-red-800">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Run Backup Now
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-card p-4 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Backup Snapshot</h2>
+                        <span class="text-xs text-gray-500 dark:text-gray-400" id="backupCount">--</span>
+                    </div>
+                    <div class="space-y-1 mb-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Latest</p>
+                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate" id="latestBackupName">--</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400" id="latestBackupTime">--</p>
+                    </div>
+                    <div id="backupList" class="max-h-44 overflow-y-auto" aria-live="polite"></div>
+                </div>
+
+                <div class="panel-card p-4 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Activities</h2>
+                        <span class="text-xs text-gray-500 dark:text-gray-400" id="recentActivitiesCount">--</span>
+                    </div>
+                    <div id="recentActivitiesList" class="max-h-72 overflow-y-auto" aria-live="polite"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const state = {
+        security: null,
+        backups: [],
+        activities: [],
+        errors: {},
+        loading: false,
+    };
+
+    function getCSRFToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    function formatNumber(value) {
+        const num = Number(value || 0);
+        return Number.isFinite(num) ? new Intl.NumberFormat().format(num) : '--';
+    }
+
+    function formatBytes(bytes) {
+        const value = Number(bytes || 0);
+        if (!Number.isFinite(value) || value <= 0) {
+            return '--';
+        }
+
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let size = value;
+        let unitIndex = 0;
+        while (size >= 1024 && unitIndex < units.length - 1) {
+            size /= 1024;
+            unitIndex += 1;
+        }
+        return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
+    }
+
+    function formatDateTime(isoString) {
+        if (!isoString) {
+            return '--';
+        }
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) {
+            return '--';
+        }
+        return date.toLocaleString([], {
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    }
+
+    function timeAgo(isoString) {
+        if (!isoString) {
+            return '--';
+        }
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) {
+            return '--';
+        }
+
+        const diffMs = Date.now() - date.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) {
+            return 'just now';
+        }
+        if (diffMin < 60) {
+            return `${diffMin} min ago`;
+        }
+        const diffHr = Math.floor(diffMin / 60);
+        if (diffHr < 24) {
+            return `${diffHr} hr${diffHr === 1 ? '' : 's'} ago`;
+        }
+        const diffDay = Math.floor(diffHr / 24);
+        return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+    }
+
+    function formatActionLabel(action) {
+        return String(action || 'activity')
+            .replace(/_/g, ' ')
+            .trim()
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value;
+        }
+    }
+
+    function clearChildren(element) {
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+
+    function showActionFeedback(message, tone) {
+        const normalizedTone = tone === 'danger' ? 'error' : (tone || 'info');
+        const options = normalizedTone === 'error' ? { duration: 6500 } : undefined;
+
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, normalizedTone, options);
+            return;
+        }
+
+        if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+            window.__iswToastManager.show(message, normalizedTone, options);
+            return;
+        }
+
+        console[normalizedTone === 'error' ? 'error' : 'log'](message);
+    }
+
+    function setLoadingState(isLoading) {
+        state.loading = isLoading;
+        const refreshButton = document.getElementById('refreshSuperAdminBtn');
+        if (refreshButton) {
+            refreshButton.disabled = isLoading;
+            refreshButton.classList.toggle('opacity-70', isLoading);
+            refreshButton.classList.toggle('cursor-not-allowed', isLoading);
+        }
+    }
+
+    async function requestJson(url, options) {
+        const response = await fetch(url, {
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                ...(options?.headers || {}),
+            },
+            ...options,
+        });
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (error) {
+            payload = { success: false, error: 'Invalid JSON response from server.' };
+        }
+
+        if (!response.ok || payload.success === false) {
+            throw new Error(payload.error || `Request failed (${response.status})`);
+        }
+
+        return payload;
+    }
+
+    function renderKpis() {
+        const overview = state.security?.overview || {};
+
+        setText('kpiLoginsToday', formatNumber(overview.todays_logins));
+        const loginTrend = Array.isArray(overview.login_trend) ? overview.login_trend : [];
+        const weeklyLogins = loginTrend.reduce((sum, item) => sum + Number(item.count || 0), 0);
+        setText('kpiSecurityEventsHint', `${formatNumber(weeklyLogins)} logins in last 7 days`);
+
+        setText('kpiTotalUsers', formatNumber(overview.total_users));
+        const pendingReset = formatNumber(overview.pending_password_reset ?? 0);
+        setText('kpiUsersHint', `${pendingReset} pending password reset`);
+    }
+
+    function renderLoginTrend() {
+        const barsContainer = document.getElementById('loginTrendBars');
+        if (!barsContainer) {
+            return;
+        }
+
+        clearChildren(barsContainer);
+        const trend = state.security?.overview?.login_trend || [];
+
+        if (!Array.isArray(trend) || trend.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'text-xs text-gray-500 dark:text-gray-400';
+            empty.textContent = 'No login trend data available.';
+            barsContainer.appendChild(empty);
+            setText('loginTrendPeak', 'Peak: --');
+            return;
+        }
+
+        const maxCount = Math.max(...trend.map((item) => Number(item.count || 0)), 1);
+        setText('loginTrendPeak', `Peak: ${formatNumber(maxCount)} logins/day`);
+
+        trend.forEach((item) => {
+            const count = Number(item.count || 0);
+            const col = document.createElement('div');
+            col.className = 'flex-1 min-w-[36px] flex flex-col items-center gap-1';
+
+            const barWrap = document.createElement('div');
+            barWrap.className = 'w-full h-20 flex items-end';
+
+            const bar = document.createElement('div');
+            bar.className = `mini-bar w-full rounded-t ${count > 0 ? 'bg-blue-500 dark:bg-blue-400' : 'bg-gray-200 dark:bg-gray-700'}`;
+            bar.style.height = `${Math.max((count / maxCount) * 100, 5)}%`;
+            bar.title = `${item.date || item.day || 'Day'}: ${formatNumber(count)} login${count === 1 ? '' : 's'}`;
+
+            const day = document.createElement('span');
+            day.className = 'text-[10px] text-gray-500 dark:text-gray-400';
+            day.textContent = item.day || '--';
+
+            const total = document.createElement('span');
+            total.className = 'text-[10px] font-semibold text-gray-700 dark:text-gray-200';
+            total.textContent = formatNumber(count);
+
+            barWrap.appendChild(bar);
+            col.appendChild(barWrap);
+            col.appendChild(day);
+            col.appendChild(total);
+            barsContainer.appendChild(col);
+        });
+    }
+
+    function renderRecentActivities() {
+        const container = document.getElementById('recentActivitiesList');
+        if (!container) {
+            return;
+        }
+
+        clearChildren(container);
+        const activities = Array.isArray(state.activities) ? state.activities : [];
+        setText('recentActivitiesCount', `${formatNumber(activities.length)} recent entr${activities.length === 1 ? 'y' : 'ies'}`);
+
+        if (activities.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'text-xs text-gray-500 dark:text-gray-400';
+            empty.textContent = 'No recent activities found.';
+            container.appendChild(empty);
+            return;
+        }
+
+        activities.slice(0, 8).forEach((activity) => {
+            const row = document.createElement('div');
+            row.className = 'feed-item';
+
+            const top = document.createElement('div');
+            top.className = 'flex items-center justify-between gap-2';
+
+            const action = document.createElement('p');
+            action.className = 'text-xs font-semibold text-gray-900 dark:text-white truncate';
+            action.textContent = formatActionLabel(activity.action);
+
+            const at = document.createElement('span');
+            at.className = 'text-[11px] text-gray-500 dark:text-gray-400';
+            at.textContent = timeAgo(activity.created_at);
+
+            top.appendChild(action);
+            top.appendChild(at);
+
+            const description = document.createElement('p');
+            description.className = 'text-xs text-gray-600 dark:text-gray-300 mt-1 truncate';
+            description.textContent = activity.details || activity.entity_name || 'No details provided';
+
+            const byline = document.createElement('p');
+            byline.className = 'text-[11px] text-gray-500 dark:text-gray-400 mt-1';
+            byline.textContent = `${activity.user_name || 'System'} • ${formatActionLabel(activity.entity_type || 'general')} • ${formatDateTime(activity.created_at)}`;
+
+            row.appendChild(top);
+            row.appendChild(description);
+            row.appendChild(byline);
+            container.appendChild(row);
+        });
+    }
+
+    function renderBackups() {
+        const container = document.getElementById('backupList');
+        if (!container) {
+            return;
+        }
+
+        clearChildren(container);
+        const backups = Array.isArray(state.backups) ? state.backups : [];
+
+        setText('backupCount', `${formatNumber(backups.length)} backup${backups.length === 1 ? '' : 's'}`);
+
+        if (backups.length === 0) {
+            setText('latestBackupName', '--');
+            setText('latestBackupTime', 'No backups found');
+
+            const empty = document.createElement('p');
+            empty.className = 'text-xs text-gray-500 dark:text-gray-400';
+            empty.textContent = 'No backup files were found in the backup directory.';
+            container.appendChild(empty);
+            return;
+        }
+
+        const latest = backups[0];
+        setText('latestBackupName', latest.filename || '--');
+        setText('latestBackupTime', `${timeAgo(latest.created_at)} • ${formatBytes(latest.size)}`);
+
+        backups.slice(0, 5).forEach((backup) => {
+            const row = document.createElement('div');
+            row.className = 'feed-item';
+
+            const name = document.createElement('p');
+            name.className = 'text-xs font-semibold text-gray-900 dark:text-white truncate';
+            name.textContent = backup.filename || 'Unnamed backup';
+
+            const meta = document.createElement('p');
+            meta.className = 'text-[11px] text-gray-500 dark:text-gray-400 mt-1';
+            meta.textContent = `${formatDateTime(backup.created_at)} • ${formatBytes(backup.size)}`;
+
+            row.appendChild(name);
+            row.appendChild(meta);
+            container.appendChild(row);
+        });
+    }
+
+    function renderAll() {
+        renderKpis();
+        renderLoginTrend();
+        renderBackups();
+        renderRecentActivities();
+    }
+
+    async function loadBackupsOnly() {
+        try {
+            const payload = await requestJson('/admin/api/database/backups');
+            state.backups = payload.backups || [];
+            delete state.errors.backups;
+        } catch (error) {
+            state.backups = [];
+            state.errors.backups = error.message;
+        }
+        renderBackups();
+    }
+
+    async function reloadDashboardData(showFeedback = true) {
+        setLoadingState(true);
+        state.errors = {};
+
+        try {
+            const requests = [
+                requestJson('/admin/api/security/overview?include_events=0'),
+                requestJson('/admin/api/database/backups'),
+                requestJson('/admin/api/system-stats'),
+            ];
+
+            const [securityResult, backupResult, systemResult] = await Promise.allSettled(requests);
+
+            if (securityResult.status === 'fulfilled') {
+                state.security = securityResult.value;
+            } else {
+                state.security = null;
+                state.errors.security = securityResult.reason?.message || 'Security overview failed.';
+            }
+
+            if (backupResult.status === 'fulfilled') {
+                state.backups = backupResult.value.backups || [];
+            } else {
+                state.backups = [];
+                state.errors.backups = backupResult.reason?.message || 'Backup list failed.';
+            }
+
+            if (systemResult.status === 'fulfilled') {
+                state.activities = systemResult.value.recent_activities || [];
+            } else {
+                state.activities = [];
+                state.errors.activities = systemResult.reason?.message || 'Recent activities failed.';
+            }
+
+            setText('dashboardLastUpdated', new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        } catch (error) {
+            state.errors.fetch = error?.message || 'Unexpected error while loading dashboard data.';
+        } finally {
+            setLoadingState(false);
+        }
+
+        try {
+            renderAll();
+        } catch (renderError) {
+            state.errors.render = renderError?.message || 'Failed to render dashboard data.';
+        }
+
+        const errorCount = Object.keys(state.errors).length;
+        if (showFeedback) {
+            if (errorCount > 0) {
+                showActionFeedback(`Dashboard updated with ${errorCount} data source issue${errorCount === 1 ? '' : 's'}.`, 'error');
+            } else {
+                showActionFeedback('Superadmin dashboard data refreshed successfully.', 'success');
+            }
+        }
+    }
+
+    async function triggerBackup() {
+        const button = document.getElementById('runBackupBtn');
+        if (button) {
+            button.disabled = true;
+            button.dataset.originalText = button.textContent;
+            button.textContent = 'Running Backup...';
+        }
+
+        try {
+            const payload = await requestJson('/admin/api/database/backup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken(),
+                },
+                body: JSON.stringify({}),
+            });
+
+            const backupName = payload.backup?.filename || 'new backup';
+            showActionFeedback(`Backup completed: ${backupName}`, 'success');
+            await loadBackupsOnly();
+            setText('dashboardLastUpdated', new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        } catch (error) {
+            showActionFeedback(`Backup failed: ${error.message}`, 'error');
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = button.dataset.originalText || 'Run Backup Now';
+            }
+        }
+    }
+
+    window.reloadDashboardData = () => reloadDashboardData(true);
+    window.triggerBackup = triggerBackup;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        reloadDashboardData(false).catch((error) => {
+            state.errors.bootstrap = error?.message || 'Initial dashboard load failed.';
+            setLoadingState(false);
+            showActionFeedback('Dashboard initialization failed. Please refresh.', 'error');
+        });
+    });
+})();
+</script>
+{% endblock %}

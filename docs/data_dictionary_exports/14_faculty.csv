@@ -1,0 +1,15 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+last_name,Faculty last name,varchar,100,,Yes,--
+first_name,Faculty first name,varchar,100,,Yes,--
+middle_initial,"Middle initial or suffix, e.g., 'E.', 'DL'",varchar,5,,No,NULL
+gender,Gender used for salutation: Male or Female,enum,--,,No,NULL
+department_id,Department the faculty member belongs to,int,11,FK -> departments.id,No,NULL
+max_units,Max teaching units; NULL = use system default from academic_settings,int,11,,No,NULL
+is_active,Whether the faculty member is currently active,tinyint(1),--,,Yes,1
+is_archived,Soft-delete flag following the standard archive pattern,tinyint(1),--,,Yes,0
+archived_by,ID of the user who archived this faculty record,int,11,FK -> users.id,No,NULL
+archived_at,Timestamp when the record was archived,datetime,--,,No,NULL
+archive_reason,Reason provided for archiving,varchar,255,,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

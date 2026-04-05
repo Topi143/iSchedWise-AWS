@@ -1,0 +1,106 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Faculty Schedule - iSchedWise{% endblock %}
+
+{% block extra_css %}
+    {% include 'schedule/_styles.html' %}
+    <style>
+        .tab-content { display: flex !important; }
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        .toast { display: flex; align-items: center; padding: 0.75rem 1rem; background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; min-width: 300px; animation: slideIn 0.4s ease both; }
+        .dark .toast { background: #1f2937; border-color: #374151; box-shadow: 0 10px 18px -4px rgba(0,0,0,0.45); }
+        .toast-success { border-left: 4px solid #22c55e; }
+        .toast-error, .toast-danger { border-left: 4px solid #ef4444; }
+        .toast-info { border-left: 4px solid #3b82f6; }
+        .toast-warning { border-left: 4px solid #f59e0b; }
+        .toast.removing { animation: slideOut 0.3s ease both; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flashMessages" style="display: none;">
+                    {% for category, message in messages %}
+                        <div data-category="{{ category }}" data-message="{{ message }}"></div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Faculty Schedule</h1>
+                        {% if current_settings %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ current_settings.academic_year }} - {{ current_settings.semester }} - {{ current_settings.exam_period }}</p>
+                        {% else %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">View faculty teaching schedules</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content: Faculty Schedule Master-Detail -->
+        <div class="tab-contents-wrapper flex-1 overflow-hidden">
+            {% include 'schedule/_faculty_tab.html' %}
+        </div>
+    </div>
+</div>
+
+{% include 'schedule/_delete_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+{% if current_settings %}
+<script>
+    window.currentAcademicYear = "{{ current_settings.academic_year }}";
+    window.currentSemester = "{{ current_settings.semester }}";
+</script>
+{% endif %}
+<script>window.SCHEDULE_PAGE = 'faculty';</script>
+<script src="{{ url_for('static', filename='js/schedule/realtime.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/calendar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/schedule_full.js') }}"></script>
+
+<script>
+    function showToast(message, type = 'success') {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icons = { success: '<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>', error: '<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>', danger: '<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>', info: '<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>', warning: '<svg class="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>' };
+        const colors = { success: 'text-green-800 dark:text-green-300', error: 'text-red-800 dark:text-red-300', danger: 'text-red-800 dark:text-red-300', info: 'text-blue-800 dark:text-blue-300', warning: 'text-yellow-800 dark:text-yellow-300' };
+        toast.innerHTML = `${icons[type] || icons.success}<p class="${colors[type] || colors.success} font-medium flex-1">${message}</p><button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>`;
+        container.appendChild(toast);
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    function removeToast(toast) { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) { flashMessages.querySelectorAll('[data-message]').forEach((msg, i) => { setTimeout(() => { let cat = msg.dataset.category; if (cat === 'danger') cat = 'error'; showToast(msg.dataset.message, cat); }, i * 100); }); }
+    });
+    function toggleExportDropdown(dropdownId) { const dropdown = document.getElementById(dropdownId); document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => { if (dd.id !== dropdownId) dd.classList.add('hidden'); }); dropdown.classList.toggle('hidden'); }
+    document.addEventListener('click', function(e) { if (!e.target.closest('.relative.inline-block')) document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => dd.classList.add('hidden')); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => dd.classList.add('hidden')); });
+</script>
+{% endblock %}
+

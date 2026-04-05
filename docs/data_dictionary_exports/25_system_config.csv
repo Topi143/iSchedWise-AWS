@@ -1,0 +1,9 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+config_key,"Unique configuration key name, e.g., 'maintenance_mode'",varchar,100,,Yes,--
+config_value,Value stored as a string; interpreted by config_type,text,--,,No,NULL
+config_type,"Data type hint: string, integer, boolean, or json",enum,--,,Yes,--
+category,"Logical grouping: general, security, email, or ai",varchar,50,,Yes,--
+description,Human-readable description of what this key controls,varchar,255,,No,NULL
+updated_by,ID of the last user who updated this configuration entry,int,11,FK -> users.id,No,NULL
+updated_at,Timestamp of the last update,datetime,--,,No,NULL

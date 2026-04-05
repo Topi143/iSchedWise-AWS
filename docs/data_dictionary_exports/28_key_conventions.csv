@@ -1,0 +1,12 @@
+Term,Meaning
+PK,Primary Key -- auto-incremented int(11)
+FK,Foreign Key -- references another table's primary key
+GEN,Generated Column -- value automatically derived from an expression
+tinyint(1),"Used as a boolean flag: 0 = false/inactive, 1 = true/active"
+Archive Pattern,"Tables with is_archived, is_active, archived_by, archived_at, archive_reason use soft deletion"
+Optimistic Locking,"schedules and exam_schedules use version, locked_by, locked_at to prevent concurrent edit conflicts"
+Denorm. Snapshot,"archives table stores copied text values at archival time, independent of future changes to source tables"
+ON UPDATE,updated_at columns are set to current_timestamp() automatically on every UPDATE statement
+ON DELETE CASCADE,"When the parent row is deleted, all referencing child rows are automatically deleted"
+ON DELETE SET NULL,"When the parent row is deleted, the FK column in the child row is set to NULL (child row kept)"
+ON DELETE RESTRICT,The parent row CANNOT be deleted while any child rows reference it (results in an error)

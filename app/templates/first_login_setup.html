@@ -1,0 +1,430 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Complete Your Account Setup - {{ app_brand_name }}{% endblock %}
+
+{% block left_panel_content %}
+<div class="text-center mb-6 max-w-lg welcome-text">
+    <h1 class="text-3xl lg:text-4xl xl:text-5xl font-bold mb-2">Welcome to</h1>
+    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold mb-3">{{ app_brand_name }}</h2>
+    <div class="w-20 h-0.5 bg-white bg-opacity-80 mx-auto mb-4"></div>
+    <p class="text-base lg:text-lg xl:text-xl opacity-90 leading-relaxed">
+        Complete your account setup to get started
+    </p>
+</div>
+
+<!-- Setup Steps Indicator -->
+<div class="bg-white/10 backdrop-blur-sm rounded-xl p-5 max-w-sm">
+    <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <i class="fas fa-shield-alt text-white text-sm"></i>
+        </div>
+        <span class="text-white/90 font-medium">Secure Your Account</span>
+    </div>
+    <ul class="space-y-1.5 text-white/80 text-sm">
+        <li class="flex items-center gap-2">
+            <i class="fas fa-check-circle text-green-300 text-xs"></i>
+            Update your profile information
+        </li>
+        <li class="flex items-center gap-2">
+            <i class="fas fa-check-circle text-green-300 text-xs"></i>
+            Set a valid email address
+        </li>
+        <li class="flex items-center gap-2">
+            <i class="fas fa-check-circle text-green-300 text-xs"></i>
+            Create a secure password
+        </li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+/* Compact layout for first-login setup - prevent page scroll */
+@media (min-width: 1024px) {
+    .setup-wrapper {
+        max-height: calc(100vh - 80px);
+        display: flex;
+        flex-direction: column;
+    }
+    .setup-form-scroll {
+        max-height: calc(100vh - 400px);
+        overflow-y: auto;
+    }
+}
+{% endblock %}
+
+{% block right_panel_content %}
+<!-- Setup Card -->
+<div class="w-full max-w-md auth-card px-2 sm:px-0 setup-wrapper">
+    <!-- Header -->
+    <div class="text-center mb-4 sm:mb-5 flex-shrink-0">
+        <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3">
+            <i class="fas fa-user-shield text-blue-600 dark:text-blue-400 text-lg sm:text-xl"></i>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white mb-1.5">Complete Your Setup</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Update your account with a valid email and secure password</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="mb-4 flex-shrink-0">
+                {% for category, message in messages %}
+                    <div class="flash-message {% if category == 'error' %}flash-error bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400{% elif category == 'success' %}flash-success bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400{% else %}flash-info bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400{% endif %} p-3 rounded-md mb-1.5">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-400{% elif category == 'success' %}fa-check-circle text-green-400{% else %}fa-info-circle text-blue-400{% endif %} text-sm"></i>
+                            </div>
+                            <div class="ml-2 sm:ml-3">
+                                <p class="text-xs sm:text-sm {% if category == 'error' %}text-red-700 dark:text-red-300{% elif category == 'success' %}text-green-700 dark:text-green-300{% else %}text-blue-700 dark:text-blue-300{% endif %}">{{ message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Current Account Info -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800 mb-3 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                <span class="text-white font-bold text-xs">{{ current_user.username[:2].upper() }}</span>
+            </div>
+            <div class="min-w-0">
+                <p class="font-semibold text-gray-900 dark:text-white text-sm">{{ current_user.username }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <i class="fas fa-badge-check text-blue-500"></i>
+                    {{ current_user.role.title() }}
+                </p>
+            </div>
+            <span class="ml-auto text-[10px] text-blue-600 uppercase font-semibold flex items-center gap-1 flex-shrink-0">
+                <i class="fas fa-user-circle"></i> Current
+            </span>
+        </div>
+    </div>
+
+    <!-- Setup Form -->
+    <form method="POST" class="space-y-3 setup-form-scroll pr-1 flex-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="form-field">
+                <label for="first_name" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name <span class="text-red-500">*</span></label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-gray-400 dark:text-gray-500 text-xs"></i>
+                    </div>
+                    <input type="text"
+                           id="first_name"
+                           name="first_name"
+                           value="{{ name_parts.first_name if name_parts else '' }}"
+                           required
+                           class="input-glow w-full pl-8 sm:pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                           placeholder="Enter your first name">
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="last_name" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name <span class="text-red-500">*</span></label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-gray-400 dark:text-gray-500 text-xs"></i>
+                    </div>
+                    <input type="text"
+                           id="last_name"
+                           name="last_name"
+                           value="{{ name_parts.last_name if name_parts else '' }}"
+                           required
+                           class="input-glow w-full pl-8 sm:pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                           placeholder="Enter your last name">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="form-field">
+                <label for="middle_initial" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Middle Initial</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-font text-gray-400 dark:text-gray-500 text-xs"></i>
+                    </div>
+                    <input type="text"
+                           id="middle_initial"
+                           name="middle_initial"
+                           value="{{ name_parts.middle_initial if name_parts else '' }}"
+                           maxlength="5"
+                           class="input-glow w-full pl-8 sm:pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                           style="text-transform: uppercase;"
+                           placeholder="M">
+                </div>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Optional, up to 5 letters.</p>
+            </div>
+
+            <div class="form-field">
+                <label for="username" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-at text-gray-400 dark:text-gray-500 text-xs"></i>
+                    </div>
+                    <input type="text"
+                           id="username"
+                           name="username"
+                           value="{{ current_user.username }}"
+                           minlength="3"
+                           maxlength="30"
+                           pattern="^[A-Za-z0-9._-]{3,30}$"
+                           title="Use 3-30 characters: letters, numbers, dots, underscores, and hyphens"
+                           class="input-glow w-full pl-8 sm:pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                           placeholder="Choose a username">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Letters, numbers, dots, underscores, and hyphens only.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email (Required) -->
+        <div class="form-field">
+            <label for="email" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email Address <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-envelope text-gray-400 dark:text-gray-500 text-xs"></i>
+                </div>
+                <input type="email"
+                       id="email"
+                       name="email"
+                       required
+                       class="input-glow w-full pl-8 sm:pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                       placeholder="your.email@example.com"
+                       aria-describedby="email-help">
+            </div>
+            <p id="email-help" class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Valid email address for account recovery</p>
+        </div>
+
+        <!-- Password fields side by side -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- New Password (Required) -->
+            <div class="form-field">
+                <label for="password" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    New Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-400 dark:text-gray-500 text-xs"></i>
+                    </div>
+                    <input type="password"
+                           id="password"
+                           name="password"
+                           required
+                           minlength="8"
+                           maxlength="30"
+                           class="input-glow w-full pl-8 sm:pl-10 pr-9 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                           placeholder="Create a secure password"
+                           autocomplete="new-password"
+                           oninput="checkPasswordStrength(this.value); checkPasswordMatch('password', 'confirm_password', 'password-match-text')">
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
+                        <button type="button"
+                                onclick="togglePassword('password')"
+                                class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none transition-colors p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                                aria-label="Toggle password visibility">
+                            <i class="fas fa-eye text-sm" id="password-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirm Password (Required) -->
+            <div class="form-field">
+                <label for="confirm_password" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Confirm Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-400 dark:text-gray-500 text-xs"></i>
+                    </div>
+                    <input type="password"
+                           id="confirm_password"
+                           name="confirm_password"
+                           required
+                           minlength="8"
+                           maxlength="30"
+                           class="input-glow w-full pl-8 sm:pl-10 pr-9 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                           placeholder="Confirm your password"
+                           autocomplete="new-password"
+                           oninput="checkPasswordMatch('password', 'confirm_password', 'password-match-text')">
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
+                        <button type="button"
+                                onclick="togglePassword('confirm_password')"
+                                class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none transition-colors p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                                aria-label="Toggle password visibility">
+                            <i class="fas fa-eye text-sm" id="confirm_password-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-xs mt-0.5" id="password-match-text"></p>
+            </div>
+        </div>
+
+        <!-- Password Strength Meter -->
+        <div>
+            <div class="strength-meter">
+                <div class="strength-meter-fill" id="strength-meter-fill"></div>
+            </div>
+            <div class="flex items-center justify-between mt-1">
+                <p class="text-[11px]" id="strength-text">
+                    <span class="text-gray-500 dark:text-gray-400">8-30 characters required</span>
+                </p>
+                <div class="flex gap-2.5" id="password-requirements">
+                    <span class="text-[11px] text-gray-400 dark:text-gray-500" id="req-length">
+                        <i class="fas fa-circle text-[5px] mr-0.5"></i>8+
+                    </span>
+                    <span class="text-[11px] text-gray-400 dark:text-gray-500" id="req-upper">
+                        <i class="fas fa-circle text-[5px] mr-0.5"></i>A-Z
+                    </span>
+                    <span class="text-[11px] text-gray-400 dark:text-gray-500" id="req-lower">
+                        <i class="fas fa-circle text-[5px] mr-0.5"></i>a-z
+                    </span>
+                    <span class="text-[11px] text-gray-400 dark:text-gray-500" id="req-number">
+                        <i class="fas fa-circle text-[5px] mr-0.5"></i>0-9
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Note + Submit -->
+        <div class="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <i class="fas fa-info-circle text-amber-500 dark:text-amber-400 flex-shrink-0 text-sm"></i>
+            <p class="text-[11px] text-amber-700 dark:text-amber-300 leading-snug">
+                <strong>Note:</strong> After setup, use your new email and password to log in.
+            </p>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex-shrink-0">
+            <button type="submit"
+                    class="btn-ripple w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                <span class="btn-text flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Complete Setup
+                </span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+// Client-side form validation before submit
+(function initSetupValidation() {
+    const form = document.querySelector('form');
+    if (!form) return;
+
+    const usernamePattern = /^[A-Za-z0-9._-]{3,30}$/;
+    const nameComponentPattern = /^[A-Za-z0-9][A-Za-z0-9' -]{0,49}$/;
+    const middleInitialPattern = /^[A-Za-z]{1,5}$/;
+
+    form.addEventListener('submit', function(e) {
+        const firstName = document.getElementById('first_name');
+        const middleInitial = document.getElementById('middle_initial');
+        const lastName = document.getElementById('last_name');
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const confirm = document.getElementById('confirm_password');
+
+        const normalizedFirstName = firstName ? (firstName.value || '').trim().replace(/\s+/g, ' ') : '';
+        const normalizedMiddleInitial = middleInitial ? (middleInitial.value || '').trim().replace(/\./g, '').toUpperCase() : '';
+        const normalizedLastName = lastName ? (lastName.value || '').trim().replace(/\s+/g, ' ') : '';
+
+        if (!normalizedFirstName || !nameComponentPattern.test(normalizedFirstName)) {
+            e.preventDefault();
+            if (firstName) {
+                firstName.focus();
+            }
+            return false;
+        }
+
+        if (!normalizedLastName || !nameComponentPattern.test(normalizedLastName)) {
+            e.preventDefault();
+            if (lastName) {
+                lastName.focus();
+            }
+            return false;
+        }
+
+        if (normalizedMiddleInitial && !middleInitialPattern.test(normalizedMiddleInitial)) {
+            e.preventDefault();
+            if (middleInitial) {
+                middleInitial.focus();
+            }
+            return false;
+        }
+
+        if (firstName) {
+            firstName.value = normalizedFirstName;
+        }
+        if (middleInitial) {
+            middleInitial.value = normalizedMiddleInitial;
+        }
+        if (lastName) {
+            lastName.value = normalizedLastName;
+        }
+
+        if (username) {
+            const normalizedUsername = (username.value || '').trim();
+            if (!usernamePattern.test(normalizedUsername)) {
+                e.preventDefault();
+                username.focus();
+                return false;
+            }
+            username.value = normalizedUsername;
+        }
+
+        if (password && password.value.length < 8) {
+            e.preventDefault();
+            password.focus();
+            return false;
+        }
+        if (password && password.value.length > 30) {
+            e.preventDefault();
+            password.focus();
+            return false;
+        }
+        if (password && confirm && password.value !== confirm.value) {
+            e.preventDefault();
+            const matchText = document.getElementById('password-match-text');
+            if (matchText) {
+                matchText.innerHTML = '<span class="text-red-500"><i class="fas fa-times-circle mr-1"></i>Passwords do not match</span>';
+            }
+            confirm.focus();
+            confirm.classList.add('shake');
+            setTimeout(function() { confirm.classList.remove('shake'); }, 500);
+            return false;
+        }
+    });
+
+    const middleInitialInput = document.getElementById('middle_initial');
+    if (middleInitialInput) {
+        middleInitialInput.addEventListener('input', function() {
+            const sanitized = (this.value || '').replace(/[^A-Za-z]/g, '').slice(0, 5).toUpperCase();
+            if (sanitized !== this.value) {
+                this.value = sanitized;
+            }
+        });
+    }
+})();
+
+// Input field focus animations
+const setupInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+setupInputs.forEach(function(input) {
+    input.addEventListener('focus', function() {
+        const field = this.closest('.form-field');
+        if (field) field.classList.add('active');
+    });
+    input.addEventListener('blur', function() {
+        if (!this.value) {
+            const field = this.closest('.form-field');
+            if (field) field.classList.remove('active');
+        }
+    });
+});
+{% endblock %}

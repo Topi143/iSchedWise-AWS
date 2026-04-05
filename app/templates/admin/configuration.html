@@ -1,0 +1,710 @@
+﻿{% extends "base.html" %}
+
+{% block title %}System Configuration - iSchedWise{% endblock %}
+
+{% block extra_css %}
+<style>
+    #mainContentArea .overflow-y-auto::-webkit-scrollbar { width: 4px; }
+    #mainContentArea .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+    #mainContentArea .overflow-y-auto::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.4); border-radius: 4px; }
+    #mainContentArea .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.6); }
+    @media (max-width: 1024px) { .admin-container { height: auto !important; min-height: auto !important; overflow: visible !important; } }
+
+    .admin-tab-scroll {
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .admin-tab-scroll::-webkit-scrollbar { display: none; }
+
+    .cfg-tab { padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; border-radius: 0.5rem; cursor: pointer; transition: all 0.15s; border: none; background: transparent; color: #6b7280; white-space: nowrap; flex-shrink: 0; }
+    .cfg-tab:hover { color: #374151; background: #f3f4f6; }
+    .cfg-tab.active { background: #4f46e5; color: white; }
+    .dark .cfg-tab { color: #9ca3af; }
+    .dark .cfg-tab:hover { color: #e5e7eb; background: #374151; }
+    .dark .cfg-tab.active { background: #4f46e5; color: white; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .cfg-card { background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; }
+    .dark .cfg-card { background: #1e293b; border-color: #334155; }
+
+    .config-row {
+        display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9; transition: background 0.1s;
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-row:hover { background: #fafbfc; }
+    .dark .config-row { border-bottom-color: #1e293b; }
+    .dark .config-row:hover { background: #0f172a; }
+
+    .config-label { flex: 1; min-width: 0; }
+    .config-label h4 { font-size: 0.8125rem; font-weight: 500; color: #1e293b; }
+    .config-label p { font-size: 0.6875rem; color: #94a3b8; margin-top: 0.125rem; }
+    .dark .config-label h4 { color: #e2e8f0; }
+    .dark .config-label p { color: #64748b; }
+
+    .config-input {
+        width: 260px; max-width: 100%; font-size: 0.8125rem; padding: 0.4375rem 0.75rem;
+        border: 1px solid #e2e8f0; border-radius: 0.5rem; background: white; color: #334155;
+        outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .config-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+    .dark .config-input { background: #0f172a; border-color: #475569; color: #e2e8f0; }
+    .dark .config-input:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
+
+    .config-input-invalid {
+        border-color: #dc2626 !important;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+    }
+    .dark .config-input-invalid {
+        border-color: #f87171 !important;
+        box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
+    }
+
+    .config-row-message {
+        margin-top: 0.25rem;
+        font-size: 0.6875rem;
+        color: #dc2626;
+    }
+    .dark .config-row-message { color: #fca5a5; }
+
+    .secret-input-wrap {
+        width: 260px;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .reveal-secret-btn {
+        flex-shrink: 0;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        background: white;
+        color: #475569;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        transition: all 0.15s;
+    }
+    .reveal-secret-btn:hover { background: #f1f5f9; }
+    .dark .reveal-secret-btn {
+        background: #1e293b;
+        border-color: #475569;
+        color: #cbd5e1;
+    }
+    .dark .reveal-secret-btn:hover { background: #334155; }
+
+    .config-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.625rem 0.75rem;
+        border-radius: 0.625rem;
+        border: 1px solid #e0e7ff;
+        background: #eef2ff;
+        color: #3730a3;
+        font-size: 0.75rem;
+    }
+    .dark .config-note {
+        background: rgba(49, 46, 129, 0.22);
+        border-color: rgba(129, 140, 248, 0.35);
+        color: #c7d2fe;
+    }
+
+    .toggle-switch {
+        position: relative; width: 38px; height: 22px; background: #d1d5db; border-radius: 11px;
+        cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+    }
+    .toggle-switch.active { background: #4f46e5; }
+    .toggle-switch::after {
+        content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+        background: white; border-radius: 50%; transition: transform 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .toggle-switch.active::after { transform: translateX(16px); }
+
+    .save-btn {
+        padding: 0.4375rem 1.125rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600;
+        cursor: pointer; transition: all 0.15s; border: none; background: #4f46e5; color: white;
+    }
+    .save-btn:hover { background: #4338ca; }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .test-btn {
+        padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.6875rem; font-weight: 600;
+        cursor: pointer; transition: all 0.15s; border: 1px solid #e2e8f0; background: white; color: #475569;
+    }
+    .test-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .dark .test-btn { background: #334155; border-color: #475569; color: #94a3b8; }
+    .dark .test-btn:hover { background: #475569; }
+
+    .status-badge {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        padding: 0.25rem 0.625rem; border-radius: 0.375rem; font-size: 0.6875rem; font-weight: 500;
+    }
+    .status-ok { background: #dcfce7; color: #166534; }
+    .status-fail { background: #fee2e2; color: #991b1b; }
+    .dark .status-ok { background: #052e16; color: #86efac; }
+    .dark .status-fail { background: #450a0a; color: #fca5a5; }
+
+    .empty-state-icon { width: 48px; height: 48px; border-radius: 12px; margin: 0 auto 0.75rem; display: flex; align-items: center; justify-content: center; }
+
+    @media (max-width: 640px) {
+        .config-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+        }
+        .config-input {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3 admin-container">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">System Configuration</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Manage system-wide settings and integrations</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <button onclick="initializeDefaults()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg transition-colors" id="initDefaultsBtn" title="Populate missing config entries with sensible defaults">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <span class="hidden sm:inline">Initialize Defaults</span>
+                            <span class="sm:hidden">Defaults</span>
+                        </button>
+                        <button onclick="refreshAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors" id="refreshBtn">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex-shrink-0 mb-2 sm:mb-3">
+            <div class="flex gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 admin-tab-scroll">
+                <button class="cfg-tab active" onclick="switchTab('general', this)">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        General
+                    </span>
+                </button>
+                <button class="cfg-tab" onclick="switchTab('security', this)">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        Security
+                    </span>
+                </button>
+                <button class="cfg-tab" onclick="switchTab('email', this)">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        Email
+                    </span>
+                </button>
+                <button class="cfg-tab" onclick="switchTab('ai', this)">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        AI
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="flex-1 overflow-y-auto pb-4">
+            <div class="config-note mb-3">
+                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    Settings are saved per tab. Sensitive values are masked by default; use Reveal only when needed.
+                </div>
+            </div>
+
+            <!-- ========== GENERAL TAB ========== -->
+            <div id="tab-general" class="tab-panel active space-y-3">
+                <div class="cfg-card">
+                    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 flex-wrap sm:flex-nowrap">
+                        <div class="w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">General Settings</h3>
+                            <p class="text-[0.625rem] text-gray-400 dark:text-gray-500">Application name, timezone, and maintenance mode</p>
+                        </div>
+                        <div class="flex-1"></div>
+                        <button onclick="saveCategory('general')" class="save-btn" id="saveGeneral">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Save
+                            </span>
+                        </button>
+                    </div>
+                    <div id="generalConfig">
+                        <div class="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== SECURITY TAB ========== -->
+            <div id="tab-security" class="tab-panel space-y-3">
+                <div class="cfg-card">
+                    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 flex-wrap sm:flex-nowrap">
+                        <div class="w-7 h-7 rounded-md bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Security Settings</h3>
+                            <p class="text-[0.625rem] text-gray-400 dark:text-gray-500">Session policy, login attempts, and password policies</p>
+                        </div>
+                        <div class="flex-1"></div>
+                        <button onclick="saveCategory('security')" class="save-btn" id="saveSecurity">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Save
+                            </span>
+                        </button>
+                    </div>
+                    <div id="securityConfig">
+                        <div class="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== EMAIL TAB ========== -->
+            <div id="tab-email" class="tab-panel space-y-3">
+                <div class="cfg-card">
+                    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 flex-wrap sm:flex-nowrap">
+                        <div class="w-7 h-7 rounded-md bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Email (SMTP)</h3>
+                            <p class="text-[0.625rem] text-gray-400 dark:text-gray-500">Configure SMTP server for sending system emails</p>
+                        </div>
+                        <div class="flex-1"></div>
+                        <button onclick="testEmail()" class="test-btn" id="testEmailBtn">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                Test Email
+                            </span>
+                        </button>
+                        <button onclick="saveCategory('email')" class="save-btn" id="saveEmail">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Save
+                            </span>
+                        </button>
+                    </div>
+                    <div id="emailConfig">
+                        <div class="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
+                    </div>
+                    <div id="emailTestResult" class="hidden px-5 py-3 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-900/30"></div>
+                </div>
+            </div>
+
+            <!-- ========== AI TAB ========== -->
+            <div id="tab-ai" class="tab-panel space-y-3">
+                <div class="cfg-card">
+                    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 flex-wrap sm:flex-nowrap">
+                        <div class="w-7 h-7 rounded-md bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Integration (Gemini)</h3>
+                            <p class="text-[0.625rem] text-gray-400 dark:text-gray-500">Configure Google Gemini for AI-powered scheduling</p>
+                        </div>
+                        <div class="flex-1"></div>
+                        <button onclick="testAI()" class="test-btn" id="testAIBtn">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                Test AI
+                            </span>
+                        </button>
+                        <button onclick="saveCategory('ai')" class="save-btn" id="saveAi">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Save
+                            </span>
+                        </button>
+                    </div>
+                    <div id="aiConfig">
+                        <div class="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
+                    </div>
+                    <div id="aiTestResult" class="hidden px-5 py-3 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-900/30"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const categories = ['general', 'security', 'email', 'ai'];
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+const secretConfigKeys = new Set(['smtp_password', 'gemini_api_key']);
+const categoryKeyOrder = {
+    general: ['app_name', 'timezone', 'maintenance_mode', 'maintenance_message'],
+    security: ['max_login_attempts', 'password_min_length', 'force_password_change_days'],
+    email: ['smtp_server', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_use_tls', 'smtp_sender_email', 'smtp_sender_name'],
+    ai: ['ai_enabled', 'gemini_api_key', 'ai_model', 'ai_max_suggestions'],
+};
+const numericConstraints = {
+    max_login_attempts: { min: 1, max: 20 },
+    password_min_length: { min: 6, max: 128 },
+    force_password_change_days: { min: 0, max: 365 },
+    smtp_port: { min: 1, max: 65535 },
+    ai_max_suggestions: { min: 1, max: 20 },
+};
+let configData = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+    refreshAll();
+});
+
+function refreshAll() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.querySelector('svg')?.classList.add('animate-spin');
+    Promise.all(categories.map(cat => loadCategory(cat)))
+        .finally(() => {
+            btn.disabled = false;
+            btn.querySelector('svg')?.classList.remove('animate-spin');
+        });
+}
+
+// â”€â”€â”€ Tab Switching â”€â”€â”€
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab)?.classList.add('active');
+    btn.classList.add('active');
+}
+
+// â”€â”€â”€ Initialize Defaults â”€â”€â”€
+function initializeDefaults() {
+    const btn = document.getElementById('initDefaultsBtn');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Initializing...';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_tools.api_config_initialize_defaults") }}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+        if (data.success) {
+            showToast(data.message, 'success');
+            refreshAll();
+        } else {
+            showToast(data.error || 'Failed to initialize', 'error');
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+        showToast('Network error', 'error');
+    });
+}
+
+// â”€â”€â”€ Load & Render â”€â”€â”€
+function loadCategory(category) {
+    return fetch(`/admin/api/config/${category}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showToast(data.error || 'Failed to load settings.', 'error');
+                return;
+            }
+            configData[category] = data.configs;
+            renderCategory(category, data.configs);
+        })
+        .catch(() => {
+            document.getElementById(`${category}Config`).innerHTML =
+                '<div class="p-6 text-center text-sm text-red-500">Failed to load</div>';
+        });
+}
+
+function renderCategory(category, configs) {
+    const container = document.getElementById(`${category}Config`);
+    const entries = Object.entries(configs);
+    const orderedEntries = entries.sort((a, b) => {
+        const orderedKeys = categoryKeyOrder[category] || [];
+        const ai = orderedKeys.indexOf(a[0]);
+        const bi = orderedKeys.indexOf(b[0]);
+        if (ai === -1 && bi === -1) return a[0].localeCompare(b[0]);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+    });
+
+    if (entries.length === 0) {
+        const icons = {
+            general: { bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-400', path: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+            security: { bg: 'bg-red-50 dark:bg-red-900/20', color: 'text-red-400', path: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+            email: { bg: 'bg-sky-50 dark:bg-sky-900/20', color: 'text-sky-400', path: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+            ai: { bg: 'bg-purple-50 dark:bg-purple-900/20', color: 'text-purple-400', path: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
+        };
+        const ic = icons[category] || icons.general;
+        container.innerHTML = `
+            <div class="py-10 text-center">
+                <div class="empty-state-icon ${ic.bg}">
+                    <svg class="w-5 h-5 ${ic.color}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${ic.path}"></path></svg>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">No configuration entries yet</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">Click <strong>Initialize Defaults</strong> in the header to populate settings</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = orderedEntries.map(([key, config]) => {
+        const inputId = `config_${key}`;
+        let inputHtml = '';
+
+        if (config.config_type === 'boolean') {
+            inputHtml = `
+                <div class="toggle-switch ${config.typed_value ? 'active' : ''}"
+                     id="${inputId}" data-key="${key}" data-type="boolean"
+                     onclick="this.classList.toggle('active')"></div>
+            `;
+        } else if (config.config_type === 'integer') {
+            const constraints = numericConstraints[key] || {};
+            inputHtml = `
+                <input type="number" class="config-input" id="${inputId}" data-key="${key}" data-type="integer"
+                       value="${config.typed_value !== null ? config.typed_value : ''}"
+                       ${typeof constraints.min === 'number' ? `min="${constraints.min}"` : ''}
+                       ${typeof constraints.max === 'number' ? `max="${constraints.max}"` : ''} />
+            `;
+        } else {
+            if (secretConfigKeys.has(key)) {
+                inputHtml = `
+                    <div class="secret-input-wrap">
+                        <input type="password" class="config-input" id="${inputId}" data-key="${key}" data-type="string"
+                               value="${escHtml(config.config_value || '')}" placeholder="${escHtml(config.description || '')}" autocomplete="new-password" />
+                        <button type="button" class="reveal-secret-btn" data-target="${inputId}" onclick="toggleSecretVisibility('${inputId}', this)">Reveal</button>
+                    </div>
+                `;
+            } else {
+                inputHtml = `
+                    <input type="text" class="config-input" id="${inputId}" data-key="${key}" data-type="string"
+                           value="${escHtml(config.config_value || '')}" placeholder="${escHtml(config.description || '')}" />
+                `;
+            }
+        }
+
+        return `
+            <div class="config-row">
+                <div class="config-label">
+                    <h4>${formatLabel(key)}</h4>
+                    <p>${escHtml(config.description || '')}</p>
+                </div>
+                ${inputHtml}
+            </div>
+        `;
+    }).join('');
+}
+
+// â”€â”€â”€ Save â”€â”€â”€
+function saveCategory(category) {
+    const container = document.getElementById(`${category}Config`);
+    const inputs = container.querySelectorAll('[data-key]');
+    if (inputs.length === 0) { showToast('No settings to save', 'error'); return; }
+
+    clearValidationState(container);
+    if (!validateCategoryInputs(category, inputs)) {
+        showToast('Please fix highlighted fields before saving.', 'error');
+        return;
+    }
+
+    const updates = {};
+    inputs.forEach(input => {
+        const key = input.dataset.key;
+        const type = input.dataset.type;
+        if (type === 'boolean') {
+            updates[key] = input.classList.contains('active');
+        } else if (type === 'integer') {
+            updates[key] = parseInt(input.value) || 0;
+        } else {
+            updates[key] = input.value;
+        }
+    });
+
+    const btn = document.getElementById(`save${capitalize(category)}`);
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="flex items-center gap-1.5"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Saving...</span>';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_tools.api_config_update") }}', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ updates })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+        if (data.success) {
+            showToast(`${capitalize(category)} settings saved`, 'success');
+        } else {
+            showToast(data.error || 'Save failed', 'error');
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+        showToast('Network error', 'error');
+    });
+}
+
+// â”€â”€â”€ Test Email â”€â”€â”€
+function testEmail() {
+    const btn = document.getElementById('testEmailBtn');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="flex items-center gap-1.5"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Sending...</span>';
+    btn.disabled = true;
+
+    const result = document.getElementById('emailTestResult');
+
+    fetch('{{ url_for("admin_tools.api_config_test_email") }}', { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+        .then(r => r.json())
+        .then(data => {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+            result.classList.remove('hidden');
+            result.innerHTML = data.success
+                ? `<span class="status-badge status-ok">&#10003; ${escHtml(data.message)}</span>`
+                : `<span class="status-badge status-fail">&#10007; ${escHtml(data.error)}</span>`;
+        })
+        .catch(() => {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+            result.classList.remove('hidden');
+            result.innerHTML = '<span class="status-badge status-fail">&#10007; Network error</span>';
+        });
+}
+
+// â”€â”€â”€ Test AI â”€â”€â”€
+function testAI() {
+    const btn = document.getElementById('testAIBtn');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="flex items-center gap-1.5"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Testing...</span>';
+    btn.disabled = true;
+
+    const result = document.getElementById('aiTestResult');
+
+    fetch('{{ url_for("admin_tools.api_config_test_ai") }}', { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+        .then(r => r.json())
+        .then(data => {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+            result.classList.remove('hidden');
+            result.innerHTML = data.success
+                ? `<span class="status-badge status-ok">&#10003; ${escHtml(data.message)}</span>`
+                : `<span class="status-badge status-fail">&#10007; ${escHtml(data.error)}</span>`;
+        })
+        .catch(() => {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+            result.classList.remove('hidden');
+            result.innerHTML = '<span class="status-badge status-fail">&#10007; Network error</span>';
+        });
+}
+
+function toggleSecretVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const shouldReveal = input.type === 'password';
+    input.type = shouldReveal ? 'text' : 'password';
+    btn.textContent = shouldReveal ? 'Hide' : 'Reveal';
+}
+
+function clearValidationState(container) {
+    container.querySelectorAll('.config-input').forEach(input => input.classList.remove('config-input-invalid'));
+    container.querySelectorAll('.config-row-message').forEach(msg => msg.remove());
+}
+
+function setRowValidationError(input, message) {
+    input.classList.add('config-input-invalid');
+    const row = input.closest('.config-row');
+    if (!row) return;
+    const label = row.querySelector('.config-label');
+    if (!label) return;
+    const existing = label.querySelector('.config-row-message');
+    if (existing) existing.remove();
+    const msg = document.createElement('p');
+    msg.className = 'config-row-message';
+    msg.textContent = message;
+    label.appendChild(msg);
+}
+
+function validateCategoryInputs(category, inputs) {
+    let isValid = true;
+    const requiredStringKeys = new Set(['app_name', 'timezone']);
+
+    inputs.forEach(input => {
+        const key = input.dataset.key;
+        const type = input.dataset.type;
+        if (!key || !type || !input.classList.contains('config-input')) return;
+
+        if (requiredStringKeys.has(key) && type === 'string' && !input.value.trim()) {
+            setRowValidationError(input, `${formatLabel(key)} is required.`);
+            isValid = false;
+            return;
+        }
+
+        if (type === 'integer' && key in numericConstraints) {
+            const num = parseInt(input.value, 10);
+            const { min, max } = numericConstraints[key];
+            if (Number.isNaN(num) || num < min || num > max) {
+                setRowValidationError(input, `${formatLabel(key)} must be between ${min} and ${max}.`);
+                isValid = false;
+            }
+        }
+    });
+
+    return isValid;
+}
+
+// Helpers
+function formatLabel(key) {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        .replace('Smtp', 'SMTP').replace('Api', 'API').replace('Ai', 'AI').replace('Tls', 'TLS');
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function escHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showToast(msg, type) {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
+    if (typeof window.showNotification === 'function') { window.showNotification(msg, type === 'error' ? 'error' : 'success'); return; }
+    const t = document.createElement('div');
+    t.className = `fixed top-4 right-4 z-[200] px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg transition-opacity ${type === 'error' ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+</script>
+{% endblock %}
+

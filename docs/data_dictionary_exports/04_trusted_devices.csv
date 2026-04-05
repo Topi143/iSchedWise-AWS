@@ -1,0 +1,10 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+user_id,User account that owns this trusted device token,int,11,FK -> users.id,Yes,--
+token_hash,SHA-256 hash of the stored trusted-device token,varchar,64,,Yes,--
+label,Optional user-facing device label,varchar,120,,No,NULL
+ip_address,IP address captured when the token was issued,varchar,45,,No,NULL
+user_agent,Browser/client user-agent string for the trusted device,varchar,255,,No,NULL
+expires_at,Expiration timestamp after which the token is invalid,datetime,--,,Yes,--
+last_used_at,Last successful usage timestamp,datetime,--,,No,NULL
+created_at,Timestamp when this trusted device record was created,datetime,--,,Yes,current_timestamp()

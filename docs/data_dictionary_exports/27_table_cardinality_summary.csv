@@ -1,0 +1,16 @@
+Relationship,Data Type,Notes
+departments  ->  programs,One-to-Many (1:M),One department owns many degree programs
+departments  ->  faculty,One-to-Many (1:M),One department employs many faculty members
+programs  ->  curricula,One-to-Many (1:M),One program can have multiple curriculum versions
+programs  ->  sections,One-to-Many (1:M),One program contains many student sections
+curricula  ->  year_levels,One-to-Many (1:M),One curriculum spans multiple year levels
+year_levels  ->  semesters,One-to-Many (1:M),One year level contains multiple semesters
+semesters  ->  subjects,One-to-Many (1:M),One semester carries multiple subjects
+buildings  ->  rooms,One-to-Many (1:M),One building contains many rooms
+faculty  ->  faculty_availability,One-to-Many (1:M),One faculty member can have many availability time slots
+users  ->  trusted_devices,One-to-Many (1:M),One user can register multiple trusted devices
+sections  ->  schedule_snapshots,One-to-Many (1:M),One section can have many scoped schedule snapshots
+users  <->  programs  (via user_programs),Many-to-Many (M:M),Dean users can access many programs; programs accessible to many Deans
+faculty  <->  subjects  (via fac_subj_assign.),Many-to-Many (M:M),A faculty can be assigned many subjects; a subject to many faculty
+sections+subjects+faculty+rooms -> schedules,Composite,"Ties one section, one subject, optional faculty, optional room into a weekly slot"
+sections+subjects+faculty+rooms -> exam_sched.,Composite,Same as schedules but tied to a specific exam date

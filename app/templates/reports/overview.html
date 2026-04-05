@@ -1,0 +1,982 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Overview - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'reports/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="reports-content bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Flash Messages (Hidden - converted to toasts) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div id="flashMessages" class="hidden">
+            {% for category, message in messages %}
+            <div data-category="{{ category }}" data-message="{{ message }}"></div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Reports Overview</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if academic_year and semester %}
+                                {{ semester }}, A.Y. {{ academic_year }}
+                            {% else %}
+                                Analytics dashboard
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="reports-toolbar flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <!-- AI Analysis Button -->
+                        <button onclick="openAIModal()" class="inline-flex w-full sm:w-auto justify-center items-center px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all shadow-sm">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            <span>AI Analysis</span>
+                        </button>
+                        <!-- Export Dropdown -->
+                        <div class="relative" id="export-dropdown">
+                            <button onclick="toggleExportMenu()" class="inline-flex w-full sm:w-auto justify-center items-center px-3 py-2 sm:px-4 sm:py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs sm:text-sm font-medium transition-all shadow-sm">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Export</span>
+                                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="export-menu" class="hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 py-1">
+                                <button onclick="exportExcel()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Excel (.xlsx)
+                                </button>
+                                <button onclick="exportPDF()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                    PDF (.pdf)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Program Filter -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm p-2 sm:p-3 mb-2 sm:mb-3 flex-shrink-0">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
+                <h2 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Filter</h2>
+                {% if user_programs and user_programs|length == 1 %}
+                    <input type="hidden" id="filter-program" value="{{ user_programs[0].id }}">
+                    <span class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-xs font-medium">
+                        {{ user_programs[0].program_name }}
+                    </span>
+                {% else %}
+                    <select id="filter-program" onchange="applyFilters()" class="flex-1 w-full sm:max-w-xs rounded-lg border border-gray-200 dark:border-gray-600 text-xs sm:text-sm py-1.5 px-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                        <option value="">All Programs</option>
+                        {% if user_programs %}
+                            {% for dept in user_programs %}
+                                <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.program_name }}</option>
+                            {% endfor %}
+                        {% else %}
+                            {% for dept in programs %}
+                                <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.program_name }}</option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <!-- Stat Cards (4) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-3">
+                <!-- Class Schedules -->
+                <div class="stat-card p-3 sm:p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="stat-icon p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex-shrink-0">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Class Schedules</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.total_schedules }}</p>
+                            <div class="flex flex-wrap gap-1 mt-2">
+                                <span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">{{ stats.lecture_count }} Lec</span>
+                                <span class="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">{{ stats.lab_count }} Lab</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Exam Schedules -->
+                <div class="stat-card p-3 sm:p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="stat-icon p-2.5 rounded-lg bg-red-50 dark:bg-red-900/30 flex-shrink-0">
+                            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Exam Schedules</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.total_exam_schedules }}</p>
+                            <div class="mt-2">
+                                <span class="bg-red-50 text-red-700 text-xs px-2 py-0.5 rounded-full font-medium">{{ exam_period or 'All Periods' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Active Faculty -->
+                <div class="stat-card p-3 sm:p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="stat-icon p-2.5 rounded-lg bg-green-50 dark:bg-green-900/30 flex-shrink-0">
+                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Faculty</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.total_faculty }}</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ stats.faculty_with_schedules }} assigned</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Active Sections -->
+                <div class="stat-card p-3 sm:p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="stat-icon p-2.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex-shrink-0">
+                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sections</p>
+                            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{{ stats.total_sections }}</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">All programs</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insight Cards (5) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-4">
+                <!-- Schedule Progress -->
+                <div class="stat-card insight-card p-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Schedule Progress</span>
+                    </div>
+                    <p class="text-xl font-bold text-blue-600">{{ stats.schedule_completion_rate }}%</p>
+                    <div class="mt-2 bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-blue-500 h-1.5 rounded-full progress-bar" style="width: {{ stats.schedule_completion_rate }}%"></div>
+                    </div>
+                </div>
+                <!-- Avg Faculty Load -->
+                <div class="stat-card insight-card p-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Avg Faculty Load</span>
+                    </div>
+                    <p class="text-xl font-bold text-green-600">{{ stats.avg_faculty_utilization }}%</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">of max teaching units</p>
+                </div>
+                <!-- Unassigned Faculty -->
+                <div class="stat-card insight-card p-3 cursor-pointer hover:border-orange-200" onclick="openUnassignedFacultyModal()">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Unassigned Faculty</span>
+                    </div>
+                    <p class="text-xl font-bold text-orange-600">{{ stats.unassigned_faculty_count }}</p>
+                    <p class="text-xs text-orange-500 mt-1">Click to view details →</p>
+                </div>
+                <!-- Unused Rooms -->
+                <div class="stat-card insight-card p-3 cursor-pointer hover:border-yellow-200" onclick="openUnusedRoomsModal()">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Unused Rooms</span>
+                    </div>
+                    <p class="text-xl font-bold text-yellow-600">{{ stats.unused_rooms_count }}</p>
+                    <p class="text-xs text-yellow-500 mt-1">Click to view details →</p>
+                </div>
+                <!-- Room Utilization -->
+                <div class="stat-card insight-card p-3 cursor-pointer hover:border-green-200" onclick="openRoomUtilizationModal()">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Room Utilization</span>
+                    </div>
+                    <p class="text-xl font-bold text-emerald-600">{{ stats.avg_room_utilization }}%</p>
+                    <p class="text-xs text-emerald-500 mt-1">Click to view details →</p>
+                </div>
+            </div>
+
+            <!-- Overview Charts (2x2 grid) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+                <!-- Schedule Type Distribution -->
+                <div class="chart-card p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                        </svg>
+                        Schedule Type Distribution
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="scheduleTypeChart"></canvas>
+                    </div>
+                </div>
+                <!-- Weekly Distribution -->
+                <div class="chart-card p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Weekly Distribution
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+                <!-- Faculty Workload -->
+                <div class="chart-card p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Faculty Workload (Top 10)
+                    </h3>
+                    <div class="chart-container-large">
+                        <canvas id="facultyChart"></canvas>
+                    </div>
+                </div>
+                <!-- Room Utilization -->
+                <div class="chart-card p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Room Utilization (Top 10)
+                    </h3>
+                    <div class="chart-container-large">
+                        <canvas id="roomChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource Utilization -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm p-3 sm:p-4 mb-4">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Resource Utilization
+                </h3>
+                <div class="space-y-4">
+                    <!-- Room Utilization Bar -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Room Utilization</span>
+                            <span class="text-xs font-medium text-gray-900 dark:text-white">{{ stats.rooms_in_use }} / {{ stats.total_rooms }}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
+                            {% set room_pct = (stats.rooms_in_use / stats.total_rooms * 100) if stats.total_rooms > 0 else 0 %}
+                            <div class="progress-bar bg-blue-500 h-2.5 rounded-full" style="width: {{ room_pct|round(1) }}%"></div>
+                        </div>
+                    </div>
+                    <!-- Faculty Engagement Bar -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Faculty Engagement</span>
+                            <span class="text-xs font-medium text-gray-900 dark:text-white">{{ stats.faculty_with_schedules }} / {{ stats.total_faculty }}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
+                            {% set faculty_pct = (stats.faculty_with_schedules / stats.total_faculty * 100) if stats.total_faculty > 0 else 0 %}
+                            <div class="progress-bar bg-green-500 h-2.5 rounded-full" style="width: {{ faculty_pct|round(1) }}%"></div>
+                        </div>
+                    </div>
+                    <!-- Lecture/Lab Breakdown -->
+                    <div class="pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <p class="text-xl font-bold text-blue-600">{{ stats.lecture_count }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Lectures</p>
+                            </div>
+                            <div>
+                                <p class="text-xl font-bold text-purple-600">{{ stats.lab_count }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Laboratories</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Analysis Modal -->
+{% include 'reports/_ai_modal.html' %}
+
+<!-- Unassigned Faculty Modal -->
+{% include 'reports/_unassigned_faculty_modal.html' %}
+
+<!-- Unused Rooms Modal -->
+{% include 'reports/_unused_rooms_modal.html' %}
+
+<!-- Room Utilization Modal -->
+{% include 'reports/_room_utilization_modal.html' %}
+
+<script>
+// Chart instances
+let scheduleTypeChart, weeklyChart, facultyChart, roomChart;
+
+function isDarkThemeActive() {
+    return document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+}
+
+function getReportChartTheme() {
+    const dark = isDarkThemeActive();
+    return {
+        text: dark ? '#94a3b8' : '#4b5563',
+        title: dark ? '#cbd5e1' : '#374151',
+        grid: dark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(17, 24, 39, 0.10)',
+        doughnutBorder: dark ? '#1e293b' : '#ffffff',
+        pointBorder: dark ? '#1e293b' : '#ffffff',
+        tooltipBg: dark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(17, 24, 39, 0.92)',
+        tooltipTitle: '#f8fafc',
+        tooltipBody: dark ? '#e2e8f0' : '#f9fafb'
+    };
+}
+
+function applyChartTheme() {
+    const theme = getReportChartTheme();
+
+    if (scheduleTypeChart) {
+        scheduleTypeChart.data.datasets[0].borderColor = theme.doughnutBorder;
+        scheduleTypeChart.options.plugins.legend.labels.color = theme.text;
+        scheduleTypeChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+        scheduleTypeChart.options.plugins.tooltip.titleColor = theme.tooltipTitle;
+        scheduleTypeChart.options.plugins.tooltip.bodyColor = theme.tooltipBody;
+        scheduleTypeChart.update('none');
+    }
+
+    if (weeklyChart) {
+        weeklyChart.options.scales.x.ticks.color = theme.text;
+        weeklyChart.options.scales.x.grid.color = theme.grid;
+        weeklyChart.options.scales.y.ticks.color = theme.text;
+        weeklyChart.options.scales.y.grid.color = theme.grid;
+        weeklyChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+        weeklyChart.options.plugins.tooltip.titleColor = theme.tooltipTitle;
+        weeklyChart.options.plugins.tooltip.bodyColor = theme.tooltipBody;
+        weeklyChart.update('none');
+    }
+
+    if (facultyChart) {
+        facultyChart.options.scales.x.ticks.color = theme.text;
+        facultyChart.options.scales.x.grid.color = theme.grid;
+        facultyChart.options.scales.y.ticks.color = theme.text;
+        facultyChart.options.scales.y.grid.color = theme.grid;
+        facultyChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+        facultyChart.options.plugins.tooltip.titleColor = theme.tooltipTitle;
+        facultyChart.options.plugins.tooltip.bodyColor = theme.tooltipBody;
+        facultyChart.update('none');
+    }
+
+    if (roomChart) {
+        roomChart.options.scales.x.ticks.color = theme.text;
+        roomChart.options.scales.x.grid.color = theme.grid;
+        roomChart.options.scales.y.ticks.color = theme.text;
+        roomChart.options.scales.y.grid.color = theme.grid;
+        roomChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+        roomChart.options.plugins.tooltip.titleColor = theme.tooltipTitle;
+        roomChart.options.plugins.tooltip.bodyColor = theme.tooltipBody;
+        roomChart.update('none');
+    }
+
+}
+
+function setupChartThemeObserver() {
+    const target = document.documentElement;
+    if (!target || typeof MutationObserver === 'undefined') return;
+
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                applyChartTheme();
+                break;
+            }
+        }
+    });
+
+    observer.observe(target, { attributes: true, attributeFilter: ['class'] });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    applyChartTheme();
+    setupChartThemeObserver();
+});
+
+function initializeCharts() {
+    const chartTheme = getReportChartTheme();
+
+    // Schedule Type Distribution (Doughnut)
+    const scheduleTypeCtx = document.getElementById('scheduleTypeChart').getContext('2d');
+    scheduleTypeChart = new Chart(scheduleTypeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Lectures', 'Laboratories', 'Exams'],
+            datasets: [{
+                data: [{{ stats.lecture_count }}, {{ stats.lab_count }}, {{ stats.total_exam_schedules }}],
+                backgroundColor: ['#3B82F6', '#10B981', '#EF4444'],
+                borderWidth: 2,
+                borderColor: chartTheme.doughnutBorder
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: { size: 12 },
+                        color: chartTheme.text
+                    }
+                },
+                tooltip: {
+                    backgroundColor: chartTheme.tooltipBg,
+                    titleColor: chartTheme.tooltipTitle,
+                    bodyColor: chartTheme.tooltipBody
+                }
+            }
+        }
+    });
+
+    // Weekly Distribution (Bar)
+    const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+    const dayOrder = {{ operation_days|default(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])|tojson }};
+    const weeklyData = {{ stats.schedule_by_day|tojson }};
+    const orderedDays = dayOrder.filter(day => day in weeklyData);
+    const orderedCounts = orderedDays.map(day => weeklyData[day]);
+    
+    weeklyChart = new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+            labels: orderedDays,
+            datasets: [{
+                label: 'Schedules',
+                data: orderedCounts,
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderColor: 'rgb(99, 102, 241)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    ticks: { color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: chartTheme.tooltipBg,
+                    titleColor: chartTheme.tooltipTitle,
+                    bodyColor: chartTheme.tooltipBody
+                }
+            }
+        }
+    });
+
+    // Faculty Workload (Horizontal Bar)
+    const facultyCtx = document.getElementById('facultyChart').getContext('2d');
+    const topFaculty = {{ stats.faculty_workloads[:10]|tojson }};
+    facultyChart = new Chart(facultyCtx, {
+        type: 'bar',
+        data: {
+            labels: topFaculty.map(f => f.name.length > 20 ? f.name.substring(0, 20) + '...' : f.name),
+            datasets: [{
+                label: 'Total Units',
+                data: topFaculty.map(f => f.total_units),
+                backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                borderColor: 'rgb(34, 197, 94)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                },
+                y: {
+                    ticks: { color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: chartTheme.tooltipBg,
+                    titleColor: chartTheme.tooltipTitle,
+                    bodyColor: chartTheme.tooltipBody
+                }
+            }
+        }
+    });
+
+    // Room Utilization (Horizontal Bar)
+    const roomCtx = document.getElementById('roomChart').getContext('2d');
+    const topRooms = {{ stats.room_utilizations[:10]|tojson }};
+    roomChart = new Chart(roomCtx, {
+        type: 'bar',
+        data: {
+            labels: topRooms.map(r => r.room + ' (' + r.building + ')'),
+            datasets: [{
+                label: 'Total Usage',
+                data: topRooms.map(r => r.total_usage),
+                backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                borderColor: 'rgb(249, 115, 22)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                },
+                y: {
+                    ticks: { color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: chartTheme.tooltipBg,
+                    titleColor: chartTheme.tooltipTitle,
+                    bodyColor: chartTheme.tooltipBody
+                }
+            }
+        }
+    });
+}
+
+function applyFilters() {
+    const program = document.getElementById('filter-program').value;
+    const params = new URLSearchParams();
+    if (program) params.append('program', program);
+    params.append('include', 'counts,faculty,rooms,weekly,completion');
+    
+    fetch('/reports/api/filtered-data?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            updateStatCards(data.stats);
+            updateCharts(data.stats);
+        })
+        .catch(error => console.error('Error fetching filtered data:', error));
+}
+
+function updateStatCards(stats) {
+    const statCards = document.querySelectorAll('.stat-card p.text-2xl.font-bold');
+    if (statCards[0]) statCards[0].textContent = stats.total_schedules;
+    if (statCards[1]) statCards[1].textContent = stats.total_exam_schedules;
+    if (statCards[2]) statCards[2].textContent = stats.total_faculty;
+    if (statCards[3]) statCards[3].textContent = stats.total_sections;
+    
+    const allStatCards = document.querySelectorAll('.stat-card');
+    if (allStatCards[0]) {
+        const lecBadge = allStatCards[0].querySelector('.bg-blue-50');
+        const labBadge = allStatCards[0].querySelector('.bg-purple-50');
+        if (lecBadge) lecBadge.textContent = stats.lecture_count + ' Lec';
+        if (labBadge) labBadge.textContent = stats.lab_count + ' Lab';
+    }
+    
+    // Update progress bars
+    const roomUtilPercent = stats.total_rooms > 0 ? (stats.rooms_in_use / stats.total_rooms * 100) : 0;
+    const facultyEngagePercent = stats.total_faculty > 0 ? (stats.faculty_with_schedules / stats.total_faculty * 100) : 0;
+    const progressBars = document.querySelectorAll('.progress-bar');
+    if (progressBars[0]) progressBars[0].style.width = roomUtilPercent + '%';
+    if (progressBars[1]) progressBars[1].style.width = facultyEngagePercent + '%';
+    
+    const lecLabCounts = document.querySelectorAll('.pt-3 .text-xl');
+    if (lecLabCounts[0]) lecLabCounts[0].textContent = stats.lecture_count;
+    if (lecLabCounts[1]) lecLabCounts[1].textContent = stats.lab_count;
+}
+
+function updateCharts(stats) {
+    scheduleTypeChart.data.datasets[0].data = [stats.lecture_count, stats.lab_count, stats.total_exam_schedules];
+    scheduleTypeChart.update();
+    
+    const dayOrderUpdate = {{ operation_days|default(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])|tojson }};
+    const days = dayOrderUpdate.filter(day => day in stats.schedule_by_day);
+    const counts = days.map(day => stats.schedule_by_day[day]);
+    weeklyChart.data.labels = days;
+    weeklyChart.data.datasets[0].data = counts;
+    weeklyChart.update();
+    
+    const topFaculty = stats.faculty_workloads.slice(0, 10);
+    facultyChart.data.labels = topFaculty.map(f => f.name.length > 20 ? f.name.substring(0, 20) + '...' : f.name);
+    facultyChart.data.datasets[0].data = topFaculty.map(f => f.total_units);
+    facultyChart.update();
+    
+    const topRooms = stats.room_utilizations.slice(0, 10);
+    roomChart.data.labels = topRooms.map(r => r.room + ' (' + r.building + ')');
+    roomChart.data.datasets[0].data = topRooms.map(r => r.total_usage);
+    roomChart.update();
+}
+
+// Export functions
+function toggleExportMenu() {
+    document.getElementById('export-menu').classList.toggle('hidden');
+}
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('export-dropdown');
+    const menu = document.getElementById('export-menu');
+    if (dropdown && menu && !dropdown.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+
+function exportExcel() {
+    document.getElementById('export-menu').classList.add('hidden');
+    const departmentFilter = document.getElementById('filter-program').value;
+    let exportUrl = '/reports/export/excel';
+    if (departmentFilter) exportUrl += '?program=' + departmentFilter;
+    window.location.href = exportUrl;
+}
+
+function exportPDF() {
+    document.getElementById('export-menu').classList.add('hidden');
+    const departmentFilter = document.getElementById('filter-program').value;
+    let exportUrl = '/reports/export/pdf';
+    if (departmentFilter) exportUrl += '?program=' + departmentFilter;
+    window.location.href = exportUrl;
+}
+
+// AI Modal Functions
+let aiSummaryAbortController = null;
+
+function openAIModal() {
+    document.getElementById('ai-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    generateAISummary();
+}
+
+function closeAIModal() {
+    if (aiSummaryAbortController) {
+        aiSummaryAbortController.abort();
+        aiSummaryAbortController = null;
+    }
+    document.getElementById('ai-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function generateAISummary() {
+    const loading = document.getElementById('modal-ai-loading');
+    const content = document.getElementById('modal-ai-content');
+    const error = document.getElementById('modal-ai-error');
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    const regenerateIcon = document.getElementById('regenerate-icon');
+    const regenerateSpinner = document.getElementById('regenerate-spinner');
+    const regenerateText = document.getElementById('regenerate-text');
+    
+    if (aiSummaryAbortController) aiSummaryAbortController.abort();
+    aiSummaryAbortController = new AbortController();
+    
+    content.classList.add('hidden');
+    error.classList.add('hidden');
+    loading.classList.remove('hidden');
+    
+    if (regenerateBtn) {
+        regenerateBtn.disabled = true;
+        regenerateBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        regenerateIcon.classList.add('hidden');
+        regenerateSpinner.classList.remove('hidden');
+        regenerateText.textContent = 'Generating...';
+    }
+    
+    const departmentSelect = document.getElementById('filter-program');
+    const program = departmentSelect.value;
+    const scopeElement = document.getElementById('ai-modal-scope');
+    
+    if (program) {
+        let departmentName;
+        if (departmentSelect.tagName === 'INPUT') {
+            const badge = document.querySelector('.bg-blue-50.border-blue-200');
+            departmentName = badge ? badge.textContent.trim() : 'Selected Program';
+        } else if (departmentSelect.selectedOptions && departmentSelect.selectedOptions[0]) {
+            departmentName = departmentSelect.selectedOptions[0].text;
+        } else {
+            departmentName = 'Selected Program';
+        }
+        scopeElement.textContent = 'Analysis for ' + departmentName;
+    } else {
+        scopeElement.textContent = 'Analysis for All Programs';
+    }
+    
+    const params = new URLSearchParams();
+    if (program) params.append('program', program);
+    
+    fetch('/reports/api/ai-summary?' + params.toString(), { signal: aiSummaryAbortController.signal })
+        .then(response => response.json())
+        .then(data => {
+            aiSummaryAbortController = null;
+            loading.classList.add('hidden');
+            
+            if (regenerateBtn) {
+                regenerateBtn.disabled = false;
+                regenerateBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                regenerateIcon.classList.remove('hidden');
+                regenerateSpinner.classList.add('hidden');
+                regenerateText.textContent = 'Regenerate';
+            }
+            
+            if (data.error && !data.summary) {
+                error.classList.remove('hidden');
+                document.getElementById('modal-ai-error-message').textContent = data.error || 'AI summary is not available.';
+            } else {
+                content.classList.remove('hidden');
+                if (data.metrics) updateAIMetricsDashboard(data.metrics);
+                document.getElementById('modal-ai-summary-text').textContent = data.summary;
+                
+                const insightsContainer = document.getElementById('modal-ai-insights-container');
+                const insightsList = document.getElementById('modal-ai-insights-list');
+                if (data.insights && data.insights.length > 0) {
+                    insightsContainer.classList.remove('hidden');
+                    insightsList.innerHTML = '';
+                    data.insights.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'flex items-start gap-2 text-sm';
+                        
+                        // Handle both object format {text, severity} and plain string (backward compat)
+                        const isObj = typeof item === 'object' && item.text;
+                        const text = isObj ? item.text : item;
+                        const severity = isObj ? (item.severity || 'info') : 'info';
+                        
+                        const severityConfig = {
+                            critical: { badge: 'CRITICAL', badgeCls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/60', iconCls: 'text-red-500', borderCls: 'border-l-red-400 dark:border-l-red-500' },
+                            warning: { badge: 'WARNING', badgeCls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/60', iconCls: 'text-amber-500', borderCls: 'border-l-amber-400 dark:border-l-amber-500' },
+                            info: { badge: 'INFO', badgeCls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700/60', iconCls: 'text-blue-500', borderCls: 'border-l-blue-400 dark:border-l-blue-500' }
+                        };
+                        const cfg = severityConfig[severity] || severityConfig.info;
+                        
+                        li.className = 'flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300 border-l-2 pl-3 py-1 ' + cfg.borderCls;
+                        li.innerHTML = '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 mt-0.5 ' + cfg.badgeCls + '">' + cfg.badge + '</span><span class="flex-1 leading-relaxed">' + escapeHtml(text) + '</span>';
+                        insightsList.appendChild(li);
+                    });
+                } else {
+                    insightsContainer.classList.add('hidden');
+                }
+                
+                const recommendationsContainer = document.getElementById('modal-ai-recommendations-container');
+                const recommendationsList = document.getElementById('modal-ai-recommendations-list');
+                if (data.recommendations && data.recommendations.length > 0) {
+                    recommendationsContainer.classList.remove('hidden');
+                    recommendationsList.innerHTML = '';
+                    data.recommendations.forEach(item => {
+                        const li = document.createElement('li');
+                        
+                        const isObj = typeof item === 'object' && item.text;
+                        const text = isObj ? item.text : item;
+                        const priority = isObj ? (item.priority || 'medium') : 'medium';
+                        
+                        const priorityConfig = {
+                            high: { badge: 'HIGH', badgeCls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/60', borderCls: 'border-l-red-400 dark:border-l-red-500' },
+                            medium: { badge: 'MEDIUM', badgeCls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/60', borderCls: 'border-l-amber-400 dark:border-l-amber-500' },
+                            low: { badge: 'LOW', badgeCls: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600', borderCls: 'border-l-gray-300 dark:border-l-gray-600' }
+                        };
+                        const cfg = priorityConfig[priority] || priorityConfig.medium;
+                        
+                        li.className = 'flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300 border-l-2 pl-3 py-1 ' + cfg.borderCls;
+                        li.innerHTML = '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 mt-0.5 ' + cfg.badgeCls + '">' + cfg.badge + '</span><span class="flex-1 leading-relaxed">' + escapeHtml(text) + '</span>';
+                        recommendationsList.appendChild(li);
+                    });
+                } else {
+                    recommendationsContainer.classList.add('hidden');
+                }
+            }
+        })
+        .catch(err => {
+            aiSummaryAbortController = null;
+            if (err.name === 'AbortError') return;
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+            if (regenerateBtn) {
+                regenerateBtn.disabled = false;
+                regenerateBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                regenerateIcon.classList.remove('hidden');
+                regenerateSpinner.classList.add('hidden');
+                regenerateText.textContent = 'Regenerate';
+            }
+            document.getElementById('modal-ai-error-message').textContent = 'An unexpected error occurred while generating the AI summary.';
+        });
+}
+
+function updateAIMetricsDashboard(metrics) {
+    if (metrics.schedule_progress) {
+        const sp = metrics.schedule_progress;
+        document.getElementById('metric-schedule-pct').textContent = sp.percentage + '%';
+        document.getElementById('metric-schedule-detail').textContent = sp.scheduled + '/' + sp.total + ' subjects';
+        document.getElementById('metric-schedule-bar').style.width = Math.min(sp.percentage, 100) + '%';
+    }
+    if (metrics.faculty_load) {
+        const fl = metrics.faculty_load;
+        document.getElementById('metric-faculty-pct').textContent = fl.avg_utilization + '%';
+        document.getElementById('metric-faculty-detail').textContent = fl.assigned + '/' + fl.total_faculty + ' faculty assigned';
+        const statusEl = document.getElementById('metric-faculty-status');
+        if (fl.overloaded > 0) {
+            statusEl.textContent = fl.overloaded + ' overloaded';
+            statusEl.className = 'text-xs px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium';
+        } else if (fl.warning > 0) {
+            statusEl.textContent = fl.warning + ' warning';
+            statusEl.className = 'text-xs px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium';
+        } else {
+            statusEl.textContent = '✓ Balanced';
+            statusEl.className = 'text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium';
+        }
+    }
+    if (metrics.unassigned_faculty) {
+        const uf = metrics.unassigned_faculty;
+        document.getElementById('metric-unassigned-count').textContent = uf.count;
+        const depts = Object.entries(uf.by_department || {}).map(([dept, count]) => dept + ': ' + count).slice(0, 2).join(', ');
+        document.getElementById('metric-unassigned-dept').textContent = depts || '';
+        const previewNames = (uf.preview || []).map(f => f.name).slice(0, 3).join(', ');
+        const previewEl = document.getElementById('metric-unassigned-preview');
+        if (previewNames && uf.count > 0) {
+            previewEl.textContent = previewNames + (uf.count > 3 ? '...' : '');
+        } else {
+            previewEl.textContent = uf.count === 0 ? 'All faculty assigned' : '';
+        }
+    }
+    if (metrics.unused_rooms) {
+        const ur = metrics.unused_rooms;
+        document.getElementById('metric-unused-count').textContent = ur.count;
+        const types = Object.entries(ur.by_type || {}).map(([type, count]) => type + ': ' + count).join(', ');
+        document.getElementById('metric-unused-types').textContent = types || '';
+        const previewRooms = (ur.preview || []).map(r => r.room || r.name).slice(0, 3).join(', ');
+        const previewEl = document.getElementById('metric-unused-preview');
+        if (previewRooms && ur.count > 0) {
+            previewEl.textContent = previewRooms + (ur.count > 3 ? '...' : '');
+        } else {
+            previewEl.textContent = ur.count === 0 ? 'All rooms in use' : '';
+        }
+    }
+    if (metrics.room_utilization) {
+        const ru = metrics.room_utilization;
+        document.getElementById('metric-room-pct').textContent = ru.avg_percentage + '%';
+        document.getElementById('metric-room-hours').textContent = ru.total_hours + ' hrs used';
+        document.getElementById('metric-room-active').textContent = ru.rooms_in_use + '/' + ru.total_rooms + ' rooms active';
+        const buildingsEl = document.getElementById('metric-room-buildings');
+        buildingsEl.innerHTML = '';
+        const buildings = Object.entries(ru.by_building || {});
+        if (buildings.length > 0) {
+            buildings.slice(0, 4).forEach(([bldg, data]) => {
+                const pct = data.utilization_pct || 0;
+                const colorClass = pct >= 50 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : pct >= 25 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+                const badge = document.createElement('span');
+                badge.className = 'text-xs px-2 py-1 rounded-full ' + colorClass + ' font-medium';
+                badge.textContent = bldg + ': ' + pct + '%';
+                buildingsEl.appendChild(badge);
+            });
+        }
+    }
+}
+
+// Escape HTML to prevent XSS when rendering AI text
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Detail Modal Functions
+function openUnassignedFacultyModal() {
+    document.getElementById('unassigned-faculty-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeUnassignedFacultyModal() {
+    document.getElementById('unassigned-faculty-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+function openUnusedRoomsModal() {
+    document.getElementById('unused-rooms-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeUnusedRoomsModal() {
+    document.getElementById('unused-rooms-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+function openRoomUtilizationModal() {
+    document.getElementById('room-utilization-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeRoomUtilizationModal() {
+    document.getElementById('room-utilization-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+</script>
+{% endblock %}

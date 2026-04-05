@@ -1,0 +1,291 @@
+<!-- Batch Schedule Builder - Inline Panel (replaces form content when active) -->
+<div id="batchBuilderPanel" class="form-tab-panel hidden flex-1 overflow-hidden flex flex-col">
+    <div class="flex-1 overflow-hidden flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+
+        <!-- Header Bar -->
+        <div class="flex-shrink-0">
+            <div class="flex items-center justify-between p-3 sm:p-4 border-b border-violet-100 dark:border-gray-700 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white leading-tight">Batch Schedule Builder</h2>
+                        <p id="autoScheduleSectionName" class="text-xs text-violet-600 dark:text-violet-400 truncate">Section: --</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="batchInlineViewToggle" class="hidden batch-view-toggle-wrap">
+                        <button type="button" id="batchViewTable" onclick="switchBatchView('table')" class="batch-view-toggle-btn batch-view-toggle-btn-active">
+                            <svg class="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                            Table
+                        </button>
+                        <button type="button" id="batchViewCalendar" onclick="switchBatchView('calendar')" class="batch-view-toggle-btn batch-view-toggle-btn-inactive">
+                            <svg class="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Calendar
+                        </button>
+                    </div>
+                    <button type="button" id="batchAddSubjectBtn" onclick="openAddSubjectDropdown()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-violet-700 bg-white border border-violet-200 rounded-lg hover:bg-violet-50 dark:text-violet-300 dark:bg-violet-900/30 dark:border-violet-700 dark:hover:bg-violet-900/50 transition-colors shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        Add Subject
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step Indicator -->
+            <div id="batchStepIndicator" class="px-4 sm:px-5 py-2.5 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div class="flex items-center justify-center gap-0">
+                    <div class="batch-step flex items-center gap-2" data-step="1">
+                        <div class="batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-violet-600 text-white shadow-sm ring-2 ring-violet-200 dark:ring-violet-800">1</div>
+                        <div class="hidden sm:block">
+                            <span class="batch-step-label block text-[11px] font-semibold text-violet-700 dark:text-violet-300 leading-tight">Configure</span>
+                            <span class="text-[9px] text-gray-500 dark:text-gray-400 leading-tight">Pick curriculum &amp; building</span>
+                        </div>
+                    </div>
+                    <div class="batch-step-line w-10 sm:w-16 h-0.5 bg-gray-200 dark:bg-gray-600 mx-2 rounded-full transition-all duration-500"></div>
+                    <div class="batch-step flex items-center gap-2" data-step="2">
+                        <div class="batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500">2</div>
+                        <div class="hidden sm:block">
+                            <span class="batch-step-label block text-[11px] font-medium text-gray-500 dark:text-gray-400 leading-tight">Review &amp; Edit</span>
+                            <span class="text-[9px] text-gray-500 dark:text-gray-400 leading-tight">Adjust faculty, time &amp; room</span>
+                        </div>
+                    </div>
+                    <div class="batch-step-line w-10 sm:w-16 h-0.5 bg-gray-200 dark:bg-gray-600 mx-2 rounded-full transition-all duration-500"></div>
+                    <div class="batch-step flex items-center gap-2" data-step="3">
+                        <div class="batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500">3</div>
+                        <div class="hidden sm:block">
+                            <span class="batch-step-label block text-[11px] font-medium text-gray-500 dark:text-gray-400 leading-tight">Save</span>
+                            <span class="text-[9px] text-gray-500 dark:text-gray-400 leading-tight">Confirm &amp; publish</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: none !important;">
+            <div id="autoScheduleStats" class="hidden">
+                <p id="batchSummaryLine"></p>
+                <div id="batchProgressBar">
+                    <div id="batchProgressPlaced"></div>
+                    <div id="batchProgressExisting"></div>
+                    <div id="batchProgressUnplaceable"></div>
+                </div>
+                <span id="autoStatScheduled">0</span>
+                <span id="autoStatExisting">0</span>
+                <span id="autoStatUnplaceableWrap" class="hidden"><span id="autoStatUnplaceable">0</span></span>
+                <span id="autoStatTotal">0</span>
+                <span id="batchConflictBadge" class="hidden"><span id="batchConflictCount">0</span></span>
+                <span id="batchWarningBadge" class="hidden"><span id="batchWarningCount">0</span></span>
+                <span id="batchAllClearBadge" class="hidden"></span>
+                <span id="batchCheckingBadge" class="hidden"></span>
+            </div>
+            <div id="autoScheduleAllDone" class="hidden"></div>
+        </div>
+
+        <!-- Add Subject Dropdown -->
+        <div id="batchAddSubjectPanel" class="hidden px-4 sm:px-5 py-2.5 bg-violet-50/80 dark:bg-violet-900/20 border-b border-violet-100 dark:border-violet-800/30 flex-shrink-0 transition-all">
+            <div class="flex items-center gap-2">
+                <select id="batchSubjectSelect" class="flex-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:border-violet-400 focus:ring-1 focus:ring-violet-200 dark:focus:border-violet-500 dark:focus:ring-violet-800">
+                    <option value="">Select a subject to add...</option>
+                </select>
+                <button type="button" onclick="addSelectedSubject()" class="batch-action-btn batch-action-btn-primary-violet">Add</button>
+                <button type="button" onclick="closeAddSubjectDropdown()" class="batch-action-btn batch-action-btn-secondary">Cancel</button>
+                <button type="button" onclick="openSubjectBrowser('batch')" class="batch-icon-btn batch-icon-btn-violet" title="Browse all subjects">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 pb-4 flex flex-col">
+
+            <!-- Step 1: Curriculum Selection -->
+            <div id="batchCurriculumStep" class="max-w-md mx-auto">
+                <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-600 p-5 space-y-4">
+                    <div class="flex items-center gap-3 mb-1">
+                        <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Configure Batch</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Select curriculum and building preference (mode is selected automatically)</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="batchCurriculumSelect" class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Curriculum</label>
+                        <select id="batchCurriculumSelect" class="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-800 transition-colors">
+                            <option value="">Loading curricula...</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label for="batchBuildingSelect" class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide flex items-center gap-1">
+                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                Building <span class="text-[10px] text-gray-400 font-normal normal-case">(opt.)</span>
+                            </label>
+                            <select id="batchBuildingSelect" onchange="onBatchBuildingChange(this.value)" class="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-800 transition-colors">
+                                <option value="">All Buildings</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" id="batchCurriculumConfirmBtn" onclick="confirmBatchCurriculum()" disabled
+                            class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        Load Subjects
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="autoScheduleLoading" class="hidden flex flex-col items-center justify-center py-16">
+                <div class="relative w-14 h-14 mb-4">
+                    <div class="absolute inset-0 rounded-full border-[3px] border-violet-100 dark:border-violet-800"></div>
+                    <div class="absolute inset-0 rounded-full border-[3px] border-violet-500 dark:border-violet-400 border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-2 rounded-full border-[3px] border-purple-200 dark:border-purple-800 border-b-transparent animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                </div>
+                <p id="autoScheduleLoadingTitle" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Building schedule preview...</p>
+                <p id="autoScheduleLoadingHint" class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Finding optimal time slots and rooms</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="autoScheduleError" class="hidden flex flex-col items-center justify-center py-16">
+                <div class="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mb-4 ring-4 ring-red-100 dark:ring-red-900/20">
+                    <svg class="w-7 h-7 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-semibold text-red-700 dark:text-red-400">Unable to build schedule</p>
+                <p id="autoScheduleErrorMsg" class="text-[11px] text-red-500/80 dark:text-red-400 mt-1.5 max-w-sm text-center"></p>
+                <button type="button" onclick="confirmBatchCurriculum()" class="mt-4 px-4 py-2 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors inline-flex items-center gap-1.5">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Retry
+                </button>
+            </div>
+
+            <!-- Proposed Schedules -->
+            <div id="autoScheduleResults" class="hidden flex-1 min-h-0 flex flex-col">
+
+                <!-- TABLE VIEW -->
+                <div id="batchTableView" class="flex-1 min-h-0">
+                <div class="h-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <table class="w-full min-w-[1120px] text-xs">
+                        <thead>
+                            <tr class="bg-violet-50/80 dark:bg-violet-900/20 text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-violet-100 dark:border-gray-700">
+                                <th class="px-3 py-2.5 text-center font-semibold w-8" title="Status">Status</th>
+                                <th class="px-3 py-2.5 text-center font-medium w-7 text-gray-400 dark:text-gray-500">#</th>
+                                <th class="px-3 py-2.5 text-left font-semibold">Subject</th>
+                                <th class="px-3 py-2.5 text-left font-semibold w-[68px]">Type</th>
+                                <th class="px-3 py-2.5 text-left font-semibold min-w-[170px]">Faculty</th>
+                                <th class="px-3 py-2.5 text-left font-semibold w-[76px]">Day</th>
+                                <th class="px-3 py-2.5 text-left font-semibold min-w-[180px]">Time</th>
+                                <th class="px-3 py-2.5 text-left font-semibold min-w-[140px]">Room</th>
+                                <th class="px-3 py-2.5 text-center font-medium w-8">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="autoScheduleTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                            <!-- Empty State shown before rows load -->
+                            <tr id="batchEmptyState">
+                                <td colspan="9" class="py-10 text-center">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <svg class="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                        <p class="text-[11px] font-medium text-gray-400 dark:text-gray-500">No subjects yet</p>
+                                        <p class="text-[10px] text-gray-400 dark:text-gray-500">Click <strong class="text-violet-500">Load Subjects</strong> above to auto-generate your schedule</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+
+                <!-- CALENDAR VIEW -->
+                <div id="batchCalendarView" class="hidden flex-1 min-h-0">
+                    <div class="week-calendar-container border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm" style="height: 100%;">
+                        <div class="week-calendar-header" style="grid-template-columns: 56px repeat(7, 1fr);">
+                            <div class="week-time-header"></div>
+                            <div class="week-day-header" data-day="Monday"><span class="day-abbrev">Mon</span><span class="day-full hidden sm:inline">Monday</span></div>
+                            <div class="week-day-header" data-day="Tuesday"><span class="day-abbrev">Tue</span><span class="day-full hidden sm:inline">Tuesday</span></div>
+                            <div class="week-day-header" data-day="Wednesday"><span class="day-abbrev">Wed</span><span class="day-full hidden sm:inline">Wednesday</span></div>
+                            <div class="week-day-header" data-day="Thursday"><span class="day-abbrev">Thu</span><span class="day-full hidden sm:inline">Thursday</span></div>
+                            <div class="week-day-header" data-day="Friday"><span class="day-abbrev">Fri</span><span class="day-full hidden sm:inline">Friday</span></div>
+                            <div class="week-day-header" data-day="Saturday"><span class="day-abbrev">Sat</span><span class="day-full hidden sm:inline">Saturday</span></div>
+                            <div class="week-day-header" data-day="Sunday"><span class="day-abbrev">Sun</span><span class="day-full hidden sm:inline">Sunday</span></div>
+                        </div>
+                        <div id="batchCalendarBody" class="week-calendar-body" style="grid-template-columns: 56px repeat(7, 1fr);">
+                        </div>
+                        <div class="week-calendar-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot bg-blue-500"></span>
+                                <span>Lecture</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot bg-green-500"></span>
+                                <span>Lab</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot bg-amber-500"></span>
+                                <span>Unassigned Faculty</span>
+                            </div>
+                            <div class="legend-item legend-hint">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Click on event to edit in table view
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unplaceable Items -->
+                <div id="autoScheduleUnplaceableSection" class="hidden mt-4">
+                    <details class="group">
+                        <summary class="text-xs font-semibold text-red-600 cursor-pointer flex items-center gap-1.5 select-none px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30">
+                            <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            Could Not Place
+                        </summary>
+                        <div class="space-y-1.5 mt-2" id="autoScheduleUnplaceableList"></div>
+                        <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400">
+                            <span class="inline-flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg px-2.5 py-1">
+                                <svg class="w-3 h-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01"></path></svg>
+                                Tip: Check <b>Room Management</b> to add more rooms or adjust room types.
+                            </span>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div id="autoScheduleFooter" class="hidden border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50/80 dark:bg-gray-800/90 rounded-b-xl">
+            <div id="batchFooterBanner" class="hidden px-4 sm:px-5 py-1.5 text-[11px] font-medium flex items-center gap-2 border-b border-gray-100 dark:border-gray-700">
+                <span id="batchFooterBannerIcon"></span>
+                <span id="batchFooterBannerText"></span>
+            </div>
+            <div class="px-4 sm:px-5 py-3">
+                <div class="min-h-[1.25rem] mb-2">
+                    <p id="batchValidationMsg" class="text-[11px] text-amber-600 dark:text-amber-400 hidden flex items-center gap-1.5 min-w-0">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"></path></svg>
+                        <span id="batchValidationText" class="truncate">Assign faculty to all rows before saving</span>
+                    </p>
+                </div>
+                <div class="flex items-center justify-end gap-2">
+                    <button type="button" onclick="exitBatchMode()" class="px-3.5 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" id="autoScheduleConfirmBtn" onclick="confirmBatchSchedule()" disabled
+                            class="px-5 py-2 text-xs font-semibold text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Save &amp; Finish
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -28,6 +28,17 @@ class Building(db.Model):
         """Count of rooms in this building"""
         return self.rooms.count()
     
+    @property
+    def sorted_rooms(self):
+        """Return rooms sorted by type (Lecture first, then Lab, then others) then alphabetically by room number"""
+        from sqlalchemy import case
+        type_order = case(
+            (Room.room_type == 'Lecture', 1),
+            (Room.room_type == 'Laboratory', 2),
+            else_=3
+        )
+        return self.rooms.order_by(type_order, Room.room_number).all()
+    
     def archive(self, user_id=None, reason=None):
         """Mark building as archived instead of deleting."""
         self.is_archived = True
@@ -70,6 +81,7 @@ class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     building_id = db.Column(db.Integer, db.ForeignKey('buildings.id', ondelete='CASCADE'), nullable=False)
     room_number = db.Column(db.String(50), nullable=False)
+    room_type = db.Column(db.String(50), nullable=False, default='Lecture')
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, onupdate=db.func.current_timestamp())

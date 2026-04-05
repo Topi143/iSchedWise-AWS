@@ -9,7 +9,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-def test_password_reset_setup():
+def run_password_reset_setup_check():
     print("=" * 60)
     print("PASSWORD RESET FEATURE - SETUP VERIFICATION")
     print("=" * 60)
@@ -165,9 +165,13 @@ def test_password_reset_setup():
     return True
 
 
+def test_password_reset_setup():
+    assert run_password_reset_setup_check() is True
+
+
 if __name__ == '__main__':
     try:
-        test_password_reset_setup()
+        run_password_reset_setup_check()
     except Exception as e:
         print(f"\n❌ Error running tests: {e}")
         import traceback

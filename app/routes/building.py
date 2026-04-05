@@ -1,13 +1,13 @@
 """
 Building and Room management routes
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Building, Room
 from app.models.schedule import Schedule
 from app.models.exam_schedule import ExamSchedule
-from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive, log_unarchive
+from app.utils.activity_logger import log_create, log_edit, log_delete, log_archive
 
 building_bp = Blueprint('building', __name__, url_prefix='/buildings')
 
@@ -257,6 +257,7 @@ def add_room():
     try:
         building_id = request.form.get('building_id', '').strip()
         room_number = request.form.get('room_number', '').strip()
+        room_type = request.form.get('room_type', 'Lecture').strip()
         
         # Validation
         if not all([building_id, room_number]):
@@ -282,6 +283,7 @@ def add_room():
         new_room = Room(
             building_id=building_id,
             room_number=room_number,
+            room_type=room_type,
             is_available=True
         )
         
@@ -289,11 +291,11 @@ def add_room():
         db.session.flush()
         
         # Log activity
-        log_create('room', new_room.id, room_number, {'building': building.building_name})
+        log_create('room', new_room.id, room_number, {'building': building.building_name, 'type': room_type})
         
         db.session.commit()
         
-        flash(f'Room "{room_number}" has been successfully added to {building.building_name}!', 'success')
+        flash(f'Room "{room_number}" ({room_type}) has been successfully added to {building.building_name}!', 'success')
         return redirect(url_for('building.index', building_id=building_id))
         
     except Exception as e:
@@ -309,6 +311,7 @@ def edit_room():
     try:
         room_id = request.form.get('room_id', '').strip()
         room_number = request.form.get('room_number', '').strip()
+        room_type = request.form.get('room_type', 'Lecture').strip()
         
         if not all([room_id, room_number]):
             flash('Please fill in all required fields.', 'error')
@@ -334,13 +337,18 @@ def edit_room():
         
         # Track changes
         old_room_number = room.room_number
+        old_room_type = room.room_type
         details = {'building': room.building.building_name}
         
         if room_number != old_room_number:
             details['room_number'] = f'{old_room_number} → {room_number}'
         
+        if room_type != old_room_type:
+            details['room_type'] = f'{old_room_type} → {room_type}'
+        
         # Update room
         room.room_number = room_number
+        room.room_type = room_type
         
         # Log activity with changes
         log_edit('room', room.id, room_number, details)
@@ -354,6 +362,37 @@ def edit_room():
         db.session.rollback()
         flash(f'An error occurred while updating the room: {str(e)}', 'error')
         return redirect(url_for('building.index'))
+
+
+@building_bp.route('/room/bulk-delete', methods=['POST'])
+@login_required
+def bulk_delete_rooms():
+    """Bulk delete rooms"""
+    try:
+        data = request.get_json()
+        ids = data.get('ids', [])
+        if not ids:
+            return jsonify({'success': False, 'message': 'No rooms selected'}), 400
+
+        rooms = Room.query.filter(Room.id.in_(ids)).all()
+        if not rooms:
+            return jsonify({'success': False, 'message': 'No rooms found'}), 404
+
+        building_id = rooms[0].building_id
+        count = 0
+        for room in rooms:
+            # Delete associated schedules
+            Schedule.query.filter_by(room_id=room.id).delete()
+            ExamSchedule.query.filter_by(room_id=room.id).delete()
+            log_delete('room', room.id, room.room_number, {'building': room.building.building_name})
+            db.session.delete(room)
+            count += 1
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Successfully deleted {count} room{"s" if count != 1 else ""}', 'affected': count, 'building_id': building_id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @building_bp.route('/room/delete', methods=['POST'])

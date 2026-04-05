@@ -1,0 +1,8 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+department_name,"Full college name, e.g., 'College of Computing Studies'",varchar,255,,Yes,--
+department_code,"Short abbreviation code, e.g., 'CCS'",varchar,50,,No,NULL
+secretary_name,Name of the college dean's secretary,varchar,100,,No,NULL
+is_active,Whether the department is active in the system,tinyint(1),--,,Yes,1
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

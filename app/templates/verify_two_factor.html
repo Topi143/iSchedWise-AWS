@@ -1,0 +1,155 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Email Verification - {{ app_brand_name }}{% endblock %}
+
+{% block left_panel_content %}
+<div class="text-center mb-8 max-w-lg welcome-text">
+    <h1 class="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3">Secure Sign-In</h1>
+    <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold mb-4">{{ app_brand_name }}</h2>
+    <div class="w-20 h-0.5 bg-white bg-opacity-80 mx-auto mb-6"></div>
+    <p class="text-base lg:text-lg xl:text-xl opacity-90 leading-relaxed">
+        Enter the verification code sent to your email
+    </p>
+</div>
+{% endblock %}
+
+{% block right_panel_content %}
+<div class="w-full max-w-md auth-card px-2 sm:px-0">
+    <div class="text-center mb-5 sm:mb-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3">
+            <i class="fas fa-shield-alt text-blue-600 dark:text-blue-400 text-lg sm:text-xl"></i>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white mb-1.5">Email Verification</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Complete sign in for {{ masked_identifier }}</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="mb-4">
+                {% for category, message in messages %}
+                    <div class="flash-message {% if category == 'error' %}flash-error bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400{% elif category == 'success' %}flash-success bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400{% else %}flash-info bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400{% endif %} p-3 rounded-md mb-2">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-400{% elif category == 'success' %}fa-check-circle text-green-400{% else %}fa-info-circle text-blue-400{% endif %} text-sm"></i>
+                            </div>
+                            <div class="ml-2">
+                                <p class="text-xs sm:text-sm {% if category == 'error' %}text-red-700 dark:text-red-300{% elif category == 'success' %}text-green-700 dark:text-green-300{% else %}text-blue-700 dark:text-blue-300{% endif %}">{{ message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.verify_two_factor') }}" class="space-y-4">
+        {{ form.hidden_tag() }}
+
+        <div class="form-field">
+            <label for="code" class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Verification Code
+            </label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-key text-gray-400 dark:text-gray-500 text-sm"></i>
+                </div>
+                <input type="text"
+                       id="code"
+                       name="code"
+                       required
+                       maxlength="6"
+                       minlength="6"
+                       inputmode="numeric"
+                       autocomplete="one-time-code"
+                       pattern="[0-9]{6}"
+                       class="input-glow w-full pl-8 sm:pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                       placeholder="Enter 6-digit code">
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use the 6-digit code from your email. Codes expire in {{ otp_expiry_minutes }} minute{% if otp_expiry_minutes != 1 %}s{% endif %}.</p>
+        </div>
+
+        <div>
+            <button type="submit"
+                    class="btn-ripple w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                <span class="btn-text flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Verify and Continue
+                </span>
+            </button>
+        </div>
+
+        <div class="text-center pt-1">
+            <a href="{{ url_for('auth.login') }}" class="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors duration-200">
+                Back to sign in
+            </a>
+        </div>
+    </form>
+
+    <div class="text-center mt-4">
+        <form method="POST" action="{{ url_for('auth.resend_two_factor_code') }}" id="resend-form">
+            {{ resend_form.hidden_tag() }}
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Did not get the email code? Click
+                <button type="submit"
+                        id="resend-link"
+                        aria-label="Resend verification code"
+                        data-initial-cooldown="{{ resend_available_in_seconds or 0 }}"
+                        {% if resend_available_in_seconds and resend_available_in_seconds > 0 %}disabled{% endif %}
+                        class="inline p-0 m-0 border-0 bg-transparent text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 underline font-medium align-baseline focus:outline-none focus:ring-0 disabled:opacity-60 disabled:cursor-not-allowed">
+                    here
+                </button>
+                to resend.
+            </p>
+
+            <p id="resend-cooldown"
+               class="text-xs text-gray-500 dark:text-gray-400 mt-1 {% if not (resend_available_in_seconds and resend_available_in_seconds > 0) %}hidden{% endif %}">
+                Resend available in <span id="resend-cooldown-seconds">{{ resend_available_in_seconds or 0 }}</span>s
+            </p>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+window.addEventListener('load', function() {
+    const codeInput = document.getElementById('code');
+    const resendLink = document.getElementById('resend-link');
+    const resendCooldown = document.getElementById('resend-cooldown');
+    const resendCooldownSeconds = document.getElementById('resend-cooldown-seconds');
+
+    if (codeInput) {
+        codeInput.focus();
+        codeInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        });
+    }
+
+    if (resendLink) {
+        let remainingSeconds = parseInt(resendLink.dataset.initialCooldown || '0', 10);
+        if (Number.isNaN(remainingSeconds) || remainingSeconds < 0) {
+            remainingSeconds = 0;
+        }
+
+        if (remainingSeconds > 0 && resendCooldown && resendCooldownSeconds) {
+            resendLink.disabled = true;
+            resendCooldown.classList.remove('hidden');
+
+            const countdownTimer = window.setInterval(function() {
+                remainingSeconds = Math.max(0, remainingSeconds - 1);
+                resendCooldownSeconds.textContent = String(remainingSeconds);
+
+                if (remainingSeconds <= 0) {
+                    window.clearInterval(countdownTimer);
+                    resendLink.disabled = false;
+                    resendCooldown.classList.add('hidden');
+                }
+            }, 1000);
+        } else {
+            resendLink.disabled = false;
+            if (resendCooldown) {
+                resendCooldown.classList.add('hidden');
+            }
+        }
+    }
+});
+{% endblock %}

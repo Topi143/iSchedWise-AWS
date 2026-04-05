@@ -1,0 +1,14 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+curriculum_code,"Unique code, e.g., 'BSCS-2025-2026'",varchar,50,,Yes,--
+curriculum_name,Display name for the curriculum,varchar,200,,Yes,--
+program_id,Program this curriculum belongs to,int,11,FK -> programs.id,Yes,--
+degree_program,Full degree program name as stated in this curriculum,varchar,200,,Yes,--
+is_active,Whether the curriculum is currently active,tinyint(1),--,,Yes,1
+is_archived,Soft-delete flag following the standard archive pattern,tinyint(1),--,,Yes,0
+archived_by,ID of the user who archived this curriculum,int,11,FK -> users.id,No,NULL
+archived_at,Timestamp when the curriculum was archived,datetime,--,,No,NULL
+archive_reason,Reason provided for archiving the curriculum,varchar,255,,No,NULL
+created_by,ID of the user who created this curriculum,int,11,FK -> users.id,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

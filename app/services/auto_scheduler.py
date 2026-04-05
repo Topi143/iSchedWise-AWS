@@ -49,6 +49,43 @@ class AutoScheduler:
         desc = (course_description or '').lower()
         return any(kw in desc for kw in ['physical education', 'sports', 'fitness'])
 
+    def _serialize_existing_schedules(self, section_id: int, settings) -> List[Dict]:
+        """Serialize already saved schedules for preview UI display rows."""
+        from app.models.schedule import Schedule as ScheduleModel
+
+        existing_rows = ScheduleModel.query.filter_by(
+            section_id=section_id,
+            academic_year=settings.academic_year,
+            semester=settings.semester,
+            is_active=True
+        ).all()
+
+        existing_list = []
+        for sc in existing_rows:
+            subj = sc.subject
+            fac = sc.faculty
+            rm = sc.room
+            existing_list.append({
+                'schedule_id': sc.id,
+                'subject_id': sc.subject_id,
+                'subject_code': subj.subject_code if subj else '',
+                'course_description': subj.course_description if subj else '',
+                'lec_units': float(subj.lec_units or 0) if subj else 0,
+                'lab_units': float(subj.lab_units or 0) if subj else 0,
+                'schedule_type': sc.schedule_type or 'lecture',
+                'day_of_week': sc.day_of_week,
+                'start_time': sc.start_time.strftime('%H:%M') if sc.start_time else '',
+                'end_time': sc.end_time.strftime('%H:%M') if sc.end_time else '',
+                'faculty_id': sc.faculty_id,
+                'faculty_name': f"{fac.last_name}, {fac.first_name}" if fac else '',
+                'room_id': sc.room_id,
+                'room_name': rm.room_number if rm else '',
+                'building_name': rm.building.building_name if rm and rm.building else '',
+                'is_existing': True
+            })
+
+        return existing_list
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -75,19 +112,18 @@ class AutoScheduler:
         if not subjects:
             return {'success': False, 'error': 'No subjects found for this section\'s curriculum and semester'}
 
-        already_scheduled_ids = self._get_already_scheduled_subject_ids(
+        already_scheduled_keys = self._get_already_scheduled_subject_keys(
             section_id, settings.academic_year, settings.semester
         )
 
-        if include_all:
-            target_subjects = subjects
-        else:
-            target_subjects = [s for s in subjects if s.id not in already_scheduled_ids]
-
         subject_list = []
-        for s in target_subjects:
+        for s in subjects:
             slots = self._determine_slots_needed(s)
             for slot in slots:
+                slot_type = self._normalize_schedule_type(slot.get('type'))
+                key = (s.id, slot_type)
+                if not include_all and key in already_scheduled_keys:
+                    continue
                 subject_list.append({
                     'subject_id': s.id,
                     'subject_code': s.subject_code,
@@ -95,7 +131,7 @@ class AutoScheduler:
                     'lec_units': float(s.lec_units or 0),
                     'lab_units': float(s.lab_units or 0),
                     'total_units': float(s.total_units or 0),
-                    'schedule_type': slot['type'],
+                    'schedule_type': slot_type,
                     'duration_minutes': slot['duration']
                 })
 
@@ -103,7 +139,7 @@ class AutoScheduler:
             'success': True,
             'subjects': subject_list,
             'all_subjects_count': len(subjects),
-            'already_scheduled': len(already_scheduled_ids),
+            'already_scheduled': len(already_scheduled_keys),
             'section': {'id': section.id, 'name': section.full_section_name}
         }
 
@@ -147,44 +183,35 @@ class AutoScheduler:
             }
 
         # 2. Get already-scheduled subjects
-        already_scheduled_ids = self._get_already_scheduled_subject_ids(
+        already_scheduled_keys = self._get_already_scheduled_subject_keys(
             section_id, settings.academic_year, settings.semester
         )
+        existing_list = self._serialize_existing_schedules(section_id, settings)
 
-        # 3. Filter to unscheduled only
-        unscheduled = [s for s in subjects if s.id not in already_scheduled_ids]
+        # 3. Build slot-level unscheduled map so lecture/lab are accounted independently
+        slot_overrides = {}
+        unscheduled = []
+        total_slots = 0
+
+        for subject in subjects:
+            slots = self._determine_slots_needed(subject)
+            total_slots += len(slots)
+
+            pending_slots = []
+            for slot in slots:
+                slot_type = self._normalize_schedule_type(slot.get('type'))
+                key = (subject.id, slot_type)
+                if key not in already_scheduled_keys:
+                    pending_slots.append({
+                        'type': slot_type,
+                        'duration': slot.get('duration')
+                    })
+
+            if pending_slots:
+                unscheduled.append(subject)
+                slot_overrides[subject.id] = pending_slots
+
         if not unscheduled:
-            # Build existing schedule data so frontend can display them
-            from app.models.schedule import Schedule as ScheduleModel
-            existing_rows = ScheduleModel.query.filter_by(
-                section_id=section_id,
-                academic_year=settings.academic_year,
-                semester=settings.semester,
-                is_active=True
-            ).all()
-            existing_list = []
-            for sc in existing_rows:
-                subj = sc.subject
-                fac = sc.faculty
-                rm = sc.room
-                existing_list.append({
-                    'schedule_id': sc.id,
-                    'subject_id': sc.subject_id,
-                    'subject_code': subj.subject_code if subj else '',
-                    'course_description': subj.course_description if subj else '',
-                    'lec_units': float(subj.lec_units or 0) if subj else 0,
-                    'lab_units': float(subj.lab_units or 0) if subj else 0,
-                    'schedule_type': sc.schedule_type or 'lecture',
-                    'day_of_week': sc.day_of_week,
-                    'start_time': sc.start_time.strftime('%H:%M') if sc.start_time else '',
-                    'end_time': sc.end_time.strftime('%H:%M') if sc.end_time else '',
-                    'faculty_id': sc.faculty_id,
-                    'faculty_name': f"{fac.last_name}, {fac.first_name}" if fac else '',
-                    'room_id': sc.room_id,
-                    'room_name': rm.room_number if rm else '',
-                    'building_name': rm.building.building_name if rm and rm.building else '',
-                    'is_existing': True
-                })
             return {
                 'success': True,
                 'proposed': [],
@@ -192,8 +219,8 @@ class AutoScheduler:
                 'existing': existing_list,
                 'section': {'id': section.id, 'name': section.full_section_name},
                 'stats': {
-                    'total_subjects': len(subjects),
-                    'already_scheduled': len(already_scheduled_ids),
+                    'total_subjects': total_slots,
+                    'already_scheduled': len(already_scheduled_keys),
                     'scheduled': 0,
                     'unplaceable': 0
                 },
@@ -214,6 +241,7 @@ class AutoScheduler:
         # 6. Run greedy placement WITHOUT faculty
         proposed, unplaceable = self._greedy_place_batch(
             section, unscheduled, existing_schedules, settings,
+            slot_overrides=slot_overrides,
             preferred_building_id=preferred_building_id
         )
 
@@ -221,10 +249,11 @@ class AutoScheduler:
             'success': True,
             'proposed': proposed,
             'unplaceable': unplaceable,
+            'existing': existing_list,
             'section': {'id': section.id, 'name': section.full_section_name},
             'stats': {
-                'total_subjects': len(subjects),
-                'already_scheduled': len(already_scheduled_ids),
+                'total_subjects': total_slots,
+                'already_scheduled': len(already_scheduled_keys),
                 'scheduled': len(proposed),
                 'unplaceable': len(unplaceable)
             }
@@ -267,6 +296,7 @@ class AutoScheduler:
         ).all())
 
         created = 0
+        updated = 0
         errors = []
         row_errors = []
         tentative = []  # Track already-confirmed rows for intra-batch conflicts
@@ -287,6 +317,42 @@ class AutoScheduler:
                 faculty_id = item.get('faculty_id')
                 faculty_name = item.get('faculty_name', '')
                 room_id = item.get('room_id')
+                schedule_id = item.get('schedule_id')
+
+                existing_target = None
+                if schedule_id not in (None, '', 'null', 'undefined'):
+                    try:
+                        schedule_id = int(schedule_id)
+                    except (TypeError, ValueError):
+                        row_errors.append({
+                            'row': idx + 1,
+                            'subject_code': subject_code,
+                            'error': 'schedule_id is invalid'
+                        })
+                        continue
+
+                    existing_target = Schedule.query.filter_by(
+                        id=schedule_id,
+                        is_active=True,
+                        academic_year=settings.academic_year,
+                        semester=settings.semester
+                    ).first()
+
+                    if not existing_target:
+                        row_errors.append({
+                            'row': idx + 1,
+                            'subject_code': subject_code,
+                            'error': f'Schedule #{schedule_id} not found for active term'
+                        })
+                        continue
+
+                    if int(existing_target.section_id) != int(section_id):
+                        row_errors.append({
+                            'row': idx + 1,
+                            'subject_code': subject_code,
+                            'error': 'Schedule does not belong to this section'
+                        })
+                        continue
 
                 try:
                     resolved_faculty_id, _ = self._resolve_faculty_for_confirm(
@@ -305,7 +371,11 @@ class AutoScheduler:
                 faculty_id = resolved_faculty_id
                 room_id = int(room_id) if room_id else None
 
-                all_schedules = existing_schedules + tentative
+                schedules_for_conflict = existing_schedules
+                if existing_target:
+                    schedules_for_conflict = [sc for sc in existing_schedules if int(getattr(sc, 'id', 0) or 0) != int(existing_target.id)]
+
+                all_schedules = schedules_for_conflict + tentative
                 conflict_found = False
 
                 # Check section conflict
@@ -338,43 +408,57 @@ class AutoScheduler:
                 if conflict_found:
                     continue
 
-                # Check for soft-deleted schedule in the same slot (uk_section_slot)
-                existing_inactive = Schedule.query.filter_by(
-                    section_id=section_id,
-                    day_of_week=day,
-                    start_time=start_time_val,
-                    end_time=end_time_val,
-                    academic_year=settings.academic_year,
-                    semester=settings.semester,
-                    is_active=False
-                ).first()
-
-                if existing_inactive:
-                    # Reactivate and update the soft-deleted schedule
-                    existing_inactive.subject_id = item['subject_id']
-                    existing_inactive.faculty_id = faculty_id
-                    existing_inactive.room_id = room_id
-                    existing_inactive.schedule_type = item.get('schedule_type', 'lecture')
-                    existing_inactive.is_active = True
-                    existing_inactive.version = (existing_inactive.version or 1) + 1
-                    existing_inactive.updated_at = datetime.utcnow()
+                if existing_target:
+                    existing_target.subject_id = item['subject_id']
+                    existing_target.faculty_id = faculty_id
+                    existing_target.room_id = room_id
+                    existing_target.day_of_week = day
+                    existing_target.start_time = start_time_val
+                    existing_target.end_time = end_time_val
+                    existing_target.schedule_type = item.get('schedule_type', 'lecture')
+                    existing_target.version = (existing_target.version or 1) + 1
+                    existing_target.updated_at = datetime.utcnow()
                     db.session.flush()
+                    existing_schedules = [sc for sc in existing_schedules if int(getattr(sc, 'id', 0) or 0) != int(existing_target.id)]
+                    updated += 1
                 else:
-                    new_schedule = Schedule(
+                    # Check for soft-deleted schedule in the same slot (uk_section_slot)
+                    existing_inactive = Schedule.query.filter_by(
                         section_id=section_id,
-                        subject_id=item['subject_id'],
-                        faculty_id=faculty_id,
-                        room_id=room_id,
                         day_of_week=day,
                         start_time=start_time_val,
                         end_time=end_time_val,
-                        schedule_type=item.get('schedule_type', 'lecture'),
                         academic_year=settings.academic_year,
                         semester=settings.semester,
-                        is_active=True
-                    )
-                    db.session.add(new_schedule)
-                    db.session.flush()
+                        is_active=False
+                    ).first()
+
+                    if existing_inactive:
+                        # Reactivate and update the soft-deleted schedule
+                        existing_inactive.subject_id = item['subject_id']
+                        existing_inactive.faculty_id = faculty_id
+                        existing_inactive.room_id = room_id
+                        existing_inactive.schedule_type = item.get('schedule_type', 'lecture')
+                        existing_inactive.is_active = True
+                        existing_inactive.version = (existing_inactive.version or 1) + 1
+                        existing_inactive.updated_at = datetime.utcnow()
+                        db.session.flush()
+                    else:
+                        new_schedule = Schedule(
+                            section_id=section_id,
+                            subject_id=item['subject_id'],
+                            faculty_id=faculty_id,
+                            room_id=room_id,
+                            day_of_week=day,
+                            start_time=start_time_val,
+                            end_time=end_time_val,
+                            schedule_type=item.get('schedule_type', 'lecture'),
+                            academic_year=settings.academic_year,
+                            semester=settings.semester,
+                            is_active=True
+                        )
+                        db.session.add(new_schedule)
+                        db.session.flush()
 
                 # Track as tentative for intra-batch conflict detection
                 mock = self._create_mock_schedule(item, section_id, settings)
@@ -400,7 +484,8 @@ class AutoScheduler:
                         )
                         db.session.add(assignment)
 
-                created += 1
+                if not existing_target:
+                    created += 1
 
             except Exception as e:
                 errors.append({
@@ -409,7 +494,7 @@ class AutoScheduler:
                     'error': str(e)
                 })
 
-        if created > 0:
+        if (created + updated) > 0:
             try:
                 # Log activity
                 if user_id:
@@ -419,7 +504,7 @@ class AutoScheduler:
                         action='batch_schedule',
                         entity_type='schedule',
                         entity_id=section_id,
-                        details=f'Batch created {created} schedule(s) for section',
+                        details=f'Batch schedule save: created {created}, updated {updated} for section',
                         ip_address='system'
                     )
                     db.session.add(log)
@@ -432,8 +517,9 @@ class AutoScheduler:
             db.session.rollback()
 
         return {
-            'success': created > 0,
+            'success': (created + updated) > 0,
             'created': created,
+            'updated': updated,
             'errors': errors,
             'row_errors': row_errors
         }
@@ -554,7 +640,17 @@ class AutoScheduler:
     def _get_already_scheduled_subject_ids(self, section_id: int,
                                             academic_year: str,
                                             semester: str) -> set:
-        """Get subject IDs that already have schedules for this section."""
+        """Get subject IDs that already have schedules for this section.
+
+        Kept for backward compatibility with legacy callers.
+        """
+        keys = self._get_already_scheduled_subject_keys(section_id, academic_year, semester)
+        return {subject_id for subject_id, _ in keys}
+
+    def _get_already_scheduled_subject_keys(self, section_id: int,
+                                            academic_year: str,
+                                            semester: str) -> set:
+        """Get (subject_id, schedule_type) keys already scheduled for this section."""
         from app.models.schedule import Schedule
 
         existing = Schedule.query.filter_by(
@@ -562,9 +658,17 @@ class AutoScheduler:
             academic_year=academic_year,
             semester=semester,
             is_active=True
-        ).with_entities(Schedule.subject_id).distinct().all()
+        ).with_entities(Schedule.subject_id, Schedule.schedule_type).distinct().all()
 
-        return {row[0] for row in existing}
+        return {(row[0], self._normalize_schedule_type(row[1])) for row in existing}
+
+    @staticmethod
+    def _normalize_schedule_type(schedule_type: Optional[str]) -> str:
+        """Normalize empty/unknown schedule_type values to lecture for stable keying."""
+        normalized = (schedule_type or 'lecture').strip().lower()
+        if normalized not in ('lecture', 'lab'):
+            return 'lecture'
+        return normalized
 
     def _parse_semester_number(self, semester_str: str) -> int:
         """Parse semester string to number. '1st Semester' → 1, '2nd Semester' → 2, etc."""
@@ -642,7 +746,8 @@ class AutoScheduler:
     # ------------------------------------------------------------------
 
     def _greedy_place_batch(self, section, subjects: List, existing_schedules: List,
-                            settings, preferred_building_id: int = None) -> Tuple[List[Dict], List[Dict]]:
+                            settings, slot_overrides: Optional[Dict[int, List[Dict]]] = None,
+                            preferred_building_id: int = None) -> Tuple[List[Dict], List[Dict]]:
         """
         Greedy heuristic for batch mode: finds day×time×room combos only.
         Faculty is left blank (null) for the user to pick in the UI.
@@ -664,14 +769,15 @@ class AutoScheduler:
         all_rooms = Room.query.filter_by(is_available=True).join(Room.building).all()
 
         for subject in subjects:
-            slots_needed = self._determine_slots_needed(subject)
-            has_both = len(slots_needed) == 2 and slots_needed[0]['type'] == 'lecture' and slots_needed[1]['type'] == 'lab'
+            slots_needed = slot_overrides.get(subject.id) if slot_overrides else self._determine_slots_needed(subject)
+            slot_types = {self._normalize_schedule_type(slot.get('type')) for slot in slots_needed}
+            has_both = slot_types == {'lecture', 'lab'}
 
             # Track the placed lecture so lab can follow on the same day
             placed_lecture = None
 
             for slot_info in slots_needed:
-                schedule_type = slot_info['type']
+                schedule_type = self._normalize_schedule_type(slot_info.get('type'))
                 duration_minutes = slot_info['duration']
 
                 matching_rooms = self._get_matching_rooms(subject, schedule_type, all_rooms)
@@ -978,7 +1084,8 @@ class AutoScheduler:
     def get_available_rooms(self, day: str, start_time_str: str, end_time_str: str,
                             schedule_type: str = 'lecture',
                             subject_id: int = None,
-                            preferred_building_id: int = None) -> List[Dict]:
+                            preferred_building_id: int = None,
+                            exclude_schedule_id: int = None) -> List[Dict]:
         """
         Get rooms available (no conflicts) at a specific day/time slot.
         Used by the batch builder to refresh room options when user edits time.
@@ -1017,25 +1124,57 @@ class AutoScheduler:
         else:
             matching_rooms = self._get_matching_rooms_by_type(schedule_type, all_rooms)
 
-        available = []
+        rooms_with_status = []
         for room in matching_rooms:
-            if not self._has_entity_conflict(room.id, 'room_id', day, start_time_val, end_time_val, existing_schedules):
-                available.append({
-                    'id': room.id,
-                    'room_number': room.room_number,
-                    'room_type': room.room_type,
-                    'building_id': room.building_id,
-                    'building_name': room.building.building_name if room.building else '',
-                    'capacity': room.capacity if hasattr(room, 'capacity') else None
-                })
+            conflict_schedule = None
+            for sc in existing_schedules:
+                if exclude_schedule_id and getattr(sc, 'id', None) == exclude_schedule_id:
+                    continue
+                if getattr(sc, 'room_id', None) == room.id and getattr(sc, 'day_of_week', None) == day:
+                    if self._times_overlap(start_time_val, end_time_val, sc.start_time, sc.end_time):
+                        conflict_schedule = sc
+                        break
+
+            section_name = ''
+            subject_code = ''
+            conflict_start = ''
+            conflict_end = ''
+            occupied_note = ''
+            if conflict_schedule:
+                if conflict_schedule.section:
+                    section_name = conflict_schedule.section.full_section_name or conflict_schedule.section.section_name or 'Unknown Section'
+                else:
+                    section_name = 'Unknown Section'
+                subject_code = conflict_schedule.subject.subject_code if conflict_schedule.subject else 'Unknown Subject'
+                conflict_start = conflict_schedule.start_time.strftime('%H:%M') if conflict_schedule.start_time else ''
+                conflict_end = conflict_schedule.end_time.strftime('%H:%M') if conflict_schedule.end_time else ''
+                occupied_note = f"Used by {section_name} ({subject_code})"
+
+            rooms_with_status.append({
+                'id': room.id,
+                'room_number': room.room_number,
+                'room_type': room.room_type,
+                'building_id': room.building_id,
+                'building_name': room.building.building_name if room.building else '',
+                'capacity': room.capacity if hasattr(room, 'capacity') else None,
+                'is_occupied': bool(conflict_schedule),
+                'occupied_note': occupied_note,
+                'occupied_by': {
+                    'section_name': section_name,
+                    'subject_code': subject_code,
+                    'day_of_week': conflict_schedule.day_of_week if conflict_schedule else '',
+                    'start_time': conflict_start,
+                    'end_time': conflict_end,
+                } if conflict_schedule else None
+            })
 
         # Sort: preferred building first, then by room_number
         if preferred_building_id:
-            available.sort(key=lambda r: (0 if r['building_id'] == preferred_building_id else 1, r['room_number']))
+            rooms_with_status.sort(key=lambda r: (0 if r['building_id'] == preferred_building_id else 1, r['is_occupied'], r['room_number']))
         else:
-            available.sort(key=lambda r: r['room_number'])
+            rooms_with_status.sort(key=lambda r: (r['is_occupied'], r['room_number']))
 
-        return available
+        return rooms_with_status
 
     def _get_matching_rooms_by_type(self, schedule_type: str, all_rooms: List) -> List:
         """Filter rooms by schedule type without subject context.
@@ -1765,6 +1904,7 @@ class AutoScheduler:
         ).all())
 
         created = 0
+        updated = 0
         skipped = 0  # Already-scheduled subjects (from previous partial save or re-confirm)
         errors = []
         row_errors = []
@@ -1778,6 +1918,31 @@ class AutoScheduler:
                 exam_date_str = item.get('exam_date')
                 start_time_str = item.get('start_time')
                 end_time_str = item.get('end_time')
+                exam_schedule_id = item.get('exam_schedule_id')
+
+                existing_target_exam = None
+                if exam_schedule_id not in (None, '', 'null', 'undefined'):
+                    try:
+                        exam_schedule_id = int(exam_schedule_id)
+                    except (TypeError, ValueError):
+                        row_errors.append({'row': idx + 1, 'subject_code': subject_code, 'error': 'exam_schedule_id is invalid'})
+                        continue
+
+                    existing_target_exam = ExamSchedule.query.filter_by(
+                        id=exam_schedule_id,
+                        is_active=True,
+                        academic_year=settings.academic_year,
+                        semester=settings.semester,
+                        exam_period=settings.exam_period
+                    ).first()
+
+                    if not existing_target_exam:
+                        row_errors.append({'row': idx + 1, 'subject_code': subject_code, 'error': f'Exam schedule #{exam_schedule_id} not found for active term'})
+                        continue
+
+                    if int(existing_target_exam.section_id) != int(section_id):
+                        row_errors.append({'row': idx + 1, 'subject_code': subject_code, 'error': 'Exam schedule does not belong to this section'})
+                        continue
 
                 # Validate required fields
                 if not faculty_id:
@@ -1803,14 +1968,18 @@ class AutoScheduler:
                     row_errors.append({'row': idx + 1, 'subject_code': subject_code, 'error': 'End time must be after start time'})
                     continue
 
-                all_exams = existing_exams + tentative
+                exams_for_conflict = existing_exams
+                if existing_target_exam:
+                    exams_for_conflict = [ex for ex in existing_exams if int(getattr(ex, 'id', 0) or 0) != int(existing_target_exam.id)]
+
+                all_exams = exams_for_conflict + tentative
                 conflict_found = False
                 item_schedule_type = item.get('schedule_type', 'lecture')
                 item_subject_id = int(item.get('subject_id', 0)) if item.get('subject_id') else None
 
                 # Duplicate check: same subject + same section + same schedule_type
-                # If already in DB, skip silently (handles retries after partial saves)
-                if item_subject_id:
+                # For update rows, allow keeping the same record identity.
+                if item_subject_id and not existing_target_exam:
                     for ex in all_exams:
                         ex_type = getattr(ex, 'schedule_type', 'lecture') or 'lecture'
                         ex_subject_id = int(ex.subject_id) if ex.subject_id else None
@@ -1858,45 +2027,59 @@ class AutoScheduler:
                     row_errors.append({'row': idx + 1, 'subject_code': subject_code, 'error': 'Subject is required'})
                     continue
 
-                # Check for soft-deleted exam in the same slot (uk_exam_section_slot)
-                existing_inactive_exam = ExamSchedule.query.filter_by(
-                    section_id=section_id,
-                    exam_date=exam_date,
-                    start_time=start_time_val,
-                    end_time=end_time_val,
-                    academic_year=settings.academic_year,
-                    semester=settings.semester,
-                    exam_period=settings.exam_period,
-                    is_active=False
-                ).first()
-
-                if existing_inactive_exam:
-                    # Reactivate and update the soft-deleted exam schedule
-                    existing_inactive_exam.subject_id = subject_id
-                    existing_inactive_exam.faculty_id = faculty_id
-                    existing_inactive_exam.room_id = room_id
-                    existing_inactive_exam.schedule_type = item.get('schedule_type', 'lecture')
-                    existing_inactive_exam.is_active = True
-                    existing_inactive_exam.version = (existing_inactive_exam.version or 1) + 1
-                    existing_inactive_exam.updated_at = datetime.utcnow()
+                if existing_target_exam:
+                    existing_target_exam.subject_id = subject_id
+                    existing_target_exam.faculty_id = faculty_id
+                    existing_target_exam.room_id = room_id
+                    existing_target_exam.exam_date = exam_date
+                    existing_target_exam.start_time = start_time_val
+                    existing_target_exam.end_time = end_time_val
+                    existing_target_exam.schedule_type = item.get('schedule_type', 'lecture')
+                    existing_target_exam.version = (existing_target_exam.version or 1) + 1
+                    existing_target_exam.updated_at = datetime.utcnow()
                     db.session.flush()
+                    existing_exams = [ex for ex in existing_exams if int(getattr(ex, 'id', 0) or 0) != int(existing_target_exam.id)]
+                    updated += 1
                 else:
-                    new_exam = ExamSchedule(
+                    # Check for soft-deleted exam in the same slot (uk_exam_section_slot)
+                    existing_inactive_exam = ExamSchedule.query.filter_by(
                         section_id=section_id,
-                        subject_id=subject_id,
-                        faculty_id=faculty_id,
-                        room_id=room_id,
                         exam_date=exam_date,
                         start_time=start_time_val,
                         end_time=end_time_val,
                         academic_year=settings.academic_year,
                         semester=settings.semester,
                         exam_period=settings.exam_period,
-                        schedule_type=item.get('schedule_type', 'lecture'),
-                        is_active=True
-                    )
-                    db.session.add(new_exam)
-                    db.session.flush()
+                        is_active=False
+                    ).first()
+
+                    if existing_inactive_exam:
+                        # Reactivate and update the soft-deleted exam schedule
+                        existing_inactive_exam.subject_id = subject_id
+                        existing_inactive_exam.faculty_id = faculty_id
+                        existing_inactive_exam.room_id = room_id
+                        existing_inactive_exam.schedule_type = item.get('schedule_type', 'lecture')
+                        existing_inactive_exam.is_active = True
+                        existing_inactive_exam.version = (existing_inactive_exam.version or 1) + 1
+                        existing_inactive_exam.updated_at = datetime.utcnow()
+                        db.session.flush()
+                    else:
+                        new_exam = ExamSchedule(
+                            section_id=section_id,
+                            subject_id=subject_id,
+                            faculty_id=faculty_id,
+                            room_id=room_id,
+                            exam_date=exam_date,
+                            start_time=start_time_val,
+                            end_time=end_time_val,
+                            academic_year=settings.academic_year,
+                            semester=settings.semester,
+                            exam_period=settings.exam_period,
+                            schedule_type=item.get('schedule_type', 'lecture'),
+                            is_active=True
+                        )
+                        db.session.add(new_exam)
+                        db.session.flush()
 
                 # Track as tentative for intra-batch detection
                 mock = self._create_mock_exam(item, section_id, settings)
@@ -1922,7 +2105,8 @@ class AutoScheduler:
                         )
                         db.session.add(assignment)
 
-                created += 1
+                if not existing_target_exam:
+                    created += 1
 
             except Exception as e:
                 errors.append({
@@ -1931,7 +2115,7 @@ class AutoScheduler:
                     'error': str(e)
                 })
 
-        if created > 0:
+        if (created + updated) > 0:
             try:
                 if user_id:
                     from app.models.activity_log import UserActivityLog
@@ -1940,7 +2124,7 @@ class AutoScheduler:
                         action='batch_exam_schedule',
                         entity_type='exam_schedule',
                         entity_id=section_id,
-                        details=f'Batch created {created} exam schedule(s) for section',
+                        details=f'Batch exam save: created {created}, updated {updated} for section',
                         ip_address='system'
                     )
                     db.session.add(log)
@@ -1952,8 +2136,9 @@ class AutoScheduler:
             db.session.rollback()
 
         result = {
-            'success': created > 0 or (skipped > 0 and len(row_errors) == 0 and len(errors) == 0),
+            'success': (created + updated) > 0 or (skipped > 0 and len(row_errors) == 0 and len(errors) == 0),
             'created': created,
+            'updated': updated,
             'skipped': skipped,
             'errors': errors,
             'row_errors': row_errors
@@ -2335,8 +2520,13 @@ class AutoScheduler:
         return mock
 
     def get_available_exam_rooms(self, exam_date_str: str, start_time_str: str,
-                                  end_time_str: str) -> List[Dict]:
-        """Get rooms available (no exam conflicts) at a specific date/time."""
+                                  end_time_str: str,
+                                  preferred_building_id: int = None) -> List[Dict]:
+        """Get rooms available (no exam conflicts) at a specific date/time.
+
+        Args:
+            preferred_building_id: If provided, rooms from this building are listed first.
+        """
         from app.models.building import Room
         from app.models.exam_schedule import ExamSchedule
         from app.models.settings import AcademicSettings
@@ -2358,16 +2548,52 @@ class AutoScheduler:
 
         all_rooms = Room.query.filter_by(is_available=True).join(Room.building).all()
 
-        available = []
+        rooms_with_status = []
         for room in all_rooms:
-            if not self._has_exam_entity_conflict(room.id, 'room_id', exam_date,
-                                                   start_time_val, end_time_val, existing_exams):
-                available.append({
-                    'id': room.id,
-                    'room_number': room.room_number,
-                    'room_type': room.room_type,
-                    'building_name': room.building.building_name if room.building else '',
-                    'capacity': room.capacity if hasattr(room, 'capacity') else None
-                })
+            conflict_exam = None
+            for ex in existing_exams:
+                if getattr(ex, 'room_id', None) == room.id and getattr(ex, 'exam_date', None) == exam_date:
+                    if self._times_overlap(start_time_val, end_time_val, ex.start_time, ex.end_time):
+                        conflict_exam = ex
+                        break
 
-        return available
+            section_name = ''
+            subject_code = ''
+            conflict_start = ''
+            conflict_end = ''
+            occupied_note = ''
+            if conflict_exam:
+                if conflict_exam.section:
+                    section_name = conflict_exam.section.full_section_name or conflict_exam.section.section_name or 'Unknown Section'
+                else:
+                    section_name = 'Unknown Section'
+                subject_code = conflict_exam.subject.subject_code if conflict_exam.subject else 'Unknown Subject'
+                conflict_start = conflict_exam.start_time.strftime('%H:%M') if conflict_exam.start_time else ''
+                conflict_end = conflict_exam.end_time.strftime('%H:%M') if conflict_exam.end_time else ''
+                occupied_note = f"Used by {section_name} ({subject_code})"
+
+            rooms_with_status.append({
+                'id': room.id,
+                'room_number': room.room_number,
+                'room_type': room.room_type,
+                'building_id': room.building_id,
+                'building_name': room.building.building_name if room.building else '',
+                'capacity': room.capacity if hasattr(room, 'capacity') else None,
+                'is_occupied': bool(conflict_exam),
+                'occupied_note': occupied_note,
+                'occupied_by': {
+                    'section_name': section_name,
+                    'subject_code': subject_code,
+                    'exam_date': conflict_exam.exam_date.strftime('%Y-%m-%d') if conflict_exam and conflict_exam.exam_date else '',
+                    'start_time': conflict_start,
+                    'end_time': conflict_end,
+                } if conflict_exam else None
+            })
+
+        # Sort: preferred building first, then by room_number.
+        if preferred_building_id:
+            rooms_with_status.sort(key=lambda r: (0 if r['building_id'] == preferred_building_id else 1, r['is_occupied'], r['room_number']))
+        else:
+            rooms_with_status.sort(key=lambda r: (r['is_occupied'], r['room_number']))
+
+        return rooms_with_status

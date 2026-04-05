@@ -1,0 +1,10 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+building_name,"Full name of the building, e.g., 'COMSCIE Building'",varchar,200,,Yes,--
+is_active,Whether the building is currently in use,tinyint(1),--,,Yes,1
+is_archived,Soft-delete flag following the standard archive pattern,tinyint(1),--,,Yes,0
+archived_by,ID of the user who archived this building,int,11,FK -> users.id,No,NULL
+archived_at,Timestamp when the building was archived,datetime,--,,No,NULL
+archive_reason,Reason provided for archiving the building,varchar,255,,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

@@ -1,0 +1,5 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+user_id,Dean user who has access to this program,int,11,FK -> users.id,Yes,--
+program_id,Program the Dean user is authorized to manage,int,11,FK -> programs.id,Yes,--
+created_at,Timestamp when this access grant was created,datetime,--,,Yes,current_timestamp()

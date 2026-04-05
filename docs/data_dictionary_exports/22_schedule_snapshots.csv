@@ -1,0 +1,13 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+snapshot_name,Human-readable name for this snapshot,varchar,100,,Yes,--
+academic_year,Academic year represented by the snapshot,varchar,20,,Yes,--
+semester,Semester represented by the snapshot,varchar,50,,Yes,--
+snapshot_scope,"Scope of snapshot, e.g., class/section/term",varchar,20,,Yes,--
+section_id,Related section for scoped backups; NULL for broader snapshots,int,11,FK -> sections.id,No,NULL
+schedule_data,Serialized schedule payload used for restore,longtext,--,,Yes,--
+schedule_count,Number of schedule records captured in schedule_data,int,11,,Yes,--
+snapshot_type,"Snapshot category (manual, auto_pre_clear, auto_pre_restore, etc.)",varchar,30,,Yes,--
+created_by,User who created the snapshot,int,11,FK -> users.id,No,NULL
+created_at,Timestamp when this snapshot was created,datetime,--,,Yes,--
+notes,Optional notes or restore context,text,--,,No,NULL

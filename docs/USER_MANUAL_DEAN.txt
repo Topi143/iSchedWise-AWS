@@ -1,0 +1,393 @@
+==============================================================================
+                    iSchedWise V4 - DEAN USER MANUAL
+==============================================================================
+
+Note: As a Dean, your view is filtered to show only the
+programs and departments assigned to you by the Admin.
+
+
+1. LOGIN PAGE
+Screenshot needed: Login Page
+
+Enter your username or email and password to sign in.
+Check "Remember me" to stay signed in across sessions.
+Click the eye icon to show or hide your password.
+If you forgot your password, click "Forgot Password?" to
+receive a reset link via email.
+
+
+2. FORGOT PASSWORD
+Screenshot needed: Forgot Password Page
+
+Enter your registered email address and click "Send Reset
+Link." You will receive an email with a link to reset your
+password. Follow the link and create a new password.
+
+
+3. FIRST LOGIN SETUP
+Screenshot needed: First Login Setup Page
+
+If your account was created by an admin and you are logging
+in for the first time, you will be asked to set up your
+account. Enter a valid email address and create a secure
+password (8-30 characters). Click "Complete Setup" to
+activate your account.
+
+
+4. DASHBOARD
+Screenshot needed: Dashboard Page (Dean view)
+
+The dashboard shows an overview of the system filtered to
+your assigned programs. You can see stat cards for class
+schedules, exam schedules, faculty workload, and room
+utilization with trend indicators compared to the previous
+semester. Quick action buttons appear based on current
+system status. Scroll down to view the weekly activity chart
+and recent activity log.
+
+
+5. PROGRAMS
+Screenshot needed: Programs Page (Dean view, showing only assigned programs)
+
+The Programs page shows only the programs assigned to you.
+The left panel lists your programs. Click a program to view
+its details on the right panel.
+
+View Program Details - See the program code, name,
+department, year levels, and sections.
+
+Manage Sections - View, add, edit, or remove sections within
+your assigned programs. Each section has a name and student
+count.
+
+Add Program - You can add new programs within your assigned
+department.
+
+Edit Program - Modify program details such as program code,
+name, and year levels.
+
+Toggle Status - Activate or deactivate a program.
+
+Archive Program - Archive a program with a reason. This will
+also archive its curricula and soft-delete its schedules.
+
+
+6. CURRICULUM
+Screenshot needed: Curriculum Page (Dean view)
+
+The Curriculum page shows curricula for your assigned
+programs only.
+
+View Curriculum - Expand a curriculum to see its year
+levels, semesters, and subjects.
+
+Manage Subjects - Add, edit, or delete subjects within
+semesters of your assigned curricula. Each subject has a
+code, name, units, lecture hours, and lab hours.
+
+Add Curriculum - Create a new curriculum for your assigned
+programs.
+
+Edit Curriculum - Modify curriculum details such as code,
+year levels, and semesters.
+
+Archive Curriculum - Archive a curriculum with a reason. It
+can be restored from the Archives page.
+
+
+7. FACULTIES
+Screenshot needed: Faculty Page (Dean view, filtered by department)
+
+The Faculty page shows only faculty in your assigned
+departments. The left panel lists faculty members filtered
+by your department.
+
+View Faculty Details - Click a faculty member to see their
+information. The detail panel has three tabs:
+  - Info Tab: Personal information and department
+  - Assignments Tab: Current semester subject assignments
+    with units per subject
+  - Schedule Tab: All schedules showing days, times, rooms,
+    and sections
+
+View Workload - The workload summary shows current load,
+maximum allowed units, utilization percentage, and a
+color-coded status (green for normal, yellow for warning,
+red for exceeded).
+
+Add Faculty - Add a new faculty member to your department.
+
+Edit Faculty - Modify personal info or department assignment.
+
+Archive Faculty - Archive with a reason. The faculty member
+can be restored from Archives.
+
+
+8. BUILDINGS
+Screenshot needed: Buildings Page
+
+The Buildings page shows all buildings and rooms available
+in the system.
+
+View Buildings - See the list of buildings and their rooms
+with room numbers and types.
+
+Add Building - Create a new building.
+
+Add Room - Add a room to a building with room number and
+type (Lecture, Lab, etc.).
+
+Edit - Modify building names or room details.
+
+Archive Building - Archive a building with a reason. This
+also archives all rooms and soft-deletes related schedules.
+
+
+9. SCHEDULES - CREATE NEW
+Screenshot needed: Schedule Create/Form Page
+
+Create new class or exam schedules for your assigned
+programs.
+
+Create Class Schedule - Select the section (from your
+assigned programs), subject, faculty member (shows workload
+percentage), room, day of the week, start time, end time,
+and schedule type. The system checks for conflicts:
+  - Section time conflicts
+  - Faculty double-booking
+  - Room double-booking
+
+Create Exam Schedule - Select the section, subject, faculty
+proctor, room, exam date (within the exam period), start
+time, and end time. The system validates date, time, and
+conflict constraints.
+
+
+10. SCHEDULES - CLASS VIEW
+Screenshot needed: Schedule Class View Page
+
+View class schedules organized by section. Select a program
+from the filter dropdown (shows only your assigned
+programs), then select a section.
+
+The schedule table shows subject code, faculty, room, day,
+start time, end time, and type.
+
+Edit Schedule - Click edit on any row to modify the schedule.
+
+Delete Schedule - Soft-delete a schedule.
+
+Export - Download schedules as Excel or PDF.
+
+
+11. SCHEDULES - FACULTY VIEW
+Screenshot needed: Schedule Faculty View Page
+
+View all courses assigned to a faculty member in the current
+semester. Select a department (your assigned departments)
+and then a faculty member.
+
+The detail panel shows the workload summary and a table of
+all schedules with subject code, section, day, time, and
+room.
+
+Export - Download as Excel or PDF.
+
+
+12. SCHEDULES - ROOM VIEW
+Screenshot needed: Schedule Room View Page
+
+View all classes scheduled in a room. Select a building and
+then a room.
+
+The detail panel shows room info, utilization summary, and
+a schedule table with all classes in that room.
+
+Export - Download as Excel or PDF.
+
+
+13. SCHEDULES - EXAM VIEW
+Screenshot needed: Schedule Exam View Page
+
+View exam schedules for the current exam period. Select a
+program (your assigned programs) and section.
+
+The table shows subject, section, date, start time, end
+time, room, and proctor.
+
+Add, edit, or delete exam schedules from this view.
+
+Export - Download as Excel or PDF.
+
+
+14. REPORTS - OVERVIEW
+Screenshot needed: Reports Overview Page (Dean view)
+
+The Reports Overview shows a summary dashboard filtered to
+your assigned programs. Stat cards display class schedules,
+exam schedules, faculty count, and room utilization. The
+Schedule Quality Index (SQI) provides a composite score.
+AI-powered insights offer recommendations based on your
+department data.
+
+
+15. REPORTS - FACULTY WORKLOAD
+Screenshot needed: Reports Faculty Workload Page
+
+View faculty workload for your assigned departments. Each
+faculty member is listed with units assigned, maximum
+allowed, utilization percentage, and status badge. A
+workload distribution chart and department breakdown are
+included.
+
+Export - Download as Excel or PDF.
+
+
+16. REPORTS - ROOMS
+Screenshot needed: Reports Rooms Page
+
+View room utilization metrics including hours occupied per
+day, percentage of available time, and class counts. A room
+heatmap shows busy times. Filter by building or room type.
+
+Export - Download as Excel or PDF.
+
+
+17. REPORTS - WEEKLY
+Screenshot needed: Reports Weekly Distribution Page
+
+View the distribution of classes across days of the week
+for your assigned programs. See classes per day, peak days,
+and balance analysis.
+
+Export - Download as Excel or PDF.
+
+
+18. REPORTS - COMPARE
+Screenshot needed: Reports Compare Page
+
+Compare schedule data between different semesters or
+academic years for your assigned programs. View side-by-side
+comparisons of key metrics.
+
+
+19. ARCHIVES - OVERVIEW
+Screenshot needed: Archives Overview Page
+
+View a dashboard with statistics on all archived items
+including charts by type and recent archive actions.
+
+
+20. ARCHIVES - SCHEDULES
+Screenshot needed: Archives Schedules Page
+
+View all archived class and exam schedules. Filter by
+academic year, semester, schedule type, section, faculty,
+room, or program.
+
+Restore - Click Restore to unarchive a schedule.
+
+Permanently Delete - Click Delete to permanently remove.
+
+Export - Download filtered results as Excel or PDF.
+
+
+21. ARCHIVES - CURRICULUM
+Screenshot needed: Archives Curriculum Page
+
+View archived curricula with program, code, date, and
+reason.
+
+Restore - Unarchive a curriculum.
+
+Permanently Delete - Remove permanently.
+
+
+22. ARCHIVES - PROGRAMS
+Screenshot needed: Archives Programs Page
+
+View archived programs with code, name, department, date,
+and reason.
+
+Restore - Unarchive a program.
+
+Permanently Delete - Remove permanently.
+
+
+23. ARCHIVES - FACULTY
+Screenshot needed: Archives Faculty Page
+
+View archived faculty with name, department, date, and
+reason.
+
+Restore - Reactivate a faculty member.
+
+Permanently Delete - Remove permanently.
+
+
+24. ARCHIVES - BUILDINGS
+Screenshot needed: Archives Buildings Page
+
+View archived buildings with name, room count, date, and
+reason.
+
+Restore - Unarchive a building and its rooms.
+
+Permanently Delete - Remove permanently.
+
+
+25. ACCOUNT (PROFILE)
+Screenshot needed: Account/Profile Page
+
+Edit Profile - Update your full name, email address, or
+username. Click Save to apply changes.
+
+Change Password - Enter your current password, then enter
+and confirm a new password (8-30 characters). Click "Change
+Password" to update.
+
+
+26. SETTINGS
+Screenshot needed: Settings Page
+
+View and configure system-wide parameters.
+
+Academic Settings - View or change the active academic year
+and semester.
+
+Schedule Time Settings - View the schedule start/end hours,
+lunch break times, and operation days.
+
+Exam Settings - View or configure exam period dates, hours,
+and duration limits.
+
+Faculty Load Settings - View the default faculty load limit
+and warning threshold.
+
+
+27. SIDEBAR NAVIGATION
+Screenshot needed: Sidebar (Dean view, showing available menu items)
+
+The sidebar is always visible on the left side. As a Dean,
+you can access:
+
+  Dashboard
+  Programs
+  Curriculum
+  Faculties
+  Buildings
+  Schedules (submenu: Create New, Class, Faculty, Room, Exam)
+  Reports (submenu: Overview, Faculty, Rooms, Weekly,
+           Compare)
+  Archives (submenu: Overview, Schedules, Curriculum,
+            Programs, Faculty, Buildings)
+  Account
+  Settings
+
+Note: The "Users" page and "Activity" report are not
+available to Dean accounts.
+
+At the bottom, toggle dark mode and adjust text size using
+the slider. Your preferences are saved automatically.
+
+==============================================================================

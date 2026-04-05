@@ -1,0 +1,1124 @@
+{% extends "base.html" %}
+
+{% block title %}Data Seed - iSchedWise{% endblock %}
+
+{% block extra_css %}
+<style>
+    .overflow-y-auto::-webkit-scrollbar { width: 4px; }
+    .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+    .overflow-y-auto::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.4); border-radius: 4px; }
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.6); }
+    @media (max-width: 1024px) { .admin-container { height: auto !important; min-height: auto !important; overflow: visible !important; } }
+
+    .dg-card {
+        background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem;
+        padding: 1rem 1.25rem; transition: all 0.15s;
+    }
+    .dark .dg-card { background: #1e293b; border-color: #334155; }
+
+    .entity-card {
+        border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem;
+        background: white; transition: all 0.2s;
+    }
+    .entity-card.disabled { opacity: 0.5; pointer-events: none; }
+    .dark .entity-card { background: #1e293b; border-color: #334155; }
+
+    .entity-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; cursor: pointer; transition: background 0.2s; }
+    .entity-toggle.on { background: #0ea5e9; }
+    .entity-toggle.off { background: #d1d5db; }
+    .dark .entity-toggle.off { background: #4b5563; }
+    .entity-toggle .knob { position: absolute; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: white; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .entity-toggle.on .knob  { left: 20px; }
+    .entity-toggle.off .knob { left: 2px; }
+
+    .slider-track { position: relative; width: 100%; height: 6px; border-radius: 3px; background: #e5e7eb; cursor: pointer; }
+    .dark .slider-track { background: #374151; }
+
+    .count-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.6875rem; font-weight: 500; }
+    .count-badge.exists { background: #fef3c7; color: #92400e; }
+    .count-badge.empty { background: #d1fae5; color: #065f46; }
+    .dark .count-badge.exists { background: #451a03; color: #fcd34d; }
+    .dark .count-badge.empty { background: #064e3b; color: #6ee7b7; }
+
+    .danger-card {
+        border: 1px solid #fecaca; border-radius: 0.75rem; background: #fff5f5; padding: 1rem 1.25rem;
+    }
+    .dark .danger-card { border-color: #7f1d1d; background: #1a0505; }
+
+    .cleanup-btn { padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none; }
+    .cleanup-btn-danger { background: #fee2e2; color: #991b1b; }
+    .cleanup-btn-danger:hover { background: #fecaca; }
+    .dark .cleanup-btn-danger { background: #450a0a; color: #fca5a5; }
+    .dark .cleanup-btn-danger:hover { background: #7f1d1d; }
+
+    .result-item { display: flex; align-items: center; justify-content: space-between; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.8125rem; }
+    .result-item:nth-child(odd) { background: #f8fafc; }
+    .dark .result-item:nth-child(odd) { background: #0f172a; }
+
+    .confirm-overlay {
+        position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.5);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .confirm-box {
+        background: white; border-radius: 0.75rem; padding: 1.5rem; width: 90%; max-width: 420px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .dark .confirm-box { background: #1e293b; }
+
+    .gen-progress {
+        height: 4px; border-radius: 2px; background: #e5e7eb; overflow: hidden; margin-top: 0.75rem;
+    }
+    .dark .gen-progress { background: #374151; }
+    .gen-progress-bar {
+        height: 100%; border-radius: 2px; background: #0ea5e9;
+        transition: width 0.3s; width: 0%;
+    }
+    .gen-progress-bar.complete { background: #22c55e; }
+    .gen-progress-bar.error { background: #ef4444; }
+
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Preset buttons */
+    .preset-btn {
+        padding: 0.375rem 0.875rem; border-radius: 0.5rem; font-size: 0.75rem;
+        font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1px solid #e5e7eb;
+        background: white; color: #6b7280;
+    }
+    .preset-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .preset-btn.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+    .dark .preset-btn { background: #1e293b; border-color: #334155; color: #9ca3af; }
+    .dark .preset-btn:hover { background: #334155; }
+    .dark .preset-btn.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+    /* Phase progress steps */
+    .phase-step {
+        display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.625rem;
+        border-radius: 0.375rem; font-size: 0.75rem; transition: all 0.2s;
+    }
+    .phase-step .phase-icon {
+        width: 18px; height: 18px; border-radius: 50%; display: flex;
+        align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .phase-step.pending .phase-icon { background: #e5e7eb; }
+    .phase-step.running .phase-icon { background: #dbeafe; }
+    .phase-step.done .phase-icon { background: #dcfce7; }
+    .phase-step.skipped .phase-icon { background: #f1f5f9; }
+    .dark .phase-step.pending .phase-icon { background: #374151; }
+    .dark .phase-step.running .phase-icon { background: #1e3a5f; }
+    .dark .phase-step.done .phase-icon { background: #052e16; }
+    .dark .phase-step.skipped .phase-icon { background: #1e293b; }
+
+    /* Dependency warning */
+    .dep-warning-inline {
+        display: flex; align-items: center; gap: 0.25rem; margin-top: 0.375rem;
+        padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.6875rem;
+        background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+    }
+    .dark .dep-warning-inline { background: #451a03; color: #fcd34d; border-color: #78350f; }
+
+    /* Clear all button */
+    .clear-all-btn {
+        padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8125rem;
+        font-weight: 600; cursor: pointer; transition: all 0.15s; border: 2px solid #dc2626;
+        background: transparent; color: #dc2626;
+    }
+    .clear-all-btn:hover { background: #dc2626; color: white; }
+    .dark .clear-all-btn { border-color: #ef4444; color: #fca5a5; }
+    .dark .clear-all-btn:hover { background: #ef4444; color: white; }
+
+    /* Settings warning state */
+    .settings-warning { background: #fffbeb !important; border-color: #fde68a !important; }
+    .dark .settings-warning { background: #451a03 !important; border-color: #78350f !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3 admin-container">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Data Seed</h1>
+                        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Generate realistic Filipino-context sample data for testing</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400" id="academicBadge">
+                        </span>
+                        <button onclick="loadStatus()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto space-y-3">
+
+            <!-- Academic Settings Banner -->
+            <div class="dg-card" id="settingsBanner">
+                <div class="flex items-center gap-2 text-sm" id="settingsContent">
+                    <svg class="w-4 h-4 text-blue-500 flex-shrink-0" id="settingsIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-gray-600 dark:text-gray-400" id="settingsText">
+                        Active period: <strong id="activePeriod" class="text-gray-900 dark:text-white">Loading...</strong>
+                        — Schedules and exams will use this period.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Generation Presets -->
+            <div class="dg-card">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Quick Presets</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="preset-btn" data-preset="quick" onclick="applyPreset('quick')">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Quick
+                            </span>
+                        </button>
+                        <button class="preset-btn active" data-preset="standard" onclick="applyPreset('standard')">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Standard
+                            </span>
+                        </button>
+                        <button class="preset-btn" data-preset="full" onclick="applyPreset('full')">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                                Full
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-gray-400 dark:text-gray-500" id="presetDescription">
+                    Standard — 2 programs, 12 faculty/dept, 2 sections/year, 3 buildings
+                </div>
+            </div>
+
+            <!-- Entity Controls Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+
+                <!-- Programs Card -->
+                <div class="entity-card" id="card-programs">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Programs</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">+ Curricula, Subjects</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="count-badge empty" id="badge-programs">0</span>
+                            <div class="entity-toggle on" data-entity="programs" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-programs">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Programs to create</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-programs">2</span>
+                        </label>
+                        <input type="range" min="1" max="4" value="2" step="1" class="w-full accent-indigo-500" id="slider-programs" oninput="document.getElementById('val-programs').textContent=this.value">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">BSCS, BSIT, BSBA, BEED — with full curriculum trees</p>
+                    </div>
+                </div>
+
+                <!-- Faculty Card -->
+                <div class="entity-card" id="card-faculty">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Faculty</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Filipino names, per dept</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="count-badge empty" id="badge-faculty">0</span>
+                            <div class="entity-toggle on" data-entity="faculty" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-faculty">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Per program</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-faculty">12</span>
+                        </label>
+                        <input type="range" min="5" max="30" value="12" step="1" class="w-full accent-emerald-500" id="slider-faculty" oninput="document.getElementById('val-faculty').textContent=this.value">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Random max units (18-27), gender-balanced names</p>
+                    </div>
+                </div>
+
+                <!-- Sections Card -->
+                <div class="entity-card" id="card-sections">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Sections</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Per year level per dept</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="count-badge empty" id="badge-sections">0</span>
+                            <div class="entity-toggle on" data-entity="sections" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-sections">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Sections per year</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-sections">2</span>
+                        </label>
+                        <input type="range" min="1" max="4" value="2" step="1" class="w-full accent-amber-500" id="slider-sections" oninput="document.getElementById('val-sections').textContent=this.value">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">e.g., 2 → BSCS-1A, BSCS-1B per year × 4 years × 4 depts</p>
+                    </div>
+                </div>
+
+                <!-- Buildings Card -->
+                <div class="entity-card" id="card-buildings">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Buildings & Rooms</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Lecture + Lab rooms</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="count-badge empty" id="badge-buildings">0</span>
+                            <div class="entity-toggle on" data-entity="buildings" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-buildings">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Buildings</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-buildings">3</span>
+                        </label>
+                        <input type="range" min="1" max="4" value="3" step="1" class="w-full accent-rose-500" id="slider-buildings" oninput="document.getElementById('val-buildings').textContent=this.value">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Academic, Science & Tech, Engineering, Business & Arts</p>
+                    </div>
+                </div>
+
+                <!-- Schedules Card -->
+                <div class="entity-card" id="card-schedules">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Class Schedules</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">+ Faculty assignments</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="count-badge empty" id="badge-schedules">0</span>
+                            <div class="entity-toggle on" data-entity="schedules" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-schedules">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Assigns each section's subjects to faculty with conflict-free time slots and rooms. Uses the active academic period.</p>
+                    </div>
+                </div>
+
+                <!-- Exams Card -->
+                <div class="entity-card" id="card-exams">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Exam Schedules</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Based on class schedules</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="count-badge empty" id="badge-exams">0</span>
+                            <div class="entity-toggle on" data-entity="exams" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-exams">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Exams per section</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-exams">5</span>
+                        </label>
+                        <input type="range" min="2" max="8" value="5" step="1" class="w-full accent-purple-500" id="slider-exams" oninput="document.getElementById('val-exams').textContent=this.value">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Creates exam entries using scheduled subject/faculty pairs</p>
+                    </div>
+                </div>
+
+                <!-- Conflict Test — Class Schedules -->
+                <div class="entity-card border-2 border-dashed border-red-200 dark:border-red-800" id="card-conflict_schedules">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-red-700 dark:text-red-400">⚠️ Conflict Test — Classes</h3>
+                                <p class="text-xs text-red-500 dark:text-red-400">Intentionally broken schedules</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="entity-toggle" data-entity="conflict_schedules" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-conflict_schedules" style="opacity: 0.4;">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Conflict scenarios</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-conflict_schedules">6</span>
+                        </label>
+                        <input type="range" min="1" max="6" value="6" step="1" class="w-full accent-red-500" id="slider-conflict_schedules" oninput="document.getElementById('val-conflict_schedules').textContent=this.value">
+                        <p class="text-xs text-red-400 dark:text-red-500 mt-1">Room clash, faculty double-book, section overlap, combined, partial overlap, triple booking</p>
+                    </div>
+                </div>
+
+                <!-- Conflict Test — Exam Schedules -->
+                <div class="entity-card border-2 border-dashed border-orange-200 dark:border-orange-800" id="card-conflict_exams">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-orange-700 dark:text-orange-400">⚠️ Conflict Test — Exams</h3>
+                                <p class="text-xs text-orange-500 dark:text-orange-400">Intentionally broken exam schedules</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="entity-toggle" data-entity="conflict_exams" onclick="toggleEntity(this)"><div class="knob"></div></div>
+                        </div>
+                    </div>
+                    <div class="entity-controls" id="controls-conflict_exams" style="opacity: 0.4;">
+                        <label class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>Conflict scenarios</span>
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white" id="val-conflict_exams">4</span>
+                        </label>
+                        <input type="range" min="1" max="4" value="4" step="1" class="w-full accent-orange-500" id="slider-conflict_exams" oninput="document.getElementById('val-conflict_exams').textContent=this.value">
+                        <p class="text-xs text-orange-400 dark:text-orange-500 mt-1">Room clash, proctor double-book, section overlap, combined</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Generation Summary Preview -->
+            <div class="dg-card">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Generation Preview</h3>
+                    <span class="text-xs text-gray-400 dark:text-gray-500" id="previewLabel">Estimated counts</span>
+                </div>
+                <div id="previewGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center">
+                </div>
+                <div class="gen-progress mt-3" id="progressContainer" style="display:none;">
+                    <div class="gen-progress-bar" id="progressBar"></div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2" id="progressText" style="display:none;"></p>
+                <!-- Phase Steps (shown during/after generation) -->
+                <div id="phaseSteps" class="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5" style="display:none;"></div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="flex items-center justify-center gap-3" id="actionButtons">
+                <button onclick="startGeneration()" id="generateBtn"
+                    class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                    </svg>
+                    Generate Sample Data
+                </button>
+            </div>
+
+            <!-- Results Panel (hidden until generation) -->
+            <div class="dg-card" id="resultsPanel" style="display: none;">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-4 h-4 text-green-500" id="resultIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white" id="resultTitle">Generation Complete</h3>
+                </div>
+                <div id="resultsList" class="space-y-1">
+                </div>
+                <div id="errorsPanel" class="mt-3" style="display:none;">
+                    <p class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Warnings / Errors:</p>
+                    <div id="errorsList" class="text-xs text-red-500 dark:text-red-400 space-y-0.5 max-h-32 overflow-y-auto">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone: Cleanup -->
+            <div class="danger-card">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-red-700 dark:text-red-400">Danger Zone — Clear Generated Data</h3>
+                </div>
+                <p class="text-xs text-red-600/70 dark:text-red-400/60 mb-3">
+                    These actions permanently delete data. Schedule-based entities are scoped to the active academic period. Other entities are cleared globally.
+                </p>
+                <div class="flex items-center gap-3 mb-3 pb-3 border-b border-red-200 dark:border-red-900/50">
+                    <button onclick="confirmClearAll()" class="clear-all-btn inline-flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Clear All Data
+                    </button>
+                    <span class="text-xs text-red-500/70 dark:text-red-400/50">Clears everything in the correct dependency order</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                    <button onclick="confirmClear('schedules')" class="cleanup-btn cleanup-btn-danger">Clear Schedules</button>
+                    <button onclick="confirmClear('exam_schedules')" class="cleanup-btn cleanup-btn-danger">Clear Exams</button>
+                    <button onclick="confirmClear('faculty_assignments')" class="cleanup-btn cleanup-btn-danger">Clear Assignments</button>
+                    <button onclick="confirmClear('sections')" class="cleanup-btn cleanup-btn-danger">Clear Sections</button>
+                    <button onclick="confirmClear('faculty')" class="cleanup-btn cleanup-btn-danger">Clear Faculty</button>
+                    <button onclick="confirmClear('buildings')" class="cleanup-btn cleanup-btn-danger">Clear Buildings</button>
+                    <button onclick="confirmClear('programs')" class="cleanup-btn cleanup-btn-danger">Clear Programs</button>
+                </div>
+            </div>
+
+        </div><!-- end scrollable -->
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="confirm-overlay" style="display:none;">
+    <div class="confirm-box">
+        <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white" id="confirmTitle">Confirm Action</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="confirmMessage"></p>
+            </div>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button onclick="closeConfirm()" class="px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="executeConfirm()" id="confirmActionBtn" class="px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                Confirm Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+// ===== Color map for preview grid (fixes Tailwind JIT purge) =====
+const colorMap = {
+    indigo:  { bg: 'bg-indigo-50 dark:bg-indigo-900/10',  border: 'border-indigo-100 dark:border-indigo-800/30',  text: 'text-indigo-600' },
+    emerald: { bg: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-100 dark:border-emerald-800/30', text: 'text-emerald-600' },
+    amber:   { bg: 'bg-amber-50 dark:bg-amber-900/10',   border: 'border-amber-100 dark:border-amber-800/30',   text: 'text-amber-600' },
+    rose:    { bg: 'bg-rose-50 dark:bg-rose-900/10',    border: 'border-rose-100 dark:border-rose-800/30',    text: 'text-rose-600' },
+    sky:     { bg: 'bg-sky-50 dark:bg-sky-900/10',     border: 'border-sky-100 dark:border-sky-800/30',     text: 'text-sky-600' },
+    purple:  { bg: 'bg-purple-50 dark:bg-purple-900/10',  border: 'border-purple-100 dark:border-purple-800/30',  text: 'text-purple-600' },
+};
+
+// ===== Preset configurations =====
+const PRESETS = {
+    quick:    { programs: 1, faculty: 5,  sections: 1, buildings: 1, exams: 3, label: 'Quick — 1 program, 5 faculty/dept, 1 section/year, 1 building' },
+    standard: { programs: 2, faculty: 12, sections: 2, buildings: 3, exams: 5, label: 'Standard — 2 programs, 12 faculty/dept, 2 sections/year, 3 buildings' },
+    full:     { programs: 4, faculty: 25, sections: 3, buildings: 4, exams: 6, label: 'Full — 4 programs, 25 faculty/dept, 3 sections/year, 4 buildings' },
+};
+
+// ===== Dependency graph =====
+const DEPENDENCIES = {
+    faculty:   ['programs'],
+    sections:  ['programs'],
+    schedules: ['programs', 'faculty', 'sections', 'buildings'],
+    exams:     ['schedules'],
+    conflict_schedules: ['schedules'],
+    conflict_exams:     ['schedules'],
+};
+
+// Entity toggle keys → entityCounts keys
+const COUNTS_MAP = {
+    programs: 'programs', faculty: 'faculty', sections: 'sections',
+    buildings: 'buildings', schedules: 'schedules', exams: 'exam_schedules'
+};
+
+// ===== State =====
+let entityCounts = {};
+let hasAcademicSettings = false;
+let entityToggles = {
+    programs: true, faculty: true, sections: true,
+    buildings: true, schedules: true, exams: true,
+    conflict_schedules: false, conflict_exams: false
+};
+let activePreset = 'standard';
+let pendingConfirmAction = null;
+let pendingConfirmType = null; // 'single' or 'all'
+
+// ===== Phase info =====
+const PHASE_LABELS = {
+    programs: 'Programs', faculty: 'Faculty', sections: 'Sections',
+    buildings: 'Buildings', schedules: 'Schedules', exams: 'Exams',
+    conflict_schedules: 'Conflict Classes', conflict_exams: 'Conflict Exams'
+};
+const PHASE_ICONS = {
+    programs: '🏛️', faculty: '👥', sections: '📋',
+    buildings: '🏗️', schedules: '📅', exams: '📝',
+    conflict_schedules: '⚠️', conflict_exams: '⚠️'
+};
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadStatus();
+    updatePreview();
+    updateDependencyWarnings();
+    // Sliders → clear preset highlight + update preview
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        slider.addEventListener('input', () => {
+            activePreset = null;
+            updatePresetButtons();
+            updatePreview();
+            updateDependencyWarnings();
+        });
+    });
+});
+
+// ===== Presets =====
+function applyPreset(name) {
+    const preset = PRESETS[name];
+    if (!preset) return;
+    activePreset = name;
+
+    setSlider('programs', preset.programs);
+    setSlider('faculty', preset.faculty);
+    setSlider('sections', preset.sections);
+    setSlider('buildings', preset.buildings);
+    setSlider('exams', preset.exams);
+
+    // Turn standard toggles ON (not conflict test toggles)
+    const standardEntities = ['programs', 'faculty', 'sections', 'buildings', 'schedules', 'exams'];
+    standardEntities.forEach(key => {
+        if (!entityToggles[key]) {
+            const toggle = document.querySelector(`.entity-toggle[data-entity="${key}"]`);
+            if (toggle) toggleEntity(toggle);
+        }
+    });
+
+    updatePresetButtons();
+    updatePreview();
+    updateDependencyWarnings();
+    document.getElementById('presetDescription').textContent = preset.label;
+}
+
+function setSlider(entity, value) {
+    const slider = document.getElementById(`slider-${entity}`);
+    const valEl = document.getElementById(`val-${entity}`);
+    if (slider) slider.value = value;
+    if (valEl) valEl.textContent = value;
+}
+
+function updatePresetButtons() {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === activePreset);
+    });
+}
+
+// ===== API calls =====
+async function loadStatus() {
+    try {
+        const resp = await fetch('/api/dataseed/status', {
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+        const data = await resp.json();
+        if (data.success) {
+            entityCounts = data.counts;
+            updateBadges();
+            if (data.academic_settings) {
+                hasAcademicSettings = true;
+                const s = data.academic_settings;
+                const banner = document.getElementById('settingsBanner');
+                banner.classList.remove('settings-warning');
+                document.getElementById('settingsIcon').setAttribute('class', 'w-4 h-4 text-blue-500 flex-shrink-0');
+                document.getElementById('settingsText').innerHTML =
+                    `Active period: <strong class="text-gray-900 dark:text-white">${s.academic_year} — ${s.semester} (${s.exam_period})</strong> — Schedules and exams will use this period.`;
+            } else {
+                hasAcademicSettings = false;
+                const banner = document.getElementById('settingsBanner');
+                banner.classList.add('settings-warning');
+                document.getElementById('settingsIcon').setAttribute('class', 'w-4 h-4 text-amber-500 flex-shrink-0');
+                document.getElementById('settingsText').innerHTML =
+                    '<span class="text-amber-700 dark:text-amber-400 font-medium">No active academic settings found</span> — Schedule and exam generation will fail. Please configure academic settings first.';
+            }
+            updateDependencyWarnings();
+        }
+    } catch (e) {
+        showToast('Failed to load status: ' + e.message, 'error');
+    }
+}
+
+function updateBadges() {
+    for (const [card, key] of Object.entries(COUNTS_MAP)) {
+        const badge = document.getElementById(`badge-${card}`);
+        if (!badge) continue;
+        const count = entityCounts[key] || 0;
+        badge.textContent = count > 0 ? `${count} existing` : '0';
+        badge.className = `count-badge ${count > 0 ? 'exists' : 'empty'}`;
+    }
+}
+
+// ===== Toggle controls =====
+function toggleEntity(el) {
+    const entity = el.dataset.entity;
+    const isOn = el.classList.contains('on');
+    if (isOn) {
+        el.classList.remove('on');
+        el.classList.add('off');
+        entityToggles[entity] = false;
+    } else {
+        el.classList.remove('off');
+        el.classList.add('on');
+        entityToggles[entity] = true;
+    }
+    const controls = document.getElementById(`controls-${entity}`);
+    if (controls) controls.style.opacity = entityToggles[entity] ? '1' : '0.4';
+    activePreset = null;
+    updatePresetButtons();
+    updatePreview();
+    updateDependencyWarnings();
+}
+
+// ===== Dependency validation =====
+function checkDependencies() {
+    const missing = [];
+    for (const [entity, deps] of Object.entries(DEPENDENCIES)) {
+        if (!entityToggles[entity]) continue;
+        for (const dep of deps) {
+            const depEnabled = entityToggles[dep];
+            const depKey = COUNTS_MAP[dep] || dep;
+            const depExists = (entityCounts[depKey] || 0) > 0;
+            if (!depEnabled && !depExists) {
+                missing.push({ entity, dep, depLabel: PHASE_LABELS[dep] || dep });
+            }
+        }
+    }
+    return missing;
+}
+
+function updateDependencyWarnings() {
+    // Remove existing warnings
+    document.querySelectorAll('.dep-warning-inline').forEach(el => el.remove());
+
+    const missing = checkDependencies();
+    for (const m of missing) {
+        const card = document.getElementById(`card-${m.entity}`);
+        if (!card) continue;
+        if (card.querySelector(`.dep-warning-inline[data-dep="${m.dep}"]`)) continue;
+        const warn = document.createElement('div');
+        warn.className = 'dep-warning-inline';
+        warn.dataset.dep = m.dep;
+        warn.innerHTML = `
+            <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>Requires ${m.depLabel} (none exist)</span>`;
+        card.appendChild(warn);
+    }
+}
+
+// ===== Preview =====
+function updatePreview() {
+    const deptCount = entityToggles.programs ? parseInt(document.getElementById('slider-programs')?.value || 4) : 0;
+    const facPerDept = entityToggles.faculty ? parseInt(document.getElementById('slider-faculty')?.value || 12) : 0;
+    const secPerYear = entityToggles.sections ? parseInt(document.getElementById('slider-sections')?.value || 2) : 0;
+    const bldgCount = entityToggles.buildings ? parseInt(document.getElementById('slider-buildings')?.value || 3) : 0;
+    const examsPer = entityToggles.exams ? parseInt(document.getElementById('slider-exams')?.value || 5) : 0;
+
+    const effDepts = deptCount || (entityCounts.programs || 0);
+    const totalFaculty = entityToggles.faculty ? effDepts * facPerDept : 0;
+    const totalSections = entityToggles.sections ? effDepts * 4 * secPerYear : 0;
+    const effSections = totalSections || (entityCounts.sections || 0);
+    const totalRooms = bldgCount * 8;
+
+    const items = [
+        { label: 'Programs', value: deptCount, color: 'indigo' },
+        { label: 'Faculty', value: totalFaculty, color: 'emerald' },
+        { label: 'Sections', value: totalSections, color: 'amber' },
+        { label: 'Rooms', value: bldgCount > 0 ? `~${totalRooms}` : 0, color: 'rose' },
+        { label: 'Schedules', value: entityToggles.schedules ? `~${effSections * 7}` : 0, color: 'sky' },
+        { label: 'Exams', value: entityToggles.exams ? `~${effSections * examsPer}` : 0, color: 'purple' },
+        { label: '⚠️ Conflicts', value: (entityToggles.conflict_schedules || entityToggles.conflict_exams) ? `~${(entityToggles.conflict_schedules ? parseInt(document.getElementById('slider-conflict_schedules')?.value || 6) * 2 : 0) + (entityToggles.conflict_exams ? parseInt(document.getElementById('slider-conflict_exams')?.value || 4) * 2 : 0)}` : 0, color: 'rose' },
+    ];
+
+    const grid = document.getElementById('previewGrid');
+    const anyEnabled = Object.values(entityToggles).some(v => v);
+    if (!anyEnabled) {
+        grid.innerHTML = '<div class="col-span-full text-center py-3 text-xs text-gray-400 dark:text-gray-500">Enable at least one entity type to see preview</div>';
+        return;
+    }
+
+    grid.innerHTML = items.map(i => {
+        const c = colorMap[i.color];
+        return `
+            <div class="flex flex-col items-center p-2 rounded-lg ${c.bg} border ${c.border}">
+                <span class="text-lg font-bold ${c.text}">${i.value}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">${i.label}</span>
+            </div>`;
+    }).join('');
+}
+
+// ===== Phase Progress Display =====
+function showPhaseSteps(enabledPhases) {
+    const container = document.getElementById('phaseSteps');
+    container.style.display = 'grid';
+    container.innerHTML = enabledPhases.map(p => `
+        <div class="phase-step pending" id="phase-${p}">
+            <div class="phase-icon">
+                <span class="text-xs">${PHASE_ICONS[p] || '•'}</span>
+            </div>
+            <span class="text-gray-500 dark:text-gray-400">${PHASE_LABELS[p] || p}</span>
+        </div>
+    `).join('');
+}
+
+async function animatePhaseCompletion(enabledPhases, results) {
+    for (let i = 0; i < enabledPhases.length; i++) {
+        const p = enabledPhases[i];
+        const el = document.getElementById(`phase-${p}`);
+        if (!el) continue;
+
+        // Mark as running
+        el.className = 'phase-step running';
+        el.querySelector('.phase-icon').innerHTML = '<svg class="w-3 h-3 spin text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+
+        await new Promise(r => setTimeout(r, 200));
+
+        // Check phase results
+        const resultKeys = getPhaseResultKeys(p);
+        const phaseTotal = resultKeys.reduce((sum, k) => sum + (results[k] || 0), 0);
+
+        if (phaseTotal > 0) {
+            el.className = 'phase-step done';
+            el.querySelector('.phase-icon').innerHTML = '<svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+            el.querySelector('span:last-child').innerHTML = `${PHASE_LABELS[p]} <span class="font-semibold text-green-600">+${phaseTotal}</span>`;
+        } else {
+            el.className = 'phase-step skipped';
+            el.querySelector('.phase-icon').innerHTML = '<span class="text-xs text-gray-400">—</span>';
+            el.querySelector('span:last-child').classList.add('text-gray-400');
+        }
+
+        // Update progress bar
+        const progressBar = document.getElementById('progressBar');
+        const pct = Math.round(((i + 1) / enabledPhases.length) * 100);
+        progressBar.style.width = pct + '%';
+    }
+}
+
+function getPhaseResultKeys(phase) {
+    const map = {
+        programs: ['programs', 'curricula', 'year_levels', 'semesters', 'subjects'],
+        faculty: ['faculty'],
+        sections: ['sections'],
+        buildings: ['buildings', 'rooms'],
+        schedules: ['schedules', 'faculty_assignments'],
+        exams: ['exam_schedules'],
+        conflict_schedules: ['conflict_schedules'],
+        conflict_exams: ['conflict_exams'],
+    };
+    return map[phase] || [phase];
+}
+
+// ===== Generation =====
+async function startGeneration() {
+    // Check dependencies first
+    const missing = checkDependencies();
+    if (missing.length > 0) {
+        const msgs = [...new Set(missing.map(m => `${PHASE_LABELS[m.entity] || m.entity} requires ${m.depLabel}`))];
+        showToast('Missing dependencies: ' + msgs.join(', '), 'warning');
+        return;
+    }
+
+    // Check academic settings for schedule/exam generation
+    if ((entityToggles.schedules || entityToggles.exams || entityToggles.conflict_schedules || entityToggles.conflict_exams) && !hasAcademicSettings) {
+        showToast('Cannot generate schedules/exams without active academic settings', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('generateBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    // Build config
+    const config = {};
+    const enabledPhases = [];
+    if (entityToggles.programs) {
+        config.programs = { enabled: true, count: parseInt(document.getElementById('slider-programs').value) };
+        enabledPhases.push('programs');
+    }
+    if (entityToggles.faculty) {
+        config.faculty = { enabled: true, per_department: parseInt(document.getElementById('slider-faculty').value) };
+        enabledPhases.push('faculty');
+    }
+    if (entityToggles.sections) {
+        config.sections = { enabled: true, per_year: parseInt(document.getElementById('slider-sections').value) };
+        enabledPhases.push('sections');
+    }
+    if (entityToggles.buildings) {
+        config.buildings = { enabled: true, count: parseInt(document.getElementById('slider-buildings').value) };
+        enabledPhases.push('buildings');
+    }
+    if (entityToggles.schedules) {
+        config.schedules = { enabled: true };
+        enabledPhases.push('schedules');
+    }
+    if (entityToggles.exams) {
+        config.exams = { enabled: true, per_section: parseInt(document.getElementById('slider-exams').value) };
+        enabledPhases.push('exams');
+    }
+    if (entityToggles.conflict_schedules) {
+        config.conflict_schedules = { enabled: true, count: parseInt(document.getElementById('slider-conflict_schedules').value) };
+        enabledPhases.push('conflict_schedules');
+    }
+    if (entityToggles.conflict_exams) {
+        config.conflict_exams = { enabled: true, count: parseInt(document.getElementById('slider-conflict_exams').value) };
+        enabledPhases.push('conflict_exams');
+    }
+
+    if (enabledPhases.length === 0) {
+        showToast('Enable at least one entity type', 'warning');
+        return;
+    }
+
+    // Disable button, show progress
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-4 h-4 spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Generating...';
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '5%';
+    progressBar.className = 'gen-progress-bar';
+    progressText.style.display = 'block';
+    progressText.textContent = 'Creating records, this may take a moment...';
+
+    // Show phase steps
+    showPhaseSteps(enabledPhases);
+
+    try {
+        const resp = await fetch('/api/dataseed/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ config }),
+        });
+
+        const data = await resp.json();
+
+        if (data.success) {
+            await animatePhaseCompletion(enabledPhases, data.results || {});
+            progressBar.style.width = '100%';
+            progressBar.classList.add('complete');
+            progressText.textContent = 'Generation complete!';
+            showResults(data.results, data.errors || []);
+            showToast('Sample data generated successfully!', 'success');
+        } else {
+            progressBar.style.width = '100%';
+            progressBar.classList.add('error');
+            progressText.textContent = 'Generation failed: ' + (data.error || 'Unknown error');
+            if (data.results) {
+                await animatePhaseCompletion(enabledPhases, data.results);
+                showResults(data.results, data.errors || []);
+            }
+            showToast(data.error || 'Generation failed', 'error');
+        }
+
+        await loadStatus();
+    } catch (e) {
+        progressBar.style.width = '100%';
+        progressBar.classList.add('error');
+        progressText.textContent = 'Network error: ' + e.message;
+        showToast('Failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg> Generate Sample Data';
+    }
+}
+
+function showResults(results, errors) {
+    const panel = document.getElementById('resultsPanel');
+    const list = document.getElementById('resultsList');
+    const errPanel = document.getElementById('errorsPanel');
+    const errList = document.getElementById('errorsList');
+    const icon = document.getElementById('resultIcon');
+    const title = document.getElementById('resultTitle');
+
+    panel.style.display = 'block';
+
+    const labels = {
+        programs: 'Programs', curricula: 'Curricula', year_levels: 'Year Levels',
+        semesters: 'Semesters', subjects: 'Subjects', sections: 'Sections',
+        faculty: 'Faculty', buildings: 'Buildings', rooms: 'Rooms',
+        faculty_assignments: 'Faculty Assignments', schedules: 'Class Schedules',
+        exam_schedules: 'Exam Schedules',
+        conflict_schedules: '⚠️ Conflict Class Schedules', conflict_exams: '⚠️ Conflict Exam Schedules'
+    };
+
+    let totalCreated = 0;
+    list.innerHTML = '';
+    for (const [key, count] of Object.entries(results)) {
+        if (count > 0) {
+            totalCreated += count;
+            list.innerHTML += `
+                <div class="result-item">
+                    <span class="text-gray-700 dark:text-gray-300">${labels[key] || key}</span>
+                    <span class="font-mono font-semibold text-gray-900 dark:text-white">+${count}</span>
+                </div>`;
+        }
+    }
+
+    if (totalCreated === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400">No records were created.</p>';
+    }
+
+    title.textContent = `Generation Complete — ${totalCreated} records created`;
+
+    if (errors.length > 0) {
+        errPanel.style.display = 'block';
+        errList.innerHTML = errors.map(e => `<p>• ${e}</p>`).join('');
+        icon.setAttribute('class', 'w-4 h-4 text-amber-500');
+    } else {
+        errPanel.style.display = 'none';
+        icon.setAttribute('class', 'w-4 h-4 text-green-500');
+    }
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ===== Cleanup =====
+function confirmClear(entityType) {
+    const labels = {
+        schedules: 'class schedules (current period)',
+        exam_schedules: 'exam schedules (current period)',
+        faculty_assignments: 'faculty assignments (current period)',
+        sections: 'ALL sections',
+        faculty: 'ALL faculty members',
+        buildings: 'ALL buildings and rooms',
+        programs: 'ALL programs, curricula, and subjects',
+    };
+
+    pendingConfirmAction = entityType;
+    pendingConfirmType = 'single';
+    document.getElementById('confirmTitle').textContent = `Clear ${entityType.replace(/_/g, ' ')}?`;
+    document.getElementById('confirmMessage').textContent =
+        `This will permanently delete ${labels[entityType] || entityType}. This action cannot be undone.`;
+    document.getElementById('confirmActionBtn').textContent = 'Confirm Delete';
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+
+function confirmClearAll() {
+    pendingConfirmAction = 'all';
+    pendingConfirmType = 'all';
+    document.getElementById('confirmTitle').textContent = 'Clear ALL generated data?';
+    document.getElementById('confirmMessage').innerHTML =
+        'This will permanently delete data in the correct FK-safe order:<br><br>' +
+        '<span class="font-mono text-xs">1. Exam Schedules &#8594; 2. Class Schedules &#8594; 3. Faculty Assignments<br>' +
+        '4. Sections &#8594; 5. Faculty &#8594; 6. Buildings & Rooms &#8594; 7. Programs</span><br><br>' +
+        'Schedule-based entities are scoped to the active period. This action cannot be undone.';
+    document.getElementById('confirmActionBtn').textContent = 'Clear Everything';
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+
+function closeConfirm() {
+    document.getElementById('confirmModal').style.display = 'none';
+    pendingConfirmAction = null;
+    pendingConfirmType = null;
+}
+
+async function executeConfirm() {
+    if (!pendingConfirmAction) return;
+
+    if (pendingConfirmType === 'all') {
+        closeConfirm();
+        await executeClearAll();
+    } else {
+        const entityType = pendingConfirmAction;
+        closeConfirm();
+        await executeClearSingle(entityType);
+    }
+}
+
+async function executeClearSingle(entityType) {
+    try {
+        const resp = await fetch('/api/dataseed/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ entity_type: entityType }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(`Deleted ${data.deleted} ${entityType.replace(/_/g, ' ')}`, 'success');
+            await loadStatus();
+            updatePreview();
+        } else {
+            showToast(data.error || 'Clear failed', 'error');
+        }
+    } catch (e) {
+        showToast('Failed: ' + e.message, 'error');
+    }
+}
+
+async function executeClearAll() {
+    try {
+        const resp = await fetch('/api/dataseed/clear-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+        });
+        const data = await resp.json();
+        if (data.success) {
+            const totalDeleted = Object.values(data.results || {}).reduce((s, v) => s + v, 0);
+            showToast(`Cleared all data — ${totalDeleted} records deleted`, 'success');
+            await loadStatus();
+            updatePreview();
+        } else {
+            showToast(data.error || 'Clear all failed', 'error');
+            await loadStatus();
+            updatePreview();
+        }
+    } catch (e) {
+        showToast('Failed: ' + e.message, 'error');
+    }
+}
+</script>
+{% endblock %}

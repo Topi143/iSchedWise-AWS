@@ -4,6 +4,7 @@ User Activity Log model for tracking user actions
 from app.extensions import db
 from datetime import datetime
 import json
+from app.utils.timezone_utils import to_utc_iso_z
 
 
 class UserActivityLog(db.Model):
@@ -102,7 +103,8 @@ class UserActivityLog(db.Model):
             'entity_name': self.entity_name,
             'details': details_formatted,  # Always return as string
             'ip_address': self.ip_address,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'created_at_iso': to_utc_iso_z(self.created_at)
         }
     
     def __repr__(self):

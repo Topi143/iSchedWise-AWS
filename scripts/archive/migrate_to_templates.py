@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from app import create_app
 from app.extensions import db
-from app.models import Subject, SubjectTemplate, FacultySubjectAssignment, Department
+from app.models import Subject, SubjectTemplate, FacultySubjectAssignment, Program
 
 
 def create_subject_templates():
@@ -59,10 +59,10 @@ def create_subject_templates():
         template = SubjectTemplate.query.filter_by(subject_code=subject_code).first()
         
         if not template:
-            # Determine department (from curriculum if available)
-            department_id = None
+            # Determine program (from curriculum if available)
+            program_id = None
             if source.semester and source.semester.year_level and source.semester.year_level.curriculum:
-                department_id = source.semester.year_level.curriculum.department_id
+                program_id = source.semester.year_level.curriculum.program_id
             
             # Get values from source
             lec_units = float(source.lec_units) if source.lec_units is not None else 0.0
@@ -73,7 +73,7 @@ def create_subject_templates():
                 course_description=source.course_description or f"Course: {subject_code}",
                 lec_units=lec_units,
                 lab_units=lab_units,
-                department_id=department_id,
+                program_id=program_id,
                 is_active=True
             )
             db.session.add(template)

@@ -9,6 +9,48 @@ window.loadSubjectsForCurriculum = loadSubjectsForCurriculum;
 window.loadCurriculaForEdit = loadCurriculaForEdit;
 window.loadSubjectsForEditWithCurriculum = loadSubjectsForEditWithCurriculum;
 
+const _curriculaToastState = { message: '', at: 0 };
+
+function parseScheduleApiJson(response, fallbackMessage) {
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+
+    if (!response.ok) {
+        if (contentType.includes('application/json')) {
+            return response.json().then((payload) => {
+                const error = payload && payload.error ? payload.error : `Request failed (${response.status})`;
+                throw new Error(error);
+            });
+        }
+
+        return response.text().then((text) => {
+            const snippet = (text || '').slice(0, 120).trim();
+            throw new Error(snippet || fallbackMessage || `Request failed (${response.status})`);
+        });
+    }
+
+    if (!contentType.includes('application/json')) {
+        return response.text().then((text) => {
+            const snippet = (text || '').slice(0, 120).trim();
+            throw new Error(snippet || fallbackMessage || 'Invalid server response');
+        });
+    }
+
+    return response.json();
+}
+
+function showCurriculaToastOnce(message) {
+    if (typeof showToast !== 'function') return;
+
+    const now = Date.now();
+    if (_curriculaToastState.message === message && (now - _curriculaToastState.at) < 1500) {
+        return;
+    }
+
+    _curriculaToastState.message = message;
+    _curriculaToastState.at = now;
+    showToast(message, 'error');
+}
+
 /**
  * Load curricula for a section
  * @param {number} sectionId - The section ID
@@ -17,7 +59,7 @@ window.loadSubjectsForEditWithCurriculum = loadSubjectsForEditWithCurriculum;
 function loadCurriculaForSection(sectionId, mode = 'add') {
     const curriculumSelect = document.getElementById(`curriculum_id_${mode}`);
     const subjectSelect = document.getElementById(`subject_id_${mode}`);
-    
+
     // Show loading state
     curriculumSelect.innerHTML = '<option value="">Loading curricula...</option>';
     curriculumSelect.disabled = true;
@@ -26,7 +68,7 @@ function loadCurriculaForSection(sectionId, mode = 'add') {
     
     // Fetch curricula for this section
     fetch(`/schedule/get-curricula/${sectionId}`)
-        .then(response => response.json())
+        .then(response => parseScheduleApiJson(response, 'Unable to load curricula'))
         .then(data => {
             curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
             
@@ -53,9 +95,7 @@ function loadCurriculaForSection(sectionId, mode = 'add') {
             console.error('Error loading curricula:', error);
             curriculumSelect.innerHTML = '<option value="">Error loading curricula</option>';
             curriculumSelect.disabled = false;
-            if (typeof showToast === 'function') {
-                showToast('Error loading curricula. Please try again.', 'error');
-            }
+            showCurriculaToastOnce(error.message || 'Error loading curricula. Please try again.');
         });
 }
 
@@ -67,7 +107,7 @@ function loadSubjectsForCurriculum(mode = 'add') {
     const curriculumId = document.getElementById(`curriculum_id_${mode}`).value;
     const sectionId = document.getElementById(`section_id_${mode}`).value;
     const subjectSelect = document.getElementById(`subject_id_${mode}`);
-    
+
     if (!curriculumId) {
         subjectSelect.innerHTML = '<option value="">Select curriculum first...</option>';
         subjectSelect.disabled = true;
@@ -90,14 +130,12 @@ function loadSubjectsForCurriculum(mode = 'add') {
                     option.value = subject.id;
                     option.textContent = subject.display;
                     
-                    // Add data attributes for smart scheduling (only for class schedules, not exam)
-                    if (!mode.startsWith('exam_')) {
-                        option.dataset.code = subject.subject_code;
-                        option.dataset.description = subject.course_description;
-                        option.dataset.lecUnits = subject.lec_units;
-                        option.dataset.labUnits = subject.lab_units;
-                        option.dataset.totalUnits = subject.total_units;
-                    }
+                    // Add data attributes for smart scheduling
+                    option.dataset.code = subject.subject_code;
+                    option.dataset.description = subject.course_description;
+                    option.dataset.lecUnits = subject.lec_units;
+                    option.dataset.labUnits = subject.lab_units;
+                    option.dataset.totalUnits = subject.total_units;
                     
                     subjectSelect.appendChild(option);
                 });
@@ -106,6 +144,18 @@ function loadSubjectsForCurriculum(mode = 'add') {
             }
             
             subjectSelect.disabled = false;
+
+            // Trigger conflict check after subjects reload
+            if (mode === 'add' || mode === 'edit') {
+                if (typeof scheduleAutoConflictCheck === 'function') {
+                    scheduleAutoConflictCheck(mode);
+                }
+            } else if (mode === 'exam_add' || mode === 'exam_edit') {
+                const examMode = mode.replace('exam_', '');
+                if (typeof scheduleAutoExamConflictCheck === 'function') {
+                    scheduleAutoExamConflictCheck(examMode);
+                }
+            }
         })
         .catch(error => {
             console.error('Error loading subjects:', error);
@@ -124,8 +174,6 @@ function loadSubjectsForCurriculum(mode = 'add') {
  * @param {string} mode - Either 'edit' or 'exam_edit' (default: 'edit')
  */
 function loadCurriculaForEdit(sectionId, scheduleData, mode = 'edit') {
-    console.log('[LOAD CURRICULA] Starting for section:', sectionId, 'mode:', mode, 'scheduleData:', scheduleData);
-    
     const curriculumSelect = document.getElementById(`curriculum_id_${mode}`);
     const subjectSelect = document.getElementById(`subject_id_${mode}`);
     
@@ -147,7 +195,7 @@ function loadCurriculaForEdit(sectionId, scheduleData, mode = 'edit') {
     
     // Fetch curricula for this section
     fetch(`/schedule/get-curricula/${sectionId}`)
-        .then(response => response.json())
+        .then(response => parseScheduleApiJson(response, 'Unable to load curricula'))
         .then(data => {
             curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
             
@@ -172,9 +220,7 @@ function loadCurriculaForEdit(sectionId, scheduleData, mode = 'edit') {
             console.error('Error loading curricula:', error);
             curriculumSelect.innerHTML = '<option value="">Error loading curricula</option>';
             curriculumSelect.disabled = false;
-            if (typeof showToast === 'function') {
-                showToast('Error loading curricula. Please try again.', 'error');
-            }
+            showCurriculaToastOnce(error.message || 'Error loading curricula. Please try again.');
         });
 }
 
@@ -187,12 +233,8 @@ function loadCurriculaForEdit(sectionId, scheduleData, mode = 'edit') {
  */
 function detectAndSelectCurriculum(sectionId, scheduleData, curricula, mode) {
     const curriculumSelect = document.getElementById(`curriculum_id_${mode}`);
-    
-    console.log('[DETECT] Detecting curriculum for subject:', scheduleData.subject_id, 'from', curricula.length, 'curricula');
-    
     // If only one curriculum, select it
     if (curricula.length === 1) {
-        console.log('[DETECT] Only one curriculum, selecting:', curricula[0].id);
         curriculumSelect.value = curricula[0].id;
         loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
         return;
@@ -214,7 +256,6 @@ function detectAndSelectCurriculum(sectionId, scheduleData, curricula, mode) {
                     
                     if (hasSubject) {
                         foundCurriculum = true;
-                        console.log('[DETECT] Found curriculum:', curriculum.id, 'contains subject:', scheduleData.subject_id);
                         curriculumSelect.value = curriculum.id;
                         loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
                     }
@@ -222,7 +263,6 @@ function detectAndSelectCurriculum(sectionId, scheduleData, curricula, mode) {
                 
                 // If we've tried all curricula and haven't found it, default to first
                 if (attemptCount === curricula.length && !foundCurriculum) {
-                    console.log('[DETECT] Subject not found in any curriculum, defaulting to first');
                     curriculumSelect.value = curricula[0].id;
                     loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
                 }
@@ -233,7 +273,6 @@ function detectAndSelectCurriculum(sectionId, scheduleData, curricula, mode) {
                 
                 // If all attempts failed, default to first curriculum
                 if (attemptCount === curricula.length && !foundCurriculum) {
-                    console.log('[DETECT] All detection attempts failed, defaulting to first');
                     curriculumSelect.value = curricula[0].id;
                     loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode);
                 }
@@ -274,14 +313,12 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                     option.value = subject.id;
                     option.textContent = subject.display;
                     
-                    // Add data attributes only for class schedules (not exam)
-                    if (mode === 'edit') {
-                        option.dataset.code = subject.subject_code;
-                        option.dataset.description = subject.course_description;
-                        option.dataset.lecUnits = subject.lec_units;
-                        option.dataset.labUnits = subject.lab_units;
-                        option.dataset.totalUnits = subject.total_units;
-                    }
+                    // Add data attributes for subject detection (PE, schedule type)
+                    option.dataset.code = subject.subject_code;
+                    option.dataset.description = subject.course_description;
+                    option.dataset.lecUnits = subject.lec_units;
+                    option.dataset.labUnits = subject.lab_units;
+                    option.dataset.totalUnits = subject.total_units;
                     
                     // Pre-select the current subject
                     if (subject.id === scheduleData.subject_id) {
@@ -316,7 +353,6 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                     
                     // Load faculty for the selected subject and preserve the selected faculty
                     if (typeof loadFacultyForSubject === 'function') {
-                        console.log('[EDIT] Loading faculty for subject:', scheduleData.subject_id, 'pre-selecting:', scheduleData.faculty_id);
                         loadFacultyForSubject(scheduleData.subject_id, 'edit', scheduleData.faculty_id);
                     }
                     
@@ -324,7 +360,6 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                     setTimeout(() => {
                         if (scheduleData.schedule_type) {
                             document.getElementById('schedule_type_edit').value = scheduleData.schedule_type;
-                            console.log('[EDIT] Set schedule type:', scheduleData.schedule_type);
                         }
                         
                         // Trigger the schedule type change handler
@@ -338,13 +373,6 @@ function loadSubjectsForEditWithCurriculum(sectionId, scheduleData, mode = 'edit
                             calculateEndTime('edit');
                         }
                         
-                        // Log final form values for debugging
-                        console.log('[EDIT] Final form values:', {
-                            curriculum_id: document.getElementById('curriculum_id_edit').value,
-                            subject_id: document.getElementById('subject_id_edit').value,
-                            faculty_id: document.getElementById('faculty_id_edit').value,
-                            schedule_type: document.getElementById('schedule_type_edit').value
-                        });
                     }, 100);
                 } else if (scheduleData.subject_id && subjectSelect.value && mode === 'exam_edit') {
                     // For exam edit mode, ALWAYS load all faculty (not filtered by subject)

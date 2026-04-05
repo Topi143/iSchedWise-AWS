@@ -1,45 +1,18 @@
 // Toast Notification System
 function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    const icons = {
-        success: `<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>`,
-        error: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>`,
-        info: `<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>`
-    };
-    
-    toast.innerHTML = `
-        ${icons[type] || icons.info}
-        <span class="flex-1 text-sm font-medium text-gray-900">${message}</span>
-        <button onclick="this.parentElement.remove()" class="ml-3 text-gray-400 hover:text-gray-600">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-            </svg>
-        </button>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => toast.remove(), 5000);
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show(message, type);
+    }
 }
 
 // NOTE: Flash message toast initialization is handled in schedule.html
 // Do not duplicate DOMContentLoaded listener here to avoid showing toasts multiple times
 
-// Restore department filter on page load
+// Restore program filter on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Restore department filter from URL
+    // Restore program filter from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const departmentId = urlParams.get('department_id');
+    const departmentId = urlParams.get('program_id');
     if (departmentId) {
         const filterSelect = document.getElementById('departmentFilter');
         if (filterSelect) {
@@ -49,6 +22,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Master-Detail Mobile Navigation Functions
+
+const SCHEDULE_MOBILE_BREAKPOINT = 1023;
+const SCHEDULE_DESKTOP_BREAKPOINT = 1024;
+
+function isScheduleMobileViewport() {
+    return window.innerWidth <= SCHEDULE_MOBILE_BREAKPOINT;
+}
+
+function debounceSchedule(fn, wait = 140) {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn(...args), wait);
+    };
+}
 
 /**
  * Class Tab - Show master (section list) view on mobile
@@ -77,15 +65,15 @@ function showClassDetail() {
         detail.classList.remove('hidden');
         detail.classList.add('flex');
         
-        // On mobile, hide the master panel
-        if (window.innerWidth <= 1024) { // lg breakpoint
+        // On mobile/tablet, hide the master panel
+        if (isScheduleMobileViewport()) {
             master.classList.add('hide-on-mobile');
         }
     }
 }
 
 /**
- * Faculty Tab - Show master (faculty list) view on mobile
+ * Faculty Tab - Show master (faculty list) view on mobile/tablet
  */
 function showFacultyMaster() {
     const master = document.getElementById('faculty-master');
@@ -93,13 +81,12 @@ function showFacultyMaster() {
     
     if (master && detail) {
         master.classList.remove('hide-on-mobile');
-        detail.classList.add('hidden');
-        detail.classList.remove('flex');
+        detail.classList.add('hide-on-mobile');
     }
 }
 
 /**
- * Faculty Tab - Show detail (schedule) view on mobile
+ * Faculty Tab - Show detail (schedule) view on mobile/tablet
  * Called when a faculty is selected
  */
 function showFacultyDetail() {
@@ -108,18 +95,17 @@ function showFacultyDetail() {
     
     if (master && detail) {
         // Always show detail panel when a faculty is selected
-        detail.classList.remove('hidden');
-        detail.classList.add('flex');
+        detail.classList.remove('hide-on-mobile');
         
         // On mobile/tablet, hide the master panel
-        if (window.innerWidth < 768) { // md breakpoint
+        if (isScheduleMobileViewport()) {
             master.classList.add('hide-on-mobile');
         }
     }
 }
 
 /**
- * Room Tab - Show master (room list) view on mobile
+ * Room Tab - Show master (room list) view on mobile/tablet
  */
 function showRoomMaster() {
     const master = document.getElementById('room-master');
@@ -127,13 +113,12 @@ function showRoomMaster() {
     
     if (master && detail) {
         master.classList.remove('hide-on-mobile');
-        detail.classList.add('hidden');
-        detail.classList.remove('flex');
+        detail.classList.add('hide-on-mobile');
     }
 }
 
 /**
- * Room Tab - Show detail (schedule) view on mobile
+ * Room Tab - Show detail (schedule) view on mobile/tablet
  * Called when a room is selected
  */
 function showRoomDetail() {
@@ -142,18 +127,17 @@ function showRoomDetail() {
     
     if (master && detail) {
         // Always show detail panel when a room is selected
-        detail.classList.remove('hidden');
-        detail.classList.add('flex');
+        detail.classList.remove('hide-on-mobile');
         
         // On mobile/tablet, hide the master panel
-        if (window.innerWidth < 768) { // md breakpoint
+        if (isScheduleMobileViewport()) {
             master.classList.add('hide-on-mobile');
         }
     }
 }
 
 /**
- * Exam Tab - Show master (section list) view on mobile
+ * Exam Tab - Show master (section list) view on mobile/tablet
  */
 function showExamMaster() {
     const master = document.getElementById('exam-master');
@@ -161,13 +145,12 @@ function showExamMaster() {
     
     if (master && detail) {
         master.classList.remove('hide-on-mobile');
-        detail.classList.add('hidden');
-        detail.classList.remove('flex');
+        detail.classList.add('hide-on-mobile');
     }
 }
 
 /**
- * Exam Tab - Show detail (schedule) view on mobile
+ * Exam Tab - Show detail (schedule) view on mobile/tablet
  * Called when an exam section is selected
  */
 function showExamDetail() {
@@ -176,12 +159,42 @@ function showExamDetail() {
     
     if (master && detail) {
         // Always show detail panel when an exam section is selected
-        detail.classList.remove('hidden');
-        detail.classList.add('flex');
+        detail.classList.remove('hide-on-mobile');
         
         // On mobile/tablet, hide the master panel
-        if (window.innerWidth < 768) { // md breakpoint
+        if (isScheduleMobileViewport()) {
             master.classList.add('hide-on-mobile');
         }
     }
 }
+
+function syncScheduleViewportState() {
+    if (window.innerWidth >= SCHEDULE_DESKTOP_BREAKPOINT) {
+        const classMaster = document.getElementById('class-master');
+        const classDetail = document.getElementById('class-detail');
+        const facultyMaster = document.getElementById('faculty-master');
+        const facultyDetail = document.getElementById('faculty-detail');
+        const roomMaster = document.getElementById('room-master');
+        const roomDetail = document.getElementById('room-detail');
+        const examMaster = document.getElementById('exam-master');
+        const examDetail = document.getElementById('exam-detail');
+
+        if (classMaster) classMaster.classList.remove('hide-on-mobile');
+        if (classDetail) {
+            classDetail.classList.remove('hide-on-mobile', 'hidden');
+            classDetail.classList.add('flex');
+        }
+
+        if (facultyMaster) facultyMaster.classList.remove('hide-on-mobile');
+        if (facultyDetail) facultyDetail.classList.remove('hide-on-mobile', 'hidden');
+
+        if (roomMaster) roomMaster.classList.remove('hide-on-mobile');
+        if (roomDetail) roomDetail.classList.remove('hide-on-mobile', 'hidden');
+
+        if (examMaster) examMaster.classList.remove('hide-on-mobile');
+        if (examDetail) examDetail.classList.remove('hide-on-mobile', 'hidden');
+    }
+}
+
+window.addEventListener('resize', debounceSchedule(syncScheduleViewportState, 140));
+window.addEventListener('orientationchange', debounceSchedule(syncScheduleViewportState, 120));

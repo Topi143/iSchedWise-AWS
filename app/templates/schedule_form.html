@@ -1,0 +1,2266 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == 'edit' %}Edit{% else %}Create{% endif %} Schedule - iSchedWise{% endblock %}
+
+{% block extra_css %}
+    {% include 'schedule/_styles.html' %}
+    <style>
+        /* === Fixed-Viewport Lock ===
+           Prevent the create/edit schedule page from becoming scrollable.
+           Overrides base.html's <main class="min-h-screen"> which can push
+           total height beyond 100vh (especially on mobile where the sticky
+           header adds extra pixels above the 100vh content). */
+        html, body { height: 100%; }
+        @media (min-width: 1024px) {
+            html, body { overflow: hidden !important; height: 100vh; }
+            #mainContentArea { height: 100vh; overflow: hidden; }
+            #mainContentArea > main { min-height: 0 !important; height: 100%; overflow: hidden; }
+        }
+        @media (max-width: 1023px) {
+            html, body { overflow-y: auto !important; height: auto; }
+            #mainContentArea { height: auto !important; overflow: visible !important; }
+            #mainContentArea > main { min-height: auto !important; height: auto !important; overflow: visible !important; }
+        }
+
+        /* Keep the primary submit visible on narrow widths by collapsing secondary actions. */
+        @media (max-width: 639px) {
+            #unifiedHeaderActions .action-secondary {
+                display: none !important;
+            }
+
+            #unifiedPageTitle {
+                white-space: normal;
+                overflow: hidden;
+                text-overflow: unset;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                line-height: 1.2;
+            }
+        }
+
+        @media (max-width: 767px) {
+            #unifiedHeaderActions button,
+            #tabBtnClass,
+            #tabBtnExam {
+                min-height: 40px;
+            }
+        }
+
+        .toast-container { position: fixed; bottom: 1rem; right: 1rem; z-index: 10000; display: flex; flex-direction: column-reverse; gap: 0.5rem; pointer-events: none; }
+        .toast { display: flex; align-items: center; padding: 0.75rem 1rem; background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; min-width: 300px; animation: slideIn 0.4s ease both; pointer-events: auto; }
+        .dark .toast { background: #1f2937; border-color: #374151; box-shadow: 0 10px 18px -4px rgba(0,0,0,0.45); }
+        .toast-success { border-left: 4px solid #22c55e; }
+        .toast-error, .toast-danger { border-left: 4px solid #ef4444; }
+        .toast-info { border-left: 4px solid #3b82f6; }
+        .toast-warning { border-left: 4px solid #f59e0b; }
+        .toast.removing { animation: slideOut 0.3s ease both; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+        /* Tab transition */
+        .form-tab-panel { transition: opacity 0.15s ease; }
+        .form-tab-panel.hidden { display: none !important; }
+
+        /* Segmented control transition */
+        .tab-segment { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Field validation hints */
+        .field-hint-error { display: none; }
+        .field-touched.field-empty .field-hint-error { display: block; }
+        .field-touched.field-empty .form-select-compact,
+        .field-touched.field-empty .form-input-compact { border-color: #fca5a5 !important; }
+
+        /* Auto badge */
+        .auto-badge { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 9999px; letter-spacing: 0.025em; }
+
+        /* Section info badge */
+        .section-info-badge { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+<div id="toastContainer" class="toast-container"></div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div id="flashMessages" style="display: none;">
+            {% for category, message in messages %}
+                <div data-category="{{ category }}" data-message="{{ message }}"></div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Unified Schedule Form Page - Fixed Viewport Layout -->
+<div class="bg-gray-50 dark:bg-gray-900 h-full overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+
+        <!-- =============================================================== -->
+        <!-- Unified Page Header - Fixed (flex-shrink-0) -->
+        <!-- =============================================================== -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="p-3 sm:p-4">
+                    <div class="flex flex-wrap lg:flex-nowrap items-start lg:items-center justify-between gap-2 sm:gap-3 relative">
+                        <!-- Left: Back arrow + Title -->
+                        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                                     <a id="unifiedBackLink" href="{{ url_for('schedule.class_view') }}" 
+                                         class="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                            </a>
+                            <!-- Back from Batch Mode (hidden by default, shown by JS) -->
+                            <button type="button" id="batchBackBtn" onclick="exitBatchMode()" 
+                                    class="hidden p-1.5 sm:p-2 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 flex-shrink-0"
+                                    title="Back to single schedule form">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                            </button>
+                            <!-- Back from Exam Batch Mode (hidden by default) -->
+                            <button type="button" id="examBatchBackBtn" onclick="exitExamBatchMode()" 
+                                    class="hidden p-1.5 sm:p-2 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 flex-shrink-0"
+                                    title="Back to single exam form">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                            </button>
+                            <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                                <!-- Mode Icons -->
+                                <div id="unifiedIconAdd" class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                </div>
+                                <div id="unifiedIconEdit" class="hidden w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                                        <h1 id="unifiedPageTitle" class="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                            {% if mode == 'edit' %}Edit Schedule{% else %}Create Schedule{% endif %}
+                                        </h1>
+                                        {% if current_settings %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40 whitespace-nowrap">
+                                            <svg class="w-3 h-3 text-indigo-500 dark:text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            {{ current_settings.academic_year }} - {{ current_settings.semester }} - {{ current_settings.exam_period }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+                                        {% if mode == 'edit' %}Modify the schedule details below{% else %}Add a new class or exam schedule{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Center: Segmented Control (Tab Switcher) - Absolutely centered -->
+                        <div class="order-3 w-full flex justify-center lg:w-auto lg:order-none lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 z-10">
+                            <div class="bg-gray-100 dark:bg-gray-700 p-0.5 sm:p-1 rounded-xl flex shadow-inner">
+                                <button type="button" id="tabBtnClass" onclick="switchFormTab('class')"
+                                             class="relative flex items-center gap-1.5 sm:gap-1.5 px-3 sm:px-4 py-2 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold tab-segment
+                                                 bg-white dark:bg-gray-600 text-blue-700 dark:text-blue-300 shadow-sm ring-1 ring-black/5 dark:ring-gray-500/60">
+                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    <span>Class</span>
+                                </button>
+                                <button type="button" id="tabBtnExam" onclick="switchFormTab('exam')"
+                                             class="relative flex items-center gap-1.5 sm:gap-1.5 px-3 sm:px-4 py-2 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold tab-segment
+                                                 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">
+                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <span>Exam</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Right: Actions -->
+                        <div id="unifiedHeaderActions" class="order-2 ml-auto lg:order-none flex items-center flex-wrap gap-2 sm:gap-2 flex-shrink-0 justify-end">
+                            <!-- Back to Add (edit mode only) -->
+                            <button type="button" id="backToAddScheduleBtn" onclick="switchBackToAddMode()" class="hidden action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                New
+                            </button>
+                            <button type="button" id="backToAddExamBtn" onclick="switchBackToAddExamMode()" class="hidden action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                New
+                            </button>
+                            <!-- Delete (edit mode only - class) -->
+                            <button type="button" id="deleteScheduleBtn" onclick="confirmDeleteCurrentSchedule()" class="hidden action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all" title="Delete this schedule">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Delete
+                            </button>
+                            <!-- Delete (edit mode only - exam) -->
+                            <button type="button" id="deleteExamScheduleBtn" onclick="confirmDeleteCurrentExamSchedule()" class="hidden action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all" title="Delete this exam schedule">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Delete
+                            </button>
+
+                            <!-- Auto Generate (class tab, add mode) -->
+                            {% if mode == 'add' %}
+                                <button type="button" id="autoGenBtn" onclick="enterBatchMode()" 
+                                    class="flex action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-all"
+                                    style="{% if not selected_section %}display:none{% endif %}"
+                                    title="Build schedules for all unscheduled subjects at once">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <span class="hidden sm:inline">Batch Schedule</span>
+                                <span class="sm:hidden">Batch</span>
+                            </button>
+                            <!-- Auto Generate Exam (exam tab, add mode) -->
+                                <button type="button" id="autoGenExamBtn" onclick="enterExamBatchMode()" 
+                                    class="flex action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all"
+                                    style="display:none"
+                                    title="Build exam schedules for all unscheduled subjects at once">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <span class="hidden sm:inline">Batch Exam</span>
+                                <span class="sm:hidden">Batch</span>
+                            </button>
+                            {% endif %}
+                                <button type="button" id="viewSelectedSectionScheduleBtn" onclick="goToSelectedSectionSchedule()"
+                                    class="hidden action-secondary items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/40 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all"
+                                    style="{% if not selected_section %}display:none{% endif %}"
+                                    title="View selected section schedule">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m0 0l4-4m-4 4l4 4m5-9h7m0 0l-4-4m4 4l-4 4m4 5h-7m0 0l4-4m-4 4l4 4"></path>
+                                </svg>
+                                <span class="hidden sm:inline">View Schedule</span>
+                                <span class="sm:hidden">View</span>
+                            </button>
+                            <!-- Class Submit (shown when class tab active) -->
+                            <button type="submit" form="addScheduleForm" id="submitScheduleBtn" disabled 
+                                    class="flex items-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white dark:text-gray-200 bg-gray-400 dark:bg-gray-600 border border-transparent dark:border-gray-500 rounded-lg cursor-not-allowed transition-all">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span id="submitScheduleBtnText">Fill Required</span>
+                            </button>
+                            <!-- Exam Submit (shown when exam tab active) -->
+                            <button type="submit" form="addExamScheduleForm" id="submitExamScheduleAdd" disabled 
+                                    class="hidden items-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white dark:text-gray-200 bg-gray-400 dark:bg-gray-600 border border-transparent dark:border-gray-500 rounded-lg cursor-not-allowed transition-all">
+                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span id="submitExamScheduleAddText">Fill Required</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- Main Workspace: Tab Panels + Docked Assistant -->
+        <!-- =============================================================== -->
+        <div class="flex-1 overflow-visible lg:overflow-hidden flex flex-col lg:flex-row min-h-0 lg:min-h-0 relative">
+
+            <!-- Left: Tab Panels -->
+            <div class="flex-1 overflow-visible lg:overflow-hidden flex flex-col min-h-0 lg:min-h-0">
+                <!-- Class Schedule Panel (2-panel: Form | Calendar) -->
+                <div id="classFormPanel" class="form-tab-panel {% if active_tab == 'exam' %}hidden {% endif %}flex-1 overflow-visible lg:overflow-hidden flex flex-col">
+                    {% with unified_page=True %}
+                        {% include 'schedule/_class_form_content.html' %}
+                    {% endwith %}
+                </div>
+
+                <!-- Batch Schedule Builder Panel (inline, replaces classFormPanel when active) -->
+                {% if mode == 'add' %}
+                    {% include 'schedule/_batch_builder_panel.html' %}
+                {% endif %}
+
+                <!-- Exam Schedule Panel (2-panel: Form | Calendar) -->
+                <div id="examFormPanel" class="form-tab-panel {% if active_tab != 'exam' %}hidden {% endif %}flex-1 overflow-visible lg:overflow-hidden flex flex-col">
+                    {% with unified_page=True %}
+                        {% include 'schedule/_exam_form_content.html' %}
+                    {% endwith %}
+                </div>
+
+                <!-- Batch Exam Schedule Builder Panel (inline, replaces examFormPanel when active) -->
+                {% if mode == 'add' %}
+                    {% include 'schedule/_batch_exam_builder_panel.html' %}
+                {% endif %}
+            </div>
+
+            <button id="aiDrawerOpenDesktopBtn" type="button" onclick="openAIDrawer()" class="hidden lg:inline-flex absolute top-3 right-3 z-30 items-center gap-2 px-3 py-2 rounded-lg bg-white/95 dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700 shadow-sm text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-800 transition-all" title="Open Schedule Assistant">
+                <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                </svg>
+                Assistant
+            </button>
+
+            <!-- Right: Overlay Assistant (desktop) / Collapsible Section (mobile) -->
+            <div id="aiAssistantDockPanel" class="w-full mt-2 lg:mt-0 lg:w-[360px] xl:w-[420px] flex-shrink-0 rounded-xl lg:rounded-none border border-gray-200 dark:border-gray-700 lg:border-t-0 lg:border-l bg-white dark:bg-gray-800 overflow-visible lg:overflow-hidden lg:absolute lg:top-0 lg:right-0 lg:h-full lg:z-40 lg:shadow-xl lg:transition-all lg:duration-300 lg:ease-out translate-x-full opacity-0 pointer-events-none">
+                {% include 'schedule/_ai_drawer.html' %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Subject Browser Drawer (shared across class/exam/batch forms) -->
+{% include 'schedule/_subject_browser_drawer.html' %}
+
+<!-- Delete confirmation modal for class schedules -->
+<div id="deleteScheduleModal" class="hidden fixed inset-0 z-[60] overflow-y-auto" data-force-sidebar-dim="true" data-sidebar-dim-alpha="0.5" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeDeleteModal()"></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div class="p-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete Schedule</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Are you sure you want to delete <strong id="deleteScheduleSubjectInfo" class="text-gray-700 dark:text-gray-200"></strong>? This action cannot be undone.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" onclick="executeDeleteAjax()" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors inline-flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="delete_schedule_id" value="">
+</div>
+
+<!-- Batch builder is now inline (included above as _batch_builder_panel.html) -->
+
+<!-- Delete confirmation modal for exam schedules (unified design) -->
+<div id="deleteExamScheduleModal" class="hidden fixed inset-0 z-[60] overflow-y-auto" data-force-sidebar-dim="true" data-sidebar-dim-alpha="0.5" aria-labelledby="modal-title-exam" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeExamDeleteModal()"></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div class="p-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete Exam Schedule</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Are you sure you want to delete <strong id="deleteExamSubjectInfo" class="text-gray-700 dark:text-gray-200">this exam schedule</strong>? This action cannot be undone.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeExamDeleteModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+                <button type="button" id="confirmExamDeleteBtn" onclick="executeExamDeleteAjax()" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors inline-flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="delete_exam_schedule_id" value="">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/schedule/time_picker.js') }}"></script>
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+
+<!-- Academic & Exam Settings -->
+{% if current_settings %}
+<script>
+    window.currentAcademicYear = "{{ current_settings.academic_year }}";
+    window.currentSemester = "{{ current_settings.semester }}";
+    // Exam settings
+    window.examLunchStart = "{{ exam_lunch_start|default('12:00') }}";
+    window.examLunchEnd = "{{ exam_lunch_end|default('13:00') }}";
+    window.examDurationLimit = {{ exam_duration_limit|default(120) }};
+    window.examPeriodStart = "{{ exam_period_start|default('') }}";
+    window.examPeriodEnd = "{{ exam_period_end|default('') }}";
+    // Operation days from settings
+    window.OPERATION_DAYS = {{ operation_days|default(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])|tojson }};
+</script>
+{% endif %}
+
+<!-- Form Page Configuration -->
+<script>
+    window.SCHEDULE_PAGE = '{{ active_tab|default("class") }}';
+    window.SCHEDULE_FORM_MODE = '{{ mode }}';
+    window.INLINE_FORM_PAGE = true;
+    window.UNIFIED_FORM_PAGE = true;
+    window.CURRENT_USER_ID = {{ current_user.id }};
+    window.CLASS_VIEW_BASE_URL = "{{ url_for('schedule.class_view') }}";
+    window.EXAM_VIEW_BASE_URL = "{{ url_for('schedule.exam_view') }}";
+
+    {% if selected_section %}
+    window.FORM_SECTION_ID = {{ selected_section.id }};
+    window.FORM_SECTION_NAME = "{{ selected_section.section_code|default(selected_section.section_name|default('')) }}";
+    // Exam batch globals (mirrors FORM_SECTION_*)
+    window.EXAM_BATCH_SECTION_ID = {{ selected_section.id }};
+    window.EXAM_BATCH_SECTION_NAME = "{{ selected_section.section_code|default(selected_section.section_name|default('')) }}";
+    {% endif %}
+
+    // Schedule time bounds for batch builder
+    window.scheduleStartHour = {{ schedule_start_hour|default(7) }};
+    window.scheduleEndHour = {{ schedule_end_hour|default(20) }};
+    window.scheduleEndMinute = {{ schedule_end_minute|default(0) }};
+    window.scheduleStartTime = "{{ schedule_start_time|default('07:00') }}";
+    window.scheduleEndTime = "{{ schedule_end_time|default('20:00') }}";
+
+    // Exam time bounds for batch builder
+    window.examStartHour = {{ exam_start_hour|default(7) }};
+    window.examEndHour = {{ exam_end_hour|default(17) }};
+    window.examEndMinute = {{ exam_end_minute|default(0) }};
+    window.examStartTime = "{{ exam_start_time|default('07:00') }}";
+    window.examEndTime = "{{ exam_end_time|default('17:00') }}";
+
+    {% if schedule %}
+    window.FORM_SCHEDULE_DATA = {
+        id: {{ schedule.id }},
+        section_id: {{ schedule.section_id }},
+        subject_id: {{ schedule.subject_id }},
+        faculty_id: {{ schedule.faculty_id or 'null' }},
+        room_id: {{ schedule.room_id or 'null' }},
+        day_of_week: "{{ schedule.day_of_week }}",
+        start_time: "{{ schedule.start_time.strftime('%H:%M') if schedule.start_time else '' }}",
+        end_time: "{{ schedule.end_time.strftime('%H:%M') if schedule.end_time else '' }}",
+        schedule_type: "{{ 'lecture' if (schedule.schedule_type|default('lecture')|lower) == 'both' else (schedule.schedule_type|default('lecture')) }}",
+        version: {{ schedule.version|default(1) }},
+        curriculum_id: {{ schedule.subject.curriculum_id if schedule.subject and schedule.subject.curriculum_id else 'null' }},
+        faculty_name: "{{ schedule.faculty.full_name if schedule.faculty else '' }}",
+        subject_name: "{{ schedule.subject.subject_name if schedule.subject else '' }}",
+        subject_code: "{{ schedule.subject.subject_code if schedule.subject else '' }}",
+        room_number: "{{ schedule.room.room_number if schedule.room else '' }}"
+    };
+    {% endif %}
+
+    {% if exam_schedule %}
+    window.FORM_EXAM_DATA = {
+        id: {{ exam_schedule.id }},
+        section_id: {{ exam_schedule.section_id }},
+        subject_id: {{ exam_schedule.subject_id or 'null' }},
+        curriculum_id: {{ exam_schedule.curriculum_id or 'null' }},
+        faculty_id: {{ exam_schedule.faculty_id or 'null' }},
+        faculty_name: "{{ exam_schedule.faculty.full_name if exam_schedule.faculty else '' }}",
+        room_id: {{ exam_schedule.room_id or 'null' }},
+        exam_date: "{{ exam_schedule.exam_date.strftime('%Y-%m-%d') if exam_schedule.exam_date else '' }}",
+        start_time: "{{ exam_schedule.start_time.strftime('%H:%M') if exam_schedule.start_time else '' }}",
+        end_time: "{{ exam_schedule.end_time.strftime('%H:%M') if exam_schedule.end_time else '' }}",
+        exam_type: "{{ exam_schedule.exam_type|default('midterm') }}",
+        schedule_type: "{{ exam_schedule.schedule_type|default('lecture') }}",
+        proctor_id: {{ exam_schedule.proctor_id or 'null' }},
+        notes: "{{ exam_schedule.notes|default('')|e }}",
+        version: {{ exam_schedule.version|default(1) }},
+        subject_name: "{{ exam_schedule.subject.subject_name if exam_schedule.subject else '' }}",
+        subject_code: "{{ exam_schedule.subject.subject_code if exam_schedule.subject else '' }}",
+        room_number: "{{ exam_schedule.room.room_number if exam_schedule.room else '' }}"
+    };
+    {% endif %}
+</script>
+
+<!-- All schedule JS files (shared + class + exam) -->
+<script src="{{ url_for('static', filename='js/schedule/realtime.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/curriculum_selector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/calendar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/auto_conflict_check.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/auto_conflict_check_exam.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/ai_drawer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/subject_browser.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/ai_toggle.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/exam_ai.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/schedule_full.js') }}"></script>
+{% if mode == 'add' %}
+<script src="{{ url_for('static', filename='js/schedule/batch_schedule.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/batch_exam_schedule.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule/form_state.js') }}"></script>
+{% endif %}
+
+<script>
+    // --- Exam Schedule Type handler ----------------------------------
+    function handleExamSubjectChange(mode) {
+        const subjectSelect = document.getElementById(`subject_id_exam_${mode}`);
+        const typeContainer = document.getElementById(`examScheduleTypeContainer_${mode}`);
+        const typeSelect = document.getElementById(`schedule_type_exam_${mode}`);
+        if (!subjectSelect || !typeContainer || !typeSelect) return;
+
+        const selected = subjectSelect.options[subjectSelect.selectedIndex];
+        if (!selected || !selected.value) {
+            // Reset type to default - keep container visible
+            typeSelect.value = 'lecture';
+            const lecOpt = document.getElementById(`examLectureOption_${mode}`);
+            const labOpt = document.getElementById(`examLabOption_${mode}`);
+            if (lecOpt) { lecOpt.disabled = false; lecOpt.textContent = 'Lecture'; }
+            if (labOpt) { labOpt.disabled = false; labOpt.textContent = 'Lab'; }
+            // Reset room filtering - show all rooms including Court/Gym
+            if (typeof _filterRoomsBySubjectType === 'function') {
+                _filterRoomsBySubjectType(`room_dropdown_exam_${mode}`, true);
+            }
+            return;
+        }
+
+        const lecUnits = parseFloat(selected.dataset.lecUnits || 0);
+        const labUnits = parseFloat(selected.dataset.labUnits || 0);
+        const lecOption = document.getElementById(`examLectureOption_${mode}`);
+        const labOption = document.getElementById(`examLabOption_${mode}`);
+
+        // Filter Court/Gym rooms - only show for PE subjects
+        if (typeof _isPeSubject === 'function' && typeof _filterRoomsBySubjectType === 'function') {
+            const isPe = _isPeSubject(selected.dataset.code || '', selected.dataset.description || '');
+            _filterRoomsBySubjectType(`room_dropdown_exam_${mode}`, isPe);
+        }
+
+        if (lecUnits > 0 && labUnits > 0) {
+            // Both LEC and LAB - show dropdown, let user pick
+            typeContainer.classList.remove('hidden');
+            if (lecOption) { lecOption.disabled = false; lecOption.textContent = `Lecture (${lecUnits} units)`; }
+            if (labOption) { labOption.disabled = false; labOption.textContent = `Lab (${labUnits} units)`; }
+            typeSelect.value = 'lecture';
+        } else if (lecUnits > 0) {
+            // LEC only - auto-select lecture, show as read-only hint
+            typeContainer.classList.remove('hidden');
+            if (lecOption) { lecOption.disabled = false; lecOption.textContent = `Lecture (${lecUnits} units)`; }
+            if (labOption) { labOption.disabled = true; labOption.textContent = 'Lab (N/A)'; }
+            typeSelect.value = 'lecture';
+        } else if (labUnits > 0) {
+            // LAB only - auto-select lab
+            typeContainer.classList.remove('hidden');
+            if (lecOption) { lecOption.disabled = true; lecOption.textContent = 'Lecture (N/A)'; }
+            if (labOption) { labOption.disabled = false; labOption.textContent = `Lab (${labUnits} units)`; }
+            typeSelect.value = 'lab';
+        } else {
+            // No units info - default to lecture
+            typeContainer.classList.remove('hidden');
+            if (lecOption) { lecOption.disabled = false; lecOption.textContent = 'Lecture'; }
+            if (labOption) { labOption.disabled = false; labOption.textContent = 'Lab'; }
+            typeSelect.value = 'lecture';
+        }
+
+        // Trigger conflict check after subject/type change
+        if (typeof scheduleAutoExamConflictCheck === 'function') {
+            scheduleAutoExamConflictCheck(mode);
+        }
+    }
+    window.handleExamSubjectChange = handleExamSubjectChange;
+
+    // --- Exam helper functions ----------------------------------------
+    function autoCalculateExamEndTime(mode) {
+        const startTimeInput = document.getElementById(`start_time_exam_${mode}`);
+        const endTimeInput = document.getElementById(`end_time_exam_${mode}`);
+        if (!startTimeInput || !endTimeInput) return;
+        const startTime = startTimeInput.value;
+        if (!startTime) return;
+        const durationLimit = window.examDurationLimit || 120;
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const startMins = startHours * 60 + startMinutes;
+        const endMins = startMins + durationLimit;
+        const endHours = Math.floor(endMins / 60);
+        const endMinutes = endMins % 60;
+        const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+        endTimeInput.value = endTime;
+        if (typeof checkExamLunchOverlap === 'function') checkExamLunchOverlap(mode);
+        // Trigger conflict check since programmatic .value changes don't fire change events
+        if (typeof scheduleAutoExamConflictCheck === 'function') scheduleAutoExamConflictCheck(mode);
+    }
+
+    function checkExamLunchOverlap(mode) {
+        const startTimeInput = document.getElementById(`start_time_exam_${mode}`);
+        const endTimeInput = document.getElementById(`end_time_exam_${mode}`);
+        const warningDiv = document.getElementById(`lunchOverlapWarning_${mode}`);
+        const durationWarningDiv = document.getElementById(`durationLimitWarning_${mode}`);
+        if (!startTimeInput || !endTimeInput) return;
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        if (warningDiv) warningDiv.classList.add('hidden');
+        if (durationWarningDiv) durationWarningDiv.classList.add('hidden');
+        if (!startTime || !endTime) return;
+        const lunchStart = window.examLunchStart || '12:00';
+        const lunchEnd = window.examLunchEnd || '13:00';
+        const durationLimit = window.examDurationLimit || 120;
+        const toMinutes = (ts) => { const [h, m] = ts.split(':').map(Number); return h * 60 + m; };
+        const examStartMins = toMinutes(startTime);
+        const examEndMins = toMinutes(endTime);
+        const lunchStartMins = toMinutes(lunchStart);
+        const lunchEndMins = toMinutes(lunchEnd);
+        const examDuration = examEndMins - examStartMins;
+        if (examDuration > durationLimit && durationWarningDiv) {
+            const hours = Math.floor(durationLimit / 60);
+            const mins = durationLimit % 60;
+            const limitText = mins > 0 ? `${hours}h ${mins}m` : `${hours} hour${hours > 1 ? 's' : ''}`;
+            const dt = document.getElementById(`durationLimitText_${mode}`);
+            if (dt) dt.textContent = limitText;
+            durationWarningDiv.classList.remove('hidden');
+        }
+        const overlaps = examStartMins < lunchEndMins && examEndMins > lunchStartMins;
+        if (overlaps && warningDiv) {
+            const ltd = document.getElementById(`lunchTimeDisplay_${mode}`);
+            if (ltd) {
+                const fmt = (ts) => { const [h, m] = ts.split(':').map(Number); const ap = h < 12 ? 'AM' : 'PM'; const h12 = h === 0 ? 12 : (h <= 12 ? h : h - 12); return `${h12}:${m.toString().padStart(2, '0')} ${ap}`; };
+                ltd.textContent = `${fmt(lunchStart)} - ${fmt(lunchEnd)}`;
+            }
+            warningDiv.classList.remove('hidden');
+        }
+    }
+
+    // --- Unified Tab Switching ---------------------------------------
+    let classTabInitialized = false;
+    let examTabInitialized = false;
+    let currentActiveTab = null;  // null so first switchFormTab() always runs
+
+    function parseSectionId(value) {
+        const numeric = parseInt(value, 10);
+        return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+    }
+
+    function getActiveSectionId(tabType) {
+        if (tabType === 'exam') {
+            return (
+                parseSectionId(document.getElementById('examModalSectionSwitcher')?.value) ||
+                parseSectionId(document.getElementById('section_id_exam_add')?.value) ||
+                parseSectionId(window.EXAM_FORM_SECTION_ID) ||
+                parseSectionId(window.FORM_SECTION_ID)
+            );
+        }
+
+        return (
+            parseSectionId(document.getElementById('modalSectionSwitcher')?.value) ||
+            parseSectionId(document.getElementById('section_id_add')?.value) ||
+            parseSectionId(window.FORM_SECTION_ID) ||
+            parseSectionId(window.EXAM_FORM_SECTION_ID)
+        );
+    }
+
+    function updateSectionScheduleButtonState(tabType) {
+        const button = document.getElementById('viewSelectedSectionScheduleBtn');
+        if (!button) return;
+
+        const activeTab = tabType || currentActiveTab || window.SCHEDULE_PAGE || 'class';
+        const sectionId = getActiveSectionId(activeTab);
+
+        if (sectionId) {
+            button.style.display = 'flex';
+            button.disabled = false;
+            button.classList.remove('opacity-50', 'cursor-not-allowed');
+            return;
+        }
+
+        button.style.display = 'none';
+        button.disabled = true;
+        button.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    function goToSelectedSectionSchedule() {
+        const activeTab = currentActiveTab || window.SCHEDULE_PAGE || 'class';
+        const sectionId = getActiveSectionId(activeTab);
+        if (!sectionId) {
+            if (typeof showToast === 'function') {
+                showToast('Select a section first to open its schedule.', 'warning');
+            }
+            return;
+        }
+
+        const baseUrl = activeTab === 'exam'
+            ? (window.EXAM_VIEW_BASE_URL || '/schedule/exam')
+            : (window.CLASS_VIEW_BASE_URL || '/schedule/class');
+        window.location.href = `${baseUrl}?section_id=${sectionId}`;
+    }
+
+    window.goToSelectedSectionSchedule = goToSelectedSectionSchedule;
+
+    function runSectionSyncHook(tabType) {
+        const hooks = window.scheduleFormSyncHooks;
+        if (!hooks) return;
+
+        if (tabType === 'class' && typeof hooks.onClassSectionChanged === 'function') {
+            hooks.onClassSectionChanged();
+        }
+
+        if (tabType === 'exam' && typeof hooks.onExamSectionChanged === 'function') {
+            hooks.onExamSectionChanged();
+        }
+    }
+
+    function syncActiveTabToUrl(tabType) {
+        if (tabType !== 'class' && tabType !== 'exam') return;
+
+        // Persist tab state only on create page so browser refresh restores the correct tab.
+        if (!/\/schedule\/create\/?$/i.test(window.location.pathname || '')) return;
+
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('type') === tabType) return;
+            url.searchParams.set('type', tabType);
+            history.replaceState(null, '', url.toString());
+        } catch (e) {
+            // Ignore URL mutation failures and keep UI state functional.
+        }
+    }
+
+    function switchFormTab(tabType) {
+        // Don't re-switch to the same tab
+        if (tabType === currentActiveTab) return;
+
+        // Exit batch mode if active (class)
+        if (typeof exitBatchMode === 'function' && typeof _batchModeActive !== 'undefined' && _batchModeActive) {
+            exitBatchMode(true); // silent exit (no animation)
+        }
+        // Exit exam batch mode if active
+        if (typeof exitExamBatchMode === 'function' && typeof _examBatchModeActive !== 'undefined' && _examBatchModeActive) {
+            exitExamBatchMode(true); // silent exit
+        }
+
+        // --- Switch AI drawer content panel --------------------------
+        if (typeof onDrawerTabSwitch === 'function') {
+            onDrawerTabSwitch(tabType);
+        }
+
+        // --- Sync section selection between tabs ---------------------
+        const classSectionSwitcher = document.getElementById('modalSectionSwitcher');
+        const examSectionSwitcher = document.getElementById('examModalSectionSwitcher');
+
+        if (tabType === 'exam' && classSectionSwitcher) {
+            // Carry class tab's section selection → exam tab
+            const selectedClassSectionId = classSectionSwitcher.value
+                || document.getElementById('section_id_add')?.value
+                || window.FORM_SECTION_ID
+                || '';
+            const examSectionIdInput = document.getElementById('section_id_exam_add');
+            const needsExamHydration = Boolean(
+                selectedClassSectionId && (
+                    !examSectionSwitcher ||
+                    String(examSectionSwitcher.value || '') !== String(selectedClassSectionId) ||
+                    !examSectionIdInput ||
+                    String(examSectionIdInput.value || '') !== String(selectedClassSectionId)
+                )
+            );
+
+            if (examSectionSwitcher && examSectionSwitcher.value !== selectedClassSectionId) {
+                examSectionSwitcher.value = selectedClassSectionId;
+            }
+
+            if (needsExamHydration && typeof switchExamModalSection === 'function') {
+                switchExamModalSection(selectedClassSectionId);
+            } else if (selectedClassSectionId && examSectionIdInput) {
+                examSectionIdInput.value = selectedClassSectionId;
+                runSectionSyncHook('exam');
+            }
+        } else if (tabType === 'class' && examSectionSwitcher) {
+            // Carry exam tab's section selection → class tab
+            const selectedExamSectionId = examSectionSwitcher.value
+                || document.getElementById('section_id_exam_add')?.value
+                || window.EXAM_FORM_SECTION_ID
+                || window.FORM_SECTION_ID
+                || '';
+            const classSectionIdInput = document.getElementById('section_id_add');
+            const needsClassHydration = Boolean(
+                selectedExamSectionId && (
+                    !classSectionSwitcher ||
+                    String(classSectionSwitcher.value || '') !== String(selectedExamSectionId) ||
+                    !classSectionIdInput ||
+                    String(classSectionIdInput.value || '') !== String(selectedExamSectionId)
+                )
+            );
+
+            if (classSectionSwitcher && classSectionSwitcher.value !== selectedExamSectionId) {
+                classSectionSwitcher.value = selectedExamSectionId;
+            }
+
+            if (needsClassHydration && typeof switchModalSection === 'function') {
+                switchModalSection(selectedExamSectionId);
+            } else if (selectedExamSectionId && classSectionIdInput) {
+                classSectionIdInput.value = selectedExamSectionId;
+                runSectionSyncHook('class');
+            }
+        }
+
+        const classPanel = document.getElementById('classFormPanel');
+        const examPanel = document.getElementById('examFormPanel');
+        const classBtn = document.getElementById('tabBtnClass');
+        const examBtn = document.getElementById('tabBtnExam');
+        const classSubmit = document.getElementById('submitScheduleBtn');
+        const examSubmit = document.getElementById('submitExamScheduleAdd');
+        const backLink = document.getElementById('unifiedBackLink');
+        const autoGenBtn = document.getElementById('autoGenBtn');
+        const autoGenExamBtn = document.getElementById('autoGenExamBtn');
+
+        if (tabType === 'class') {
+            // Show class, hide exam
+            classPanel.classList.remove('hidden');
+            examPanel.classList.add('hidden');
+            classSubmit.style.display = 'flex';
+            examSubmit.style.display = 'none';
+            if (autoGenBtn) autoGenBtn.style.display = window.FORM_SECTION_ID ? 'flex' : 'none';
+            if (autoGenExamBtn) autoGenExamBtn.style.display = 'none';
+
+            // Toggle tab-specific action buttons
+            const classDelete = document.getElementById('deleteScheduleBtn');
+            const examDelete = document.getElementById('deleteExamScheduleBtn');
+            const classBackToAdd = document.getElementById('backToAddScheduleBtn');
+            const examBackToAdd = document.getElementById('backToAddExamBtn');
+            if (examDelete) examDelete.style.display = 'none';
+            if (examBackToAdd) examBackToAdd.style.display = 'none';
+
+            // Update segmented control
+            classBtn.className = 'relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold tab-segment bg-white dark:bg-gray-600 text-blue-700 dark:text-blue-300 shadow-sm ring-1 ring-black/5 dark:ring-gray-500/60';
+            examBtn.className = 'relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold tab-segment text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100';
+
+            // Update back link
+            {% if selected_section %}
+            backLink.href = '/schedule/class?section_id={{ selected_section.id }}';
+            {% else %}
+            backLink.href = '/schedule/class';
+            {% endif %}
+
+            window.SCHEDULE_PAGE = 'class';
+
+            // Initialize class form on first switch if section is available
+            if (!classTabInitialized && window.FORM_SECTION_ID) {
+                classTabInitialized = true;
+                if (window.FORM_SCHEDULE_DATA && typeof editSchedule === 'function') {
+                    editSchedule(window.FORM_SCHEDULE_DATA.id, window.FORM_SCHEDULE_DATA);
+                } else if (typeof openAddScheduleModal === 'function') {
+                    openAddScheduleModal(window.FORM_SECTION_ID, window.FORM_SECTION_NAME || '');
+                }
+            }
+        } else {
+            // Show exam, hide class
+            examPanel.classList.remove('hidden');
+            classPanel.classList.add('hidden');
+            classSubmit.style.display = 'none';
+            examSubmit.style.display = 'flex';
+            if (autoGenBtn) autoGenBtn.style.display = 'none';
+            if (autoGenExamBtn) autoGenExamBtn.style.display = (window.FORM_SECTION_ID || window.EXAM_FORM_SECTION_ID) ? 'flex' : 'none';
+
+            // Toggle tab-specific action buttons
+            const classDeleteE = document.getElementById('deleteScheduleBtn');
+            const examDeleteE = document.getElementById('deleteExamScheduleBtn');
+            const classBackToAddE = document.getElementById('backToAddScheduleBtn');
+            const examBackToAddE = document.getElementById('backToAddExamBtn');
+            if (classDeleteE) classDeleteE.style.display = 'none';
+            if (classBackToAddE) classBackToAddE.style.display = 'none';
+
+            // Update segmented control
+            examBtn.className = 'relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold tab-segment bg-white dark:bg-gray-600 text-orange-700 dark:text-orange-300 shadow-sm ring-1 ring-black/5 dark:ring-gray-500/60';
+            classBtn.className = 'relative flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold tab-segment text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100';
+
+            // Update back link
+            {% if selected_section %}
+            backLink.href = '/schedule/exam?section_id={{ selected_section.id }}';
+            {% else %}
+            backLink.href = '/schedule/exam';
+            {% endif %}
+
+            window.SCHEDULE_PAGE = 'exam';
+
+            // Initialize exam form on first switch if section is available
+            const examSectionId = window.EXAM_FORM_SECTION_ID || window.FORM_SECTION_ID;
+            if (!examTabInitialized && examSectionId) {
+                examTabInitialized = true;
+                if (window.FORM_EXAM_DATA && typeof editExamSchedule === 'function') {
+                    editExamSchedule(window.FORM_EXAM_DATA.id, window.FORM_EXAM_DATA);
+                } else if (typeof openAddExamScheduleModal === 'function') {
+                    openAddExamScheduleModal(examSectionId);
+                }
+            }
+
+            // Set exam date min/max from exam period
+            if (window.examPeriodStart && window.examPeriodEnd) {
+                const dateInputs = document.querySelectorAll('input[name="exam_date"]');
+                dateInputs.forEach(input => {
+                    input.setAttribute('min', window.examPeriodStart);
+                    input.setAttribute('max', window.examPeriodEnd);
+                });
+            }
+
+            // Sync status hint immediately when section is already selected.
+            const examSelectedSection = document.getElementById('examModalSectionSwitcher')?.value
+                || document.getElementById('section_id_exam_add')?.value
+                || window.EXAM_FORM_SECTION_ID
+                || window.FORM_SECTION_ID;
+            if (examSelectedSection && typeof onExamFieldChange === 'function') {
+                onExamFieldChange('section');
+            }
+        }
+
+        currentActiveTab = tabType;
+        syncActiveTabToUrl(tabType);
+        updateSectionScheduleButtonState(tabType);
+    }
+
+    // --- Override close functions to navigate back --------------------
+    closeScheduleModal = function() {
+        {% if selected_section %}
+        window.location.href = '/schedule/class?section_id={{ selected_section.id }}';
+        {% else %}
+        window.location.href = '/schedule/class';
+        {% endif %}
+    };
+
+    closeExamModal = function() {
+        {% if selected_section %}
+        window.location.href = '/schedule/exam?section_id={{ selected_section.id }}';
+        {% else %}
+        window.location.href = '/schedule/exam';
+        {% endif %}
+    };
+    closeAddExamScheduleModal = closeExamModal;
+    closeEditExamScheduleModal = closeExamModal;
+
+    // --- Format Exam Period Dates ------------------------------------
+    function formatExamPeriodDates() {
+        document.querySelectorAll('.exam-period-display').forEach(el => {
+            const startStr = el.dataset.start;
+            const endStr = el.dataset.end;
+            if (!startStr || !endStr) return;
+            const opts = { month: 'short', day: 'numeric' };
+            const optsYear = { month: 'short', day: 'numeric', year: 'numeric' };
+            try {
+                const start = new Date(startStr + 'T00:00:00');
+                const end = new Date(endStr + 'T00:00:00');
+                const sameYear = start.getFullYear() === end.getFullYear();
+                const startFmt = start.toLocaleDateString('en-US', sameYear ? opts : optsYear);
+                const endFmt = end.toLocaleDateString('en-US', optsYear);
+                el.textContent = `Period: ${startFmt} - ${endFmt}`;
+            } catch(e) { /* keep raw fallback */ }
+        });
+    }
+
+    // --- DOMContentLoaded: Initialize the active tab -----------------
+    document.addEventListener('DOMContentLoaded', function() {
+        const activeTab = '{{ active_tab|default("class") }}';
+
+        // --- Form Progress Tracker -----------------------------------
+        function updateClassFormProgress() {
+            const sectionValue =
+                document.getElementById('section_id_add')?.value
+                || document.getElementById('modalSectionSwitcher')?.value
+                || '';
+            const curriculumValue = document.getElementById('curriculum_id_add')?.value || '';
+            const subjectValue = document.getElementById('subject_id_add')?.value || '';
+            const typeValue = document.getElementById('schedule_type_add')?.value || '';
+            const facultyValue = document.getElementById('faculty_id_add')?.value || '';
+            const dayValue = document.getElementById('day_of_week_add')?.value || '';
+            const roomValue = document.getElementById('room_id_add')?.value || '';
+            
+            // Check times from either manual or auto fields
+            const startTimeManual = document.getElementById('start_time_add')?.value;
+            const startTimeAuto = document.getElementById('start_time_auto_add')?.value;
+            const hasStartTime = Boolean(startTimeManual || startTimeAuto);
+            
+            const endTimeManual = document.getElementById('end_time_add')?.value;
+            const endTimeAuto = document.getElementById('end_time_auto_add')?.value;
+            const hasEndTime = Boolean(endTimeManual || endTimeAuto);
+
+            const checks = [
+                Boolean(sectionValue),
+                Boolean(curriculumValue),
+                Boolean(subjectValue),
+                Boolean(typeValue),
+                Boolean(facultyValue),
+                Boolean(dayValue),
+                Boolean(roomValue),
+                Boolean(hasStartTime && hasEndTime)
+            ];
+
+            const filled = checks.filter(Boolean).length;
+            const total = checks.length;
+            const pct = Math.round((filled / total) * 100);
+            const bar = document.getElementById('classFormProgressBar');
+            const text = document.getElementById('classFormProgress');
+            if (bar) bar.style.width = pct + '%';
+            if (text) text.textContent = filled + ' / ' + total;
+        }
+        function updateExamFormProgress() {
+            const sectionValue = document.getElementById('section_id_exam_add')?.value || '';
+            const curriculumValue = document.getElementById('curriculum_id_exam_add')?.value || '';
+            const subjectValue = document.getElementById('subject_id_exam_add')?.value || '';
+            const examDateValue = document.getElementById('exam_date_add')?.value || '';
+            const facultyValue = document.getElementById('faculty_id_exam_add')?.value || '';
+            const roomValue = document.getElementById('room_id_exam_add')?.value || '';
+            
+            const startTimeManual = document.getElementById('start_time_exam_add')?.value;
+            const startTimeAuto = document.getElementById('start_time_exam_auto_add')?.value;
+            const hasStartTime = Boolean(startTimeManual || startTimeAuto);
+            
+            const endTimeManual = document.getElementById('end_time_exam_add')?.value;
+            const endTimeAuto = document.getElementById('end_time_exam_auto_add')?.value;
+            const hasEndTime = Boolean(endTimeManual || endTimeAuto);
+
+            const checks = [
+                Boolean(sectionValue),
+                Boolean(curriculumValue),
+                Boolean(subjectValue),
+                Boolean(examDateValue),
+                Boolean(facultyValue),
+                Boolean(roomValue),
+                Boolean(hasStartTime && hasEndTime)
+            ];
+            
+            const filled = checks.filter(Boolean).length;
+            const total = checks.length;
+            const pct = Math.round((filled / total) * 100);
+            const bar = document.getElementById('examFormProgressBar');
+            const text = document.getElementById('examFormProgress');
+            if (bar) bar.style.width = pct + '%';
+            if (text) text.textContent = filled + ' / ' + total;
+        }
+
+        // --- Smart Status Line (B2) ---------------------------------
+        // SVG icon templates for status line
+        const STATUS_ICONS = {
+            info: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            check: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            warning: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
+            error: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            spinner: '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>'
+        };
+
+        // Color mappings for status line
+        const STATUS_COLORS = {
+            blue:    { text: 'text-blue-600 dark:text-blue-300',    icon: 'text-blue-500 dark:text-blue-400',    badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',    bar: 'bg-gradient-to-r from-blue-500 to-indigo-500' },
+            emerald: { text: 'text-emerald-600 dark:text-emerald-300', icon: 'text-emerald-500 dark:text-emerald-400', badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', bar: 'bg-gradient-to-r from-emerald-500 to-green-500' },
+            amber:   { text: 'text-amber-600 dark:text-amber-300',   icon: 'text-amber-500 dark:text-amber-400',   badge: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',   bar: 'bg-gradient-to-r from-amber-500 to-yellow-500' },
+            red:     { text: 'text-red-600 dark:text-red-300',      icon: 'text-red-500 dark:text-red-400',     badge: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',      bar: 'bg-gradient-to-r from-red-500 to-rose-500' },
+            gray:    { text: 'text-gray-400 dark:text-gray-500',     icon: 'text-gray-400 dark:text-gray-500',    badge: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300',    bar: 'bg-gradient-to-r from-gray-400 to-gray-500' }
+        };
+
+        // All bar gradient classes for removal
+        const ALL_BAR_CLASSES = Object.values(STATUS_COLORS).map(c => c.bar.split(' ')).flat();
+
+        /**
+         * Update the smart status line below the progress bar.
+         * @param {string} prefix - 'class' or 'exam'
+         * @param {string} iconKey - 'info'|'check'|'warning'|'error'|'spinner'
+         * @param {string} text - Status message
+         * @param {string} color - 'blue'|'emerald'|'amber'|'red'|'gray'
+         * @param {string|null} badgeText - Optional badge text (e.g. "18/21")
+         */
+        function updateSmartStatus(prefix, iconKey, text, color, badgeText) {
+            const iconEl = document.getElementById(prefix + 'StatusIcon');
+            const textEl = document.getElementById(prefix + 'StatusText');
+            const badgeEl = document.getElementById(prefix + 'StatusBadge');
+            const barEl = document.getElementById(prefix + 'FormProgressBar');
+            
+            if (!iconEl || !textEl) return;
+
+            const colorSet = STATUS_COLORS[color] || STATUS_COLORS.blue;
+
+            // Update icon
+            iconEl.innerHTML = STATUS_ICONS[iconKey] || STATUS_ICONS.info;
+            iconEl.className = 'flex-shrink-0 w-4 h-4 flex items-center justify-center ' + colorSet.icon;
+
+            // Update text
+            textEl.textContent = text;
+            textEl.className = 'truncate ' + colorSet.text;
+
+            // Update badge
+            if (badgeEl) {
+                if (badgeText) {
+                    badgeEl.textContent = badgeText;
+                    badgeEl.className = 'ml-auto flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ' + colorSet.badge;
+                    badgeEl.classList.remove('hidden');
+                } else {
+                    badgeEl.classList.add('hidden');
+                }
+            }
+
+            // Update progress bar color
+            if (barEl) {
+                ALL_BAR_CLASSES.forEach(cls => barEl.classList.remove(cls));
+                colorSet.bar.split(' ').forEach(cls => barEl.classList.add(cls));
+            }
+        }
+
+        // Debounce timer for field-context API calls
+        let _fieldContextTimer = null;
+        const FIELD_CONTEXT_DEBOUNCE_MS = 200;
+
+        /**
+         * Fetch field context from API with debouncing
+         */
+        function fetchFieldContext(params) {
+            return fetch('/schedule/field-context?' + new URLSearchParams(params))
+                .then(r => r.json());
+        }
+
+        // --- Class Form: Smart Status Handlers ----------------------
+
+        // Track previous field values for smart polling detection
+        let _prevClassFieldValues = {};
+        let _prevExamFieldValues = {};
+
+        /**
+         * Called when a class form field changes - updates the smart status line
+         * with contextual feedback for the most recently changed field.
+         */
+        function onClassFieldChange(fieldName) {
+            const prefix = 'class';
+
+            switch (fieldName) {
+                case 'section': {
+                    const switcher = document.getElementById('modalSectionSwitcher');
+                    if (!switcher || !switcher.value) {
+                        updateSmartStatus(prefix, 'info', 'Select a section to begin', 'gray', null);
+                        return;
+                    }
+                    const name = switcher.options[switcher.selectedIndex].dataset.name || switcher.options[switcher.selectedIndex].textContent.trim();
+                    // Count subjects: subjects get loaded after section is selected, so we show section name
+                    updateSmartStatus(prefix, 'info', name + ' selected - choose a curriculum', 'blue', null);
+                    break;
+                }
+                case 'curriculum': {
+                    const currSel = document.getElementById('curriculum_id_add');
+                    if (!currSel || !currSel.value) return;
+                    const currText = currSel.options[currSel.selectedIndex] ? currSel.options[currSel.selectedIndex].textContent.trim() : '';
+                    // Count how many subject options are available
+                    const subjectSel = document.getElementById('subject_id_add');
+                    let subjectCount = 0;
+                    if (subjectSel) {
+                        for (let i = 0; i < subjectSel.options.length; i++) {
+                            if (subjectSel.options[i].value) subjectCount++;
+                        }
+                    }
+                    const countMsg = subjectCount > 0 ? ' - ' + subjectCount + ' subject' + (subjectCount !== 1 ? 's' : '') + ' this semester' : '';
+                    updateSmartStatus(prefix, 'info', currText + countMsg, 'blue', null);
+                    break;
+                }
+                case 'subject': {
+                    // Use cached subject data from the global currentSubjectData
+                    const sd = (typeof currentSubjectData !== 'undefined') ? currentSubjectData.add : null;
+                    if (!sd) return;
+                    const unitInfo = sd.totalUnits ? sd.totalUnits + ' unit' + (sd.totalUnits !== 1 ? 's' : '') : '';
+                    const typeHint = (sd.lecUnits > 0 && sd.labUnits > 0) ? 'Lec + Lab' : (sd.labUnits > 0 ? 'Lab' : 'Lecture');
+                    updateSmartStatus(prefix, 'info', (sd.code || 'Subject') + ' - ' + unitInfo + ', ' + typeHint, 'blue', unitInfo);
+                    break;
+                }
+                case 'schedule_type': {
+                    const typeSel = document.getElementById('schedule_type_add');
+                    if (!typeSel || !typeSel.value) return;
+                    const typeName = typeSel.value.charAt(0).toUpperCase() + typeSel.value.slice(1);
+                    const hint = typeSel.value === 'lab' ? ' - requires Lab/Computer room' : '';
+                    updateSmartStatus(prefix, 'info', typeName + ' type' + hint, 'blue', null);
+                    break;
+                }
+                case 'faculty': {
+                    const facultyId = document.getElementById('faculty_id_add')?.value;
+                    if (!facultyId) return;
+
+                    // Try client-side cache first (faster)
+                    const cached = (window.facultyDataCache && window.facultyDataCache.add)
+                        ? window.facultyDataCache.add.find(f => f.id == facultyId)
+                        : null;
+
+                    if (cached) {
+                        _showFacultyStatus(prefix, cached.full_name, cached.weekly_units, cached.max_units, cached.utilization_pct, cached.availability);
+                    } else {
+                        // Fallback to API
+                        updateSmartStatus(prefix, 'spinner', 'Loading faculty info...', 'blue', null);
+                        fetchFieldContext({ field: 'faculty', faculty_id: facultyId })
+                            .then(data => {
+                                if (data.error) return;
+                                const status = data.status === 'exceeded' ? 'overloaded' : (data.status === 'warning' ? 'high_load' : 'available');
+                                _showFacultyStatus(prefix, data.name, data.current_units, data.max_units, data.utilization_pct, status);
+                            })
+                            .catch(() => {});
+                    }
+                    break;
+                }
+                case 'day': {
+                    const day = document.getElementById('day_of_week_add')?.value;
+                    const facultyId = document.getElementById('faculty_id_add')?.value;
+                    if (!day) return;
+
+                    if (!facultyId) {
+                        updateSmartStatus(prefix, 'info', day + ' selected', 'blue', null);
+                        return;
+                    }
+
+                    // API call for faculty day schedule
+                    updateSmartStatus(prefix, 'spinner', 'Checking ' + day + '...', 'blue', null);
+                    clearTimeout(_fieldContextTimer);
+                    _fieldContextTimer = setTimeout(() => {
+                        const params = { field: 'day', faculty_id: facultyId, day_of_week: day };
+                        // In edit mode, exclude current schedule
+                        const excludeId = document.getElementById('schedule_id')?.value;
+                        if (excludeId) params.exclude_schedule_id = excludeId;
+
+                        fetchFieldContext(params)
+                            .then(data => {
+                                if (data.error) return;
+                                _showDayStatus(prefix, day, data.faculty_name, data.schedule_count, data.total_hours, data.max_daily_hours);
+                            })
+                            .catch(() => {});
+                    }, FIELD_CONTEXT_DEBOUNCE_MS);
+                    break;
+                }
+                case 'room': {
+                    const roomSearch = document.getElementById('room_search_add');
+                    const roomId = document.getElementById('room_id_add')?.value;
+                    if (!roomId || !roomSearch) return;
+                    // Parse room display text (format: "RoomNumber - Building" or just "RoomNumber")
+                    const roomText = roomSearch.value || 'Room selected';
+                    // Look up room type from the dropdown data attributes
+                    const roomOption = document.querySelector(`#room_dropdown_add .room-option[data-room-id="${roomId}"]`);
+                    const roomType = roomOption ? roomOption.dataset.roomType : '';
+                    const typeLabel = roomType ? ' (' + roomType.charAt(0).toUpperCase() + roomType.slice(1) + ')' : '';
+                    updateSmartStatus(prefix, 'info', roomText + typeLabel, 'blue', null);
+                    break;
+                }
+                case 'time': {
+                    // Time selection triggers the full auto-conflict check (existing behavior)
+                    // We show a temporary "checking" message; the conflict check result will update it
+                    updateSmartStatus(prefix, 'spinner', 'Checking for conflicts...', 'blue', null);
+                    break;
+                }
+            }
+        }
+
+        // --- Exam Form: Smart Status Handlers -----------------------
+        function onExamFieldChange(fieldName) {
+            const prefix = 'exam';
+
+            switch (fieldName) {
+                case 'section': {
+                    const switcher = document.getElementById('examModalSectionSwitcher');
+                    if (!switcher || !switcher.value) {
+                        updateSmartStatus(prefix, 'info', 'Select a section to begin', 'gray', null);
+                        return;
+                    }
+                    const name = switcher.options[switcher.selectedIndex].dataset.name || switcher.options[switcher.selectedIndex].textContent.trim();
+                    updateSmartStatus(prefix, 'info', name + ' selected - choose a curriculum', 'blue', null);
+                    break;
+                }
+                case 'curriculum': {
+                    const currSel = document.getElementById('curriculum_id_exam_add');
+                    if (!currSel || !currSel.value) return;
+                    const currText = currSel.options[currSel.selectedIndex] ? currSel.options[currSel.selectedIndex].textContent.trim() : '';
+                    const subjectSel = document.getElementById('subject_id_exam_add');
+                    let subjectCount = 0;
+                    if (subjectSel) {
+                        for (let i = 0; i < subjectSel.options.length; i++) {
+                            if (subjectSel.options[i].value) subjectCount++;
+                        }
+                    }
+                    const countMsg = subjectCount > 0 ? ' - ' + subjectCount + ' subject' + (subjectCount !== 1 ? 's' : '') : '';
+                    updateSmartStatus(prefix, 'info', currText + countMsg, 'blue', null);
+                    break;
+                }
+                case 'subject': {
+                    const subjectSel = document.getElementById('subject_id_exam_add');
+                    if (!subjectSel || !subjectSel.value) return;
+                    const opt = subjectSel.options[subjectSel.selectedIndex];
+                    const code = opt?.dataset?.code || '';
+                    const totalUnits = parseFloat(opt?.dataset?.totalUnits || 0);
+                    const unitInfo = totalUnits ? totalUnits + ' unit' + (totalUnits !== 1 ? 's' : '') : '';
+                    updateSmartStatus(prefix, 'info', (code || opt?.textContent?.trim() || 'Subject') + (unitInfo ? ' - ' + unitInfo : ''), 'blue', unitInfo || null);
+                    break;
+                }
+                case 'exam_date': {
+                    const dateInput = document.getElementById('exam_date_add');
+                    if (!dateInput || !dateInput.value) return;
+                    const dateObj = new Date(dateInput.value + 'T00:00:00');
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    updateSmartStatus(prefix, 'info', dayName + ', ' + dateStr, 'blue', null);
+                    break;
+                }
+                case 'faculty': {
+                    const facultyId = document.getElementById('faculty_id_exam_add')?.value;
+                    if (!facultyId) return;
+                    // Try client-side cache
+                    const cached = (window.facultyDataCache && window.facultyDataCache.add)
+                        ? window.facultyDataCache.add.find(f => f.id == facultyId)
+                        : null;
+                    if (cached) {
+                        _showFacultyStatus(prefix, cached.full_name, cached.weekly_units, cached.max_units, cached.utilization_pct, cached.availability);
+                    } else {
+                        updateSmartStatus(prefix, 'spinner', 'Loading faculty info...', 'blue', null);
+                        fetchFieldContext({ field: 'faculty', faculty_id: facultyId })
+                            .then(data => {
+                                if (data.error) return;
+                                const status = data.status === 'exceeded' ? 'overloaded' : (data.status === 'warning' ? 'high_load' : 'available');
+                                _showFacultyStatus(prefix, data.name, data.current_units, data.max_units, data.utilization_pct, status);
+                            })
+                            .catch(() => {});
+                    }
+                    break;
+                }
+                case 'room': {
+                    const roomSearch = document.getElementById('room_search_exam_add');
+                    const roomId = document.getElementById('room_id_exam_add')?.value;
+                    if (!roomId || !roomSearch) return;
+                    const roomText = roomSearch.value || 'Room selected';
+                    const roomOption = document.querySelector(`#room_dropdown_exam_add .room-option[data-room-id="${roomId}"]`);
+                    const roomType = roomOption ? roomOption.dataset.roomType : '';
+                    const typeLabel = roomType ? ' (' + roomType.charAt(0).toUpperCase() + roomType.slice(1) + ')' : '';
+                    updateSmartStatus(prefix, 'info', roomText + typeLabel, 'blue', null);
+                    break;
+                }
+                case 'time': {
+                    updateSmartStatus(prefix, 'spinner', 'Checking for conflicts...', 'blue', null);
+                    break;
+                }
+            }
+        }
+
+        // --- Shared helpers for status messages ---------------------
+        function _showFacultyStatus(prefix, name, currentUnits, maxUnits, pct, availability) {
+            const badge = currentUnits + '/' + maxUnits;
+            const pctRound = Math.round(pct);
+
+            if (availability === 'overloaded' || availability === 'exceeded') {
+                updateSmartStatus(prefix, 'error', name + ' - OVERLOADED (' + badge + ' units)', 'red', badge);
+            } else if (availability === 'high_load' || availability === 'warning') {
+                updateSmartStatus(prefix, 'warning', name + ' - Near capacity (' + pctRound + '%)', 'amber', badge);
+            } else {
+                updateSmartStatus(prefix, 'check', name + ' - ' + badge + ' units (' + pctRound + '%)', 'blue', badge);
+            }
+        }
+
+        function _showDayStatus(prefix, day, facultyName, count, hours, maxHours) {
+            if (hours > maxHours) {
+                updateSmartStatus(prefix, 'error', day + ' - ' + facultyName + ' already at ' + hours + 'h (exceeds ' + maxHours + 'h)', 'red', count + ' classes');
+            } else if (hours > maxHours * 0.67) {
+                updateSmartStatus(prefix, 'warning', day + ' - ' + facultyName + ' has ' + count + ' class' + (count !== 1 ? 'es' : '') + ' (' + hours + 'h)', 'amber', count + ' classes');
+            } else if (count === 0) {
+                updateSmartStatus(prefix, 'check', day + ' - ' + facultyName + ' has no classes yet', 'emerald', null);
+            } else {
+                updateSmartStatus(prefix, 'info', day + ' - ' + facultyName + ' has ' + count + ' class' + (count !== 1 ? 'es' : '') + ' (' + hours + 'h)', 'blue', count + ' classes');
+            }
+        }
+
+        // Expose section sync callbacks for cross-file section switches (calendar.js).
+        window.scheduleFormSyncHooks = {
+            onClassSectionChanged() {
+                updateClassFormProgress();
+                onClassFieldChange('section');
+                updateSectionScheduleButtonState('class');
+            },
+            onExamSectionChanged() {
+                updateExamFormProgress();
+                onExamFieldChange('section');
+                updateSectionScheduleButtonState('exam');
+            }
+        };
+
+        // --- Hook into auto-conflict check results ------------------
+        function isIncompleteAutoCheckWarning(message) {
+            if (!message) return false;
+            return /complete all\s+.*details\s+to\s+start\s+ai\s+conflict\s+checking\.?/i.test(message);
+        }
+
+        // Override/extend the showAutoCheckStatus to also update smart status line
+        const _origShowAutoCheckStatus = (typeof window.showAutoCheckStatus === 'function') ? window.showAutoCheckStatus : null;
+        window.showAutoCheckStatus = function(mode, type, message) {
+            // Call original if it exists
+            if (_origShowAutoCheckStatus) _origShowAutoCheckStatus(mode, type, message);
+
+            // Determine prefix (class or exam)
+            const prefix = (mode === 'add' || mode === 'edit') ? 'class' : 'exam';
+            
+            if (type === 'checking') {
+                updateSmartStatus(prefix, 'spinner', 'Checking for conflicts...', 'blue', null);
+            } else if (type === 'success' || type === 'clear') {
+                updateSmartStatus(prefix, 'check', 'No conflicts - ready to submit', 'emerald', null);
+            } else if (type === 'error' || type === 'conflict') {
+                // Extract conflict count from message if possible
+                const match = message ? message.match(/(\d+)\s*conflict/i) : null;
+                const countText = match ? match[1] + ' conflict' + (parseInt(match[1]) !== 1 ? 's' : '') : 'Conflicts detected';
+                updateSmartStatus(prefix, 'error', countText + ' - check details below', 'red', null);
+            } else if (type === 'warning') {
+                if (isIncompleteAutoCheckWarning(message)) return;
+                updateSmartStatus(prefix, 'warning', message || 'Potential issues detected', 'amber', null);
+            }
+        };
+
+        // Override/extend the showAutoCheckExamStatus to also update exam smart status line
+        const _origShowAutoCheckExamStatus = (typeof window.showAutoCheckExamStatus === 'function') ? window.showAutoCheckExamStatus : null;
+        window.showAutoCheckExamStatus = function(mode, type, message) {
+            // Call original if it exists
+            if (_origShowAutoCheckExamStatus) _origShowAutoCheckExamStatus(mode, type, message);
+
+            const prefix = 'exam';
+
+            if (type === 'checking') {
+                updateSmartStatus(prefix, 'spinner', 'Checking for conflicts...', 'blue', null);
+            } else if (type === 'success' || type === 'clear') {
+                updateSmartStatus(prefix, 'check', 'No conflicts - ready to submit', 'emerald', null);
+            } else if (type === 'error' || type === 'conflict') {
+                const match = message ? message.match(/(\d+)\s*conflict/i) : null;
+                const countText = match ? match[1] + ' conflict' + (parseInt(match[1]) !== 1 ? 's' : '') : 'Conflicts detected';
+                updateSmartStatus(prefix, 'error', countText + ' - check details below', 'red', null);
+            } else if (type === 'warning') {
+                if (isIncompleteAutoCheckWarning(message)) return;
+                updateSmartStatus(prefix, 'warning', message || 'Potential issues detected', 'amber', null);
+            }
+        };
+
+        // --- Attach Smart Status Listeners (Class Form) -------------
+        // Section switcher
+        const classSectionSwitcher = document.getElementById('modalSectionSwitcher');
+        if (classSectionSwitcher) {
+            classSectionSwitcher.addEventListener('change', () => {
+                onClassFieldChange('section');
+                updateSectionScheduleButtonState('class');
+            });
+        }
+
+        // Field → smart status mapping (class form)
+        const classFieldMap = {
+            'curriculum_id_add': 'curriculum',
+            'subject_id_add': 'subject',
+            'schedule_type_add': 'schedule_type',
+            'faculty_id_add': 'faculty',
+            'day_of_week_add': 'day',
+            'room_id_add': 'room',
+            'start_time_add': 'time',
+            'end_time_add': 'time'
+        };
+
+        Object.entries(classFieldMap).forEach(([fieldId, fieldName]) => {
+            const el = document.getElementById(fieldId);
+            if (el) {
+                el.addEventListener('change', () => onClassFieldChange(fieldName));
+                if (el.type === 'hidden') {
+                    const obs = new MutationObserver(() => {
+                        onClassFieldChange(fieldName);
+                    });
+                    obs.observe(el, { attributes: true, attributeFilter: ['value'] });
+                }
+            }
+        });
+
+        // --- Attach Smart Status Listeners (Exam Form) --------------
+        const examSectionSwitcher = document.getElementById('examModalSectionSwitcher');
+        if (examSectionSwitcher) {
+            examSectionSwitcher.addEventListener('change', () => {
+                onExamFieldChange('section');
+                updateSectionScheduleButtonState('exam');
+            });
+        }
+
+        const examFieldMap = {
+            'curriculum_id_exam_add': 'curriculum',
+            'subject_id_exam_add': 'subject',
+            'exam_date_add': 'exam_date',
+            'faculty_id_exam_add': 'faculty',
+            'room_id_exam_add': 'room',
+            'start_time_exam_add': 'time',
+            'end_time_exam_add': 'time'
+        };
+
+        Object.entries(examFieldMap).forEach(([fieldId, fieldName]) => {
+            const el = document.getElementById(fieldId);
+            if (el) {
+                el.addEventListener('change', () => onExamFieldChange(fieldName));
+                if (el.type === 'hidden') {
+                    const obs = new MutationObserver(() => {
+                        onExamFieldChange(fieldName);
+                    });
+                    obs.observe(el, { attributes: true, attributeFilter: ['value'] });
+                }
+            }
+        });
+
+        // --- Smart polling for hidden fields (faculty_id, room_id) --
+        // Detects programmatic value changes that don't fire events
+        function pollSmartStatus() {
+            if (currentActiveTab === 'class') {
+                const checks = { 'faculty_id_add': 'faculty', 'room_id_add': 'room' };
+                Object.entries(checks).forEach(([id, field]) => {
+                    const el = document.getElementById(id);
+                    const val = el ? el.value : '';
+                    if (val !== (_prevClassFieldValues[id] || '')) {
+                        _prevClassFieldValues[id] = val;
+                        if (val) onClassFieldChange(field);
+                    }
+                });
+            } else {
+                const checks = { 'faculty_id_exam_add': 'faculty', 'room_id_exam_add': 'room' };
+                Object.entries(checks).forEach(([id, field]) => {
+                    const el = document.getElementById(id);
+                    const val = el ? el.value : '';
+                    if (val !== (_prevExamFieldValues[id] || '')) {
+                        _prevExamFieldValues[id] = val;
+                        if (val) onExamFieldChange(field);
+                    }
+                });
+            }
+        }
+
+        // Observe changes on class form fields (progress bar only - smart status uses its own listeners above)
+        ['curriculum_id_add', 'subject_id_add', 'schedule_type_add', 'faculty_id_add', 'day_of_week_add', 'room_id_add', 'start_time_add', 'end_time_add'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', updateClassFormProgress);
+                // Also watch for programmatic value changes via MutationObserver on hidden inputs
+                if (el.type === 'hidden') {
+                    const obs = new MutationObserver(updateClassFormProgress);
+                    obs.observe(el, { attributes: true, attributeFilter: ['value'] });
+                }
+            }
+        });
+        // Observe changes on exam form fields
+        ['curriculum_id_exam_add', 'subject_id_exam_add', 'exam_date_add', 'faculty_id_exam_add', 'room_id_exam_add', 'start_time_exam_add', 'end_time_exam_add'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', updateExamFormProgress);
+                if (el.type === 'hidden') {
+                    const obs = new MutationObserver(updateExamFormProgress);
+                    obs.observe(el, { attributes: true, attributeFilter: ['value'] });
+                }
+            }
+        });
+
+        // Poll hidden field values (faculty_id, room_id) since they get set programmatically
+        setInterval(() => {
+            if (currentActiveTab === 'class') updateClassFormProgress();
+            else updateExamFormProgress();
+            // Also poll for smart status updates on hidden fields
+            pollSmartStatus();
+        }, 500);
+
+        // Initialize the starting tab
+        switchFormTab(activeTab);
+        updateSectionScheduleButtonState(activeTab);
+
+        // --- Restore batch mode if it was active before a page refresh ----
+        {% if mode != 'edit' and selected_section %}
+        var _batchRestored = (function() {
+            var savedBatch = sessionStorage.getItem('ischedwise_batch_mode');
+            // Only restore batch mode when it matches the requested tab context.
+            if (savedBatch && savedBatch !== activeTab) {
+                sessionStorage.removeItem('ischedwise_batch_mode');
+                return false;
+            }
+            if (savedBatch === 'class') {
+                if (activeTab !== 'class') switchFormTab('class');
+                setTimeout(function() {
+                    if (typeof enterBatchMode === 'function') enterBatchMode();
+                }, 300);
+                return true;
+            } else if (savedBatch === 'exam') {
+                if (activeTab !== 'exam') switchFormTab('exam');
+                setTimeout(function() {
+                    if (typeof enterExamBatchMode === 'function') enterExamBatchMode();
+                }, 500);
+                return true;
+            }
+            return false;
+        })();
+        if (!_batchRestored)
+        {% endif %}
+
+        // For the active tab, trigger form initialization
+        if (activeTab === 'class') {
+            classTabInitialized = true;
+            {% if mode == 'edit' and schedule %}
+            if (typeof editSchedule === 'function' && window.FORM_SCHEDULE_DATA) {
+                editSchedule(window.FORM_SCHEDULE_DATA.id, window.FORM_SCHEDULE_DATA);
+            }
+            {% elif selected_section %}
+            if (typeof openAddScheduleModal === 'function') {
+                openAddScheduleModal(window.FORM_SECTION_ID, window.FORM_SECTION_NAME || '');
+            }
+            {% endif %}
+        } else {
+            examTabInitialized = true;
+            {% if mode == 'edit' and exam_schedule %}
+            if (typeof editExamSchedule === 'function' && window.FORM_EXAM_DATA) {
+                editExamSchedule(window.FORM_EXAM_DATA.id, window.FORM_EXAM_DATA);
+            }
+            {% elif selected_section %}
+            if (typeof openAddExamScheduleModal === 'function') {
+                openAddExamScheduleModal(window.FORM_SECTION_ID);
+            }
+            {% endif %}
+        }
+
+        // Show flash messages as toasts
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) {
+            flashMessages.querySelectorAll('[data-message]').forEach((msg, i) => {
+                setTimeout(() => {
+                    let cat = msg.dataset.category;
+                    if (cat === 'danger') cat = 'error';
+                    if (typeof showToast === 'function') showToast(msg.dataset.message, cat);
+                }, i * 100);
+            });
+        }
+
+        // --- Draft Persistence: save/restore form state across refreshes ----
+        {% if mode != 'edit' %}
+        const DRAFT_KEY = 'ischedwise_create_schedule_draft';
+
+        // Collect all form field values into a plain object
+        function saveDraft() {
+            try {
+                const v = id => document.getElementById(id)?.value || '';
+                sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+                    tab: currentActiveTab || 'class',
+                    class: {
+                        section_id:    v('modalSectionSwitcher'),
+                        curriculum_id: v('curriculum_id_add'),
+                        subject_id:    v('subject_id_add'),
+                        schedule_type: normalizeClassScheduleType(v('schedule_type_add')),
+                        faculty_id:    v('faculty_id_add'),
+                        day:           v('day_of_week_add'),
+                        start_time:    v('start_time_add'),
+                        end_time:      v('end_time_add'),
+                        room_id:       v('room_id_add'),
+                    },
+                    exam: {
+                        section_id:    v('examModalSectionSwitcher'),
+                        curriculum_id: v('curriculum_id_exam_add'),
+                        subject_id:    v('subject_id_exam_add'),
+                        faculty_id:    v('faculty_id_exam_add'),
+                        exam_date:     v('exam_date_add'),
+                        start_time:    v('start_time_exam_add'),
+                        end_time:      v('end_time_exam_add'),
+                        room_id:       v('room_id_exam_add'),
+                    }
+                }));
+            } catch(e) {}
+        }
+
+        // Attach change listeners to every tracked field
+        [
+            'modalSectionSwitcher','curriculum_id_add','subject_id_add','schedule_type_add',
+            'faculty_id_add','day_of_week_add','start_time_add','end_time_add','room_id_add',
+            'examModalSectionSwitcher','curriculum_id_exam_add','subject_id_exam_add',
+            'faculty_id_exam_add','exam_date_add','start_time_exam_add','end_time_exam_add','room_id_exam_add'
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', saveDraft);
+        });
+
+        // Patch switchFormTab to also save the selected tab
+        const _origSwitchFormTab = switchFormTab;
+        switchFormTab = function(tabType) {
+            _origSwitchFormTab(tabType);
+            setTimeout(saveDraft, 50);
+        };
+
+        // Clear draft when the form is successfully submitted
+        document.getElementById('addScheduleForm')?.addEventListener('submit',
+            () => sessionStorage.removeItem(DRAFT_KEY));
+        document.getElementById('addExamScheduleForm')?.addEventListener('submit',
+            () => sessionStorage.removeItem(DRAFT_KEY));
+
+        // Restore draft on page load
+        (async function restoreDraft() {
+            const raw = sessionStorage.getItem(DRAFT_KEY);
+            if (!raw) return;
+            let draft;
+            try { draft = JSON.parse(raw); } catch(e) { return; }
+
+            const setVal = (id, val) => {
+                if (!val) return;
+                const el = document.getElementById(id);
+                if (el) { el.value = val; el.dispatchEvent(new Event('change', { bubbles: true })); }
+            };
+
+            // Keep the server-requested tab authoritative to avoid redirecting
+            // exam entry flows back to class due to stale draft tab state.
+            const requestedTab = (activeTab === 'exam' || activeTab === 'class')
+                ? activeTab
+                : (window.SCHEDULE_PAGE === 'exam' ? 'exam' : 'class');
+            const tab = requestedTab;
+
+            // 0. Restore tab selection
+            if (tab !== currentActiveTab) {
+                _origSwitchFormTab(tab);
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            if (tab === 'class' && draft.class) {
+                const d = draft.class;
+
+                // 1. Section (skip if already set via URL param)
+                if (d.section_id && !document.getElementById('modalSectionSwitcher')?.value) {
+                    setVal('modalSectionSwitcher', d.section_id);
+                    if (typeof switchModalSection === 'function') switchModalSection(d.section_id);
+                    await new Promise(r => setTimeout(r, 400));
+                }
+
+                // 2. Curriculum → AJAX loads subjects
+                if (d.curriculum_id) {
+                    const el = document.getElementById('curriculum_id_add');
+                    if (el) el.value = d.curriculum_id;
+                    if (typeof loadSubjectsForCurriculum === 'function') loadSubjectsForCurriculum('add');
+                    await new Promise(r => setTimeout(r, 800));
+                }
+
+                // 3. Remaining selects
+                setVal('subject_id_add',    d.subject_id);
+                setVal('schedule_type_add', normalizeClassScheduleType(d.schedule_type));
+                setVal('day_of_week_add',   d.day);
+                setVal('start_time_add',    d.start_time);
+                setVal('end_time_add',      d.end_time);
+
+                // 4. Faculty & Room (hidden fields - values will submit correctly)
+                if (d.faculty_id) { const el = document.getElementById('faculty_id_add'); if (el) el.value = d.faculty_id; }
+                if (d.room_id)    { const el = document.getElementById('room_id_add');    if (el) el.value = d.room_id; }
+
+            } else if (tab === 'exam' && draft.exam) {
+                const d = draft.exam;
+
+                // 1. Section
+                if (d.section_id && !document.getElementById('examModalSectionSwitcher')?.value) {
+                    setVal('examModalSectionSwitcher', d.section_id);
+                    if (typeof switchExamModalSection === 'function') switchExamModalSection(d.section_id);
+                    await new Promise(r => setTimeout(r, 400));
+                }
+
+                // 2. Curriculum → AJAX loads subjects
+                if (d.curriculum_id) {
+                    const el = document.getElementById('curriculum_id_exam_add');
+                    if (el) el.value = d.curriculum_id;
+                    if (typeof loadSubjectsForCurriculum === 'function') loadSubjectsForCurriculum('exam_add');
+                    await new Promise(r => setTimeout(r, 800));
+                }
+
+                // 3. Remaining fields
+                setVal('subject_id_exam_add',  d.subject_id);
+                setVal('exam_date_add',        d.exam_date);
+                setVal('start_time_exam_add',  d.start_time);
+                setVal('end_time_exam_add',    d.end_time);
+
+                // 4. Faculty & Room hidden fields
+                if (d.faculty_id) { const el = document.getElementById('faculty_id_exam_add'); if (el) el.value = d.faculty_id; }
+                if (d.room_id)    { const el = document.getElementById('room_id_exam_add');    if (el) el.value = d.room_id; }
+            }
+
+            // Refresh progress bars after restore
+            updateClassFormProgress();
+            updateExamFormProgress();
+        })();
+        {% endif %}
+
+        // Format exam period dates to human-readable
+        formatExamPeriodDates();
+    });
+
+    // --- AJAX Form Submission (Dynamic CRUD - No Page Reload) --------
+    (function initAjaxFormSubmission() {
+        // -- Class Schedule Form --
+        const classForm = document.getElementById('addScheduleForm');
+        if (classForm) {
+            classForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Run existing validation first
+                if (typeof validateClassFormBeforeSubmit === 'function' && !validateClassFormBeforeSubmit()) {
+                    return;
+                }
+                
+                // Clear draft on submit attempt
+                const DRAFT_KEY = 'ischedwise_create_schedule_draft';
+                try { sessionStorage.removeItem(DRAFT_KEY); } catch(ex) {}
+
+                const scheduleTypeVal = document.getElementById('schedule_type_add')?.value;
+                const isBothMode = scheduleTypeVal === 'both';
+                
+                const submitBtn = document.getElementById('submitScheduleBtn');
+                const originalHTML = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<svg class="w-4 h-4 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Saving...';
+                }
+                
+                try {
+                    if (isBothMode) {
+                        // -- "Both" Mode: submit Lecture first, then Lab --
+                        const labDay   = document.getElementById('day_of_week_lab_add')?.value;
+                        const labStart = document.getElementById('start_time_lab_add')?.value;
+                        const labEnd   = document.getElementById('end_time_lab_add')?.value;
+
+                        // Lecture POST
+                        const lecData = new FormData(classForm);
+                        lecData.set('schedule_type', 'lecture');
+                        const lecResp = await fetch('/schedule/add', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: lecData
+                        });
+                        const lecResult = await lecResp.json();
+                        if (!lecResult.success) {
+                            showToast('Lecture: ' + (lecResult.error || 'Failed to save.'), 'error');
+                            return;
+                        }
+
+                        // Lab POST (reuse same faculty/room from lecture form)
+                        const labData = new FormData(classForm);
+                        labData.set('schedule_type', 'lab');
+                        labData.set('day_of_week', labDay);
+                        labData.set('start_time', labStart);
+                        labData.set('end_time', labEnd);
+                        const labResp = await fetch('/schedule/add', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: labData
+                        });
+                        const labResult = await labResp.json();
+                        if (!labResult.success) {
+                            showToast('Lecture saved. Lab: ' + (labResult.error || 'Failed to save.'), 'warning');
+                        } else {
+                            showToast('Both Lecture and Lab schedules saved!', 'success');
+                            if (lecResult.warnings) lecResult.warnings.forEach((w,i) => setTimeout(() => showToast(w,'warning'),(i+1)*200));
+                            if (labResult.warnings) labResult.warnings.forEach((w,i) => setTimeout(() => showToast(w,'warning'),(i+1)*200));
+                        }
+
+                        // Refresh calendar
+                        const sectionId = document.getElementById('section_id_add')?.value;
+                        const sectionSwitcher = document.getElementById('modalSectionSwitcher');
+                        const sectionName = sectionSwitcher?.options[sectionSwitcher.selectedIndex]?.text || '';
+                        if (typeof switchBackToAddMode === 'function') switchBackToAddMode();
+                        if (sectionId && typeof renderModalCalendar === 'function') {
+                            setTimeout(() => renderModalCalendar(sectionId, sectionName), 200);
+                        }
+                        return;
+                    }
+
+                    const formData = new FormData(classForm);
+                    const response = await fetch(classForm.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showToast(result.message || 'Schedule saved successfully!', 'success');
+                        
+                        // Show any warnings
+                        if (result.warnings && result.warnings.length > 0) {
+                            result.warnings.forEach(function(w, i) {
+                                setTimeout(function() { showToast(w, 'warning'); }, (i + 1) * 200);
+                            });
+                        }
+                        
+                        // If page was loaded in edit mode (via /schedule/class/edit/<id>), redirect back to view
+                        if (window.SCHEDULE_FORM_MODE === 'edit') {
+                            const sectionId = document.getElementById('section_id_add')?.value || result.section_id;
+                            const sectionParam = sectionId ? '?section_id=' + sectionId : '';
+                            setTimeout(function() {
+                                window.location.href = '/schedule/class' + sectionParam;
+                            }, 800);
+                            return;
+                        }
+                        
+                        // In add/create mode: switch back to add mode and reset form
+                        if (typeof switchBackToAddMode === 'function') {
+                            switchBackToAddMode();
+                        }
+                        
+                        // Refresh the calendar/table view
+                        const sectionId = document.getElementById('section_id_add')?.value || result.section_id;
+                        const sectionSwitcher = document.getElementById('modalSectionSwitcher');
+                        const sectionName = sectionSwitcher?.options[sectionSwitcher.selectedIndex]?.text || '';
+                        if (sectionId && typeof renderModalCalendar === 'function') {
+                            setTimeout(function() { renderModalCalendar(sectionId, sectionName); }, 200);
+                        }
+                    } else {
+                        showToast(result.error || 'Failed to save schedule.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Network error: ' + err.message, 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHTML;
+                    }
+                }
+            });
+        }
+        
+        // -- Exam Schedule Form --
+        const examForm = document.getElementById('addExamScheduleForm');
+        if (examForm) {
+            examForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Run existing validation first
+                if (typeof validateExamFormBeforeSubmit === 'function' && !validateExamFormBeforeSubmit()) {
+                    return;
+                }
+                
+                // Clear draft on submit attempt
+                const DRAFT_KEY = 'ischedwise_create_schedule_draft';
+                try { sessionStorage.removeItem(DRAFT_KEY); } catch(ex) {}
+                
+                const submitBtn = document.getElementById('submitExamScheduleAdd');
+                const originalHTML = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<svg class="w-4 h-4 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Saving...';
+                }
+                
+                try {
+                    const formData = new FormData(examForm);
+                    const response = await fetch(examForm.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showToast(result.message || 'Exam schedule saved successfully!', 'success');
+                        
+                        // Show any warnings
+                        if (result.warnings && result.warnings.length > 0) {
+                            result.warnings.forEach(function(w, i) {
+                                setTimeout(function() { showToast(w, 'warning'); }, (i + 1) * 200);
+                            });
+                        }
+                        
+                        // If page was loaded in edit mode (via /schedule/exam/edit/<id>), redirect back to view
+                        if (window.SCHEDULE_FORM_MODE === 'edit') {
+                            const sectionId = document.getElementById('section_id_exam_add')?.value || document.getElementById('section_id_add')?.value || result.section_id;
+                            const sectionParam = sectionId ? '?section_id=' + sectionId : '';
+                            setTimeout(function() {
+                                window.location.href = '/schedule/exam' + sectionParam;
+                            }, 800);
+                            return;
+                        }
+                        
+                        // In add/create mode: switch back to add mode and reset form
+                        if (typeof switchBackToAddExamMode === 'function') {
+                            switchBackToAddExamMode();
+                        }
+                        
+                        // Refresh the exam calendar/table view
+                        const sectionId = document.getElementById('section_id_exam_add')?.value || document.getElementById('section_id_add')?.value || result.section_id;
+                        const sectionSwitcher = document.getElementById('examModalSectionSwitcher') || document.getElementById('modalSectionSwitcher');
+                        const sectionName = sectionSwitcher?.options[sectionSwitcher.selectedIndex]?.text || '';
+                        if (sectionId && typeof renderExamModalCalendar === 'function') {
+                            setTimeout(function() { renderExamModalCalendar(sectionId, sectionName); }, 200);
+                        }
+                    } else {
+                        showToast(result.error || 'Failed to save exam schedule.', 'error');
+                    }
+                } catch (err) {
+                    showToast('Network error: ' + err.message, 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHTML;
+                    }
+                }
+            });
+        }
+    })();
+
+    // --- Toast System ------------------------------------------------
+    function showToast(message, type = 'success') {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icons = {
+            success: '<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            error: '<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            danger: '<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            info: '<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            warning: '<svg class="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'
+        };
+        const colors = { success: 'text-green-800 dark:text-green-300', error: 'text-red-800 dark:text-red-300', danger: 'text-red-800 dark:text-red-300', info: 'text-blue-800 dark:text-blue-300', warning: 'text-yellow-800 dark:text-yellow-300' };
+        toast.innerHTML = `${icons[type] || icons.success}<p class="${colors[type] || colors.success} font-medium flex-1">${message}</p><button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>`;
+        container.appendChild(toast);
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    function removeToast(toast) { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }
+
+    function normalizeClassScheduleType(scheduleTypeValue) {
+        const normalized = String(scheduleTypeValue || '').toLowerCase();
+        if (!normalized) return '';
+        return normalized === 'both' ? 'lecture' : normalized;
+    }
+
+    function syncSidebarDeleteModalDimState() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        const classDeleteModal = document.getElementById('deleteScheduleModal');
+        const examDeleteModal = document.getElementById('deleteExamScheduleModal');
+        const isClassModalOpen = classDeleteModal && !classDeleteModal.classList.contains('hidden');
+        const isExamModalOpen = examDeleteModal && !examDeleteModal.classList.contains('hidden');
+        const isDeleteModalOpen = Boolean(isClassModalOpen || isExamModalOpen);
+
+        if (isDeleteModalOpen) {
+            if (typeof window.toggleSidebarBlur === 'function') {
+                window.toggleSidebarBlur(true);
+            } else {
+                sidebar.classList.add('modal-blur');
+            }
+            return;
+        }
+
+        if (typeof window.toggleSidebarBlur === 'function') {
+            window.toggleSidebarBlur(false);
+        } else {
+            sidebar.classList.remove('modal-blur');
+            sidebar.style.removeProperty('--sidebar-dim-alpha');
+        }
+    }
+
+    // --- Delete Schedule (AJAX) --------------------------------------
+    function resetDeleteConfirmButton() {
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        if (!confirmBtn) return;
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Delete';
+    }
+
+    function confirmDeleteCurrentSchedule() {
+        const scheduleId = window.currentEditScheduleId || document.getElementById('schedule_id')?.value;
+        if (!scheduleId) {
+            showToast('No schedule selected to delete.', 'error');
+            return;
+        }
+        resetDeleteConfirmButton();
+        // Show subject info in the delete modal
+        const subjectInfo = document.getElementById('deleteScheduleSubjectInfo');
+        const pendingData = window.pendingEditScheduleData;
+        if (subjectInfo && pendingData) {
+            subjectInfo.textContent = (pendingData.subject_code || pendingData.subject_name || 'this schedule');
+        } else if (subjectInfo) {
+            subjectInfo.textContent = 'this schedule';
+        }
+        document.getElementById('delete_schedule_id').value = scheduleId;
+        document.getElementById('deleteScheduleModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        syncSidebarDeleteModalDimState();
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteScheduleModal').classList.add('hidden');
+        const deleteIdInput = document.getElementById('delete_schedule_id');
+        if (deleteIdInput) {
+            deleteIdInput.value = '';
+        }
+        resetDeleteConfirmButton();
+        document.body.style.overflow = '';
+        syncSidebarDeleteModalDimState();
+    }
+
+    async function executeDeleteAjax() {
+        const scheduleId = document.getElementById('delete_schedule_id').value;
+        if (!scheduleId) return;
+
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Deleting...';
+
+        try {
+            const response = await fetch('/schedule/delete-ajax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ schedule_id: parseInt(scheduleId) })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                closeDeleteModal();
+                showToast('Schedule deleted successfully!', 'success');
+
+                // If we were editing, go back to the view page instead of staying on the form
+                if (window.SCHEDULE_FORM_MODE === 'edit') {
+                    const sectionId = document.getElementById('section_id_add')?.value;
+                    const sectionParam = sectionId ? '?section_id=' + sectionId : '';
+                    setTimeout(() => {
+                        window.location.href = '/schedule/class' + sectionParam;
+                    }, 600);
+                    return;
+                }
+
+                // In add mode: switch back to add mode and refresh calendar
+                if (typeof switchBackToAddMode === 'function') {
+                    switchBackToAddMode();
+                }
+                // Re-render calendar after a short delay
+                const sectionId = document.getElementById('section_id_add')?.value;
+                const sectionSwitcher = document.getElementById('modalSectionSwitcher');
+                const sectionName = sectionSwitcher?.options[sectionSwitcher.selectedIndex]?.text || '';
+                if (sectionId && typeof renderModalCalendar === 'function') {
+                    setTimeout(() => renderModalCalendar(sectionId, sectionName), 300);
+                }
+            } else {
+                showToast(result.error || 'Failed to delete schedule.', 'error');
+            }
+        } catch (err) {
+            showToast('Network error: ' + err.message, 'error');
+        } finally {
+            resetDeleteConfirmButton();
+        }
+    }
+
+    // --- Delete Exam Schedule (AJAX) ---------------------------------
+    function resetExamDeleteConfirmButton() {
+        const confirmBtn = document.getElementById('confirmExamDeleteBtn');
+        if (!confirmBtn) return;
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Delete';
+    }
+
+    function confirmDeleteCurrentExamSchedule() {
+        const scheduleId = window.currentEditExamScheduleId || document.getElementById('exam_schedule_id')?.value;
+        if (!scheduleId) {
+            showToast('No exam schedule selected to delete.', 'error');
+            return;
+        }
+        resetExamDeleteConfirmButton();
+        const subjectInfo = document.getElementById('deleteExamSubjectInfo');
+        const pendingData = window.pendingEditExamScheduleData;
+        if (subjectInfo && pendingData) {
+            subjectInfo.textContent = (pendingData.subject_code || pendingData.subject_name || 'this exam schedule');
+        } else if (subjectInfo) {
+            subjectInfo.textContent = 'this exam schedule';
+        }
+        document.getElementById('delete_exam_schedule_id').value = scheduleId;
+        document.getElementById('deleteExamScheduleModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        syncSidebarDeleteModalDimState();
+    }
+
+    function closeExamDeleteModal() {
+        document.getElementById('deleteExamScheduleModal').classList.add('hidden');
+        const deleteIdInput = document.getElementById('delete_exam_schedule_id');
+        if (deleteIdInput) {
+            deleteIdInput.value = '';
+        }
+        resetExamDeleteConfirmButton();
+        document.body.style.overflow = '';
+        syncSidebarDeleteModalDimState();
+    }
+
+    async function executeExamDeleteAjax() {
+        const scheduleId = document.getElementById('delete_exam_schedule_id').value;
+        if (!scheduleId) return;
+
+        const confirmBtn = document.getElementById('confirmExamDeleteBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Deleting...';
+
+        try {
+            const response = await fetch('/exam-schedule/delete-ajax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ exam_schedule_id: parseInt(scheduleId) })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                closeExamDeleteModal();
+                showToast('Exam schedule deleted successfully!', 'success');
+
+                // If we were editing, go back to the exam view page instead of staying on the form
+                if (window.SCHEDULE_FORM_MODE === 'edit') {
+                    const sectionId = document.getElementById('section_id_exam_add')?.value || document.getElementById('section_id_add')?.value;
+                    const sectionParam = sectionId ? '?section_id=' + sectionId : '';
+                    setTimeout(() => {
+                        window.location.href = '/schedule/exam' + sectionParam;
+                    }, 600);
+                    return;
+                }
+
+                if (typeof switchBackToAddExamMode === 'function') {
+                    switchBackToAddExamMode();
+                }
+                const sectionId = document.getElementById('section_id_exam_add')?.value || document.getElementById('section_id_add')?.value;
+                const sectionSwitcher = document.getElementById('examModalSectionSwitcher') || document.getElementById('modalSectionSwitcher');
+                const sectionName = sectionSwitcher?.options[sectionSwitcher.selectedIndex]?.text || '';
+                if (sectionId && typeof renderExamModalCalendar === 'function') {
+                    setTimeout(() => renderExamModalCalendar(sectionId, sectionName), 300);
+                }
+            } else {
+                showToast(result.error || 'Failed to delete exam schedule.', 'error');
+            }
+        } catch (err) {
+            showToast('Network error: ' + err.message, 'error');
+        } finally {
+            resetExamDeleteConfirmButton();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        syncSidebarDeleteModalDimState();
+    });
+
+    // --- Override Socket.IO reload for form page ---------------------
+    // On the unified form page, don't do a full page reload when another user
+    // makes a schedule change - just refresh the calendar to keep form state intact.
+    (function() {
+        if (!window.UNIFIED_FORM_PAGE) return;
+        // Wait for Socket.IO to initialize, then patch the handler
+        document.addEventListener('DOMContentLoaded', function() {
+            // Give realtime.js time to set up the socket
+            setTimeout(function() {
+                if (typeof socket !== 'undefined' && socket) {
+                    socket.off('schedule_changed');
+                    socket.on('schedule_changed', function(data) {
+                        // Skip own changes
+                        if (data.changed_by && data.changed_by === window.CURRENT_USER_ID) return;
+
+                        var changedBy = data.changed_by_name || 'Another user';
+                        var action = data.action;
+                        var message = '';
+                        if (action === 'created') message = changedBy + ' added a new schedule';
+                        else if (action === 'updated') message = changedBy + ' updated a schedule';
+                        else if (action === 'deleted') message = changedBy + ' deleted a schedule';
+                        else message = 'Schedule was ' + action + ' by ' + changedBy;
+
+                        if (typeof showToast === 'function') showToast(message, 'info');
+
+                        // Refresh calendars instead of full page reload
+                        var sectionId = document.getElementById('section_id_add')?.value;
+                        var sectionSwitcher = document.getElementById('modalSectionSwitcher');
+                        var sectionName = sectionSwitcher?.options[sectionSwitcher.selectedIndex]?.text || '';
+                        if (sectionId && typeof renderModalCalendar === 'function') {
+                            renderModalCalendar(sectionId, sectionName);
+                        }
+                        var examSectionId = document.getElementById('section_id_exam_add')?.value || sectionId;
+                        if (examSectionId && typeof renderExamModalCalendar === 'function') {
+                            renderExamModalCalendar(examSectionId, sectionName);
+                        }
+                    });
+                }
+            }, 1000);
+        });
+    })();
+</script>
+
+
+{% endblock %}
+
+

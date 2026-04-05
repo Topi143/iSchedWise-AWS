@@ -1,0 +1,80 @@
+{# Subject Browser Drawer — Slide-in panel for browsing all program subjects #}
+{# Used by: class form (add/edit), exam form (add/edit), batch builder, batch exam builder #}
+
+<!-- Backdrop overlay (mobile only, shown when drawer is open) -->
+<div id="subjectDrawerOverlay" class="hidden fixed inset-0 bg-black/30 z-[44] md:hidden transition-opacity duration-300" onclick="closeSubjectBrowser()"></div>
+
+<!-- Subject Browser Drawer (slides in from right, bottom sheet on mobile) -->
+<div id="subjectDrawer" class="fixed top-0 right-0 h-full w-80 xl:w-96 bg-white dark:bg-gray-800 shadow-2xl z-[45] transform translate-x-full transition-transform duration-300 ease-in-out border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:w-full max-md:h-[75vh] max-md:rounded-t-2xl max-md:translate-x-0 max-md:translate-y-full max-md:border-l-0 max-md:border-t">
+
+    <!-- Drawer Header -->
+    <div class="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg shadow-indigo-200/50">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100">Browse Subjects</h3>
+                        <span id="subjectDrawerCount" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-indigo-100 text-indigo-700"></span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400">All subjects across curricula</p>
+                </div>
+            </div>
+            <button onclick="closeSubjectBrowser()" class="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Close panel">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <!-- Mobile drag handle -->
+        <div class="md:hidden flex justify-center pt-1">
+            <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="flex-shrink-0 px-4 py-2.5 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700 space-y-2">
+        <!-- Search -->
+        <div class="relative">
+            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" id="subjectDrawerSearch" oninput="_filterDrawerSubjects()" placeholder="Search by code or name..." class="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 dark:focus:ring-indigo-800 transition-colors">
+        </div>
+        <!-- Filter Dropdowns -->
+        <div class="grid grid-cols-2 gap-1.5">
+            <select id="subjectDrawerYearFilter" onchange="_filterDrawerSubjects()" class="text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors truncate">
+                <option value="">All Years</option>
+            </select>
+            <select id="subjectDrawerSemFilter" onchange="_filterDrawerSubjects()" class="text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors truncate">
+                <option value="">All Sems</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Scrollable Subject List -->
+    <div id="subjectDrawerList" class="flex-1 overflow-y-auto custom-scrollbar">
+        <!-- Loading state -->
+        <div id="subjectDrawerLoading" class="flex flex-col items-center justify-center py-12">
+            <div class="relative w-10 h-10 mb-3">
+                <div class="absolute inset-0 rounded-full border-3 border-indigo-200"></div>
+                <div class="absolute inset-0 rounded-full border-3 border-indigo-500 border-t-transparent animate-spin"></div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Loading subjects...</p>
+        </div>
+        <!-- Empty state -->
+        <div id="subjectDrawerEmpty" class="hidden flex flex-col items-center justify-center py-12 text-center px-6">
+            <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">No subjects found</p>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500">Try adjusting your filters</p>
+        </div>
+        <!-- Subject items rendered here by JS -->
+        <div id="subjectDrawerItems" class="hidden"></div>
+    </div>
+</div>

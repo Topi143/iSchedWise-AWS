@@ -1,0 +1,25 @@
+#,Table,Group,Columns,Description
+1,users,User & Authentication,23,"System user accounts (Admin, Super Admin, Dean)"
+2,login_history,User & Authentication,8,Login/logout session records
+3,trusted_devices,User & Authentication,9,Remembered devices used for trusted-login workflows
+4,user_activity_logs,User & Authentication,10,Granular audit trail of all user actions
+5,user_programs,User & Authentication,4,Dean-to-program access control mapping
+6,departments,Organization,7,Academic departments (colleges)
+7,programs,Organization,15,Degree programs offered by departments
+8,curricula,Curriculum & Subjects,13,Curriculum versions tied to programs
+9,year_levels,Curriculum & Subjects,6,Year levels within a curriculum
+10,semesters,Curriculum & Subjects,6,Semesters within each year level
+11,subjects,Curriculum & Subjects,10,Individual courses within semesters
+12,sections,Curriculum & Subjects,6,Student section groups per program/year
+13,faculty,Faculty,14,Faculty members who teach subjects
+14,faculty_availability,Faculty,11,Faculty available time slots
+15,faculty_subject_assignments,Faculty,12,Faculty-to-subject assignments per term
+16,buildings,Facilities,9,Campus buildings containing rooms
+17,rooms,Facilities,7,Classrooms and laboratories
+18,academic_settings,Scheduling,27,Global scheduling configuration
+19,schedules,Scheduling,17,Regular class schedule entries
+20,exam_schedules,Scheduling,18,Exam schedule entries
+21,schedule_snapshots,Scheduling,12,Stored schedule backup snapshots for restore workflows
+22,archives,Archives,24,Archived schedule snapshots (denormalized)
+23,institution_settings,System & Settings,13,"Institution profile, branding, and export headers"
+24,system_config,System & Settings,8,Application-level key-value configuration

@@ -1,0 +1,7 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+program_id,Program this section belongs to,int,11,FK -> programs.id,Yes,--
+section_name,"Section label, e.g., 'A', 'B', '1A'",varchar,100,,Yes,--
+year_level,"Year level of this section: 1, 2, 3, or 4",int,11,,Yes,--
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

@@ -1,0 +1,174 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Class Schedule - iSchedWise{% endblock %}
+
+{% block extra_css %}
+    {% include 'schedule/_styles.html' %}
+    <style>
+        /* Force tab content to be visible (standalone page, no tab switching) */
+        .tab-content { display: flex !important; }
+        /* Toast container */
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        .toast { display: flex; align-items: center; padding: 0.75rem 1rem; background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; min-width: 300px; animation: slideIn 0.4s ease both; }
+        .dark .toast { background: #1f2937; border-color: #374151; box-shadow: 0 10px 18px -4px rgba(0,0,0,0.45); }
+        .toast-success { border-left: 4px solid #22c55e; }
+        .toast-error, .toast-danger { border-left: 4px solid #ef4444; }
+        .toast-info { border-left: 4px solid #3b82f6; }
+        .toast-warning { border-left: 4px solid #f59e0b; }
+        .toast.removing { animation: slideOut 0.3s ease both; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Flash Messages (Hidden - converted to toasts) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flashMessages" style="display: none;">
+                    {% for category, message in messages %}
+                        <div data-category="{{ category }}" data-message="{{ message }}"></div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Class Schedule</h1>
+                        {% if current_settings %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ current_settings.academic_year }} - {{ current_settings.semester }} - {{ current_settings.exam_period }}
+                        </p>
+                        {% else %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">View and manage class schedules by section</p>
+                        {% endif %}
+                    </div>
+                    <!-- Snapshot & Clear Actions -->
+                    <div data-schedule-header-actions class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 {% if not (current_user.is_admin or request.args.get('section_id')) %}hidden{% endif %}">
+                        <button type="button" onclick="openSnapshotModal('class')" class="inline-flex items-center px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800/30 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-all" title="Save or restore schedule snapshots">
+                            <svg class="w-3.5 h-3.5 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Snapshots</span>
+                        </button>
+                        <button type="button" onclick="openClearModal('class')" class="inline-flex items-center px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all" title="Clear schedules">
+                            <svg class="w-3.5 h-3.5 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Clear</span>
+                        </button>
+                    </div>
+                    <div data-schedule-header-hint class="flex-shrink-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 {% if current_user.is_admin or request.args.get('section_id') %}hidden{% endif %}">
+                        Select a section to enable snapshots and clear
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content: Class Schedule Master-Detail -->
+        <div class="tab-contents-wrapper flex-1 overflow-hidden">
+            {% include 'schedule/_class_tab.html' %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+{% include 'schedule/_delete_modal.html' %}
+<!-- Batch Schedule Builder Modal -->
+{% include 'schedule/_auto_schedule_modal.html' %}
+<!-- Snapshot & Clear Modals -->
+{% include 'schedule/_snapshot_modal.html' %}
+{% include 'schedule/_clear_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Socket.IO Client for Real-time Updates -->
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+
+{% if current_settings %}
+<script>
+    window.currentAcademicYear = "{{ current_settings.academic_year }}";
+    window.currentSemester = "{{ current_settings.semester }}";
+</script>
+{% endif %}
+
+<!-- Page context: which schedule view we're on -->
+<script>window.SCHEDULE_PAGE = 'class';</script>
+<script>window.SCHEDULE_IS_ADMIN = {{ 'true' if current_user.is_admin else 'false' }};</script>
+
+<!-- Snapshot & Clear Schedule JS -->
+{% include 'schedule/_snapshot_clear_js.html' %}
+
+<!-- Real-time Schedule Updates -->
+<script src="{{ url_for('static', filename='js/schedule/realtime.js') }}"></script>
+<!-- Core JS (toast, mobile nav) -->
+<script src="{{ url_for('static', filename='js/schedule/main.js') }}"></script>
+<!-- Calendar view rendering -->
+<script src="{{ url_for('static', filename='js/schedule/calendar.js') }}"></script>
+<!-- Full schedule JS (selection, filtering, delete, export) -->
+<script src="{{ url_for('static', filename='js/schedule/schedule_full.js') }}"></script>
+<!-- Batch Schedule Builder -->
+<script src="{{ url_for('static', filename='js/schedule/batch_schedule.js') }}"></script>
+<script>
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icons = {
+            success: '<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            error: '<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            danger: '<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            info: '<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            warning: '<svg class="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'
+        };
+        const colors = { success: 'text-green-800 dark:text-green-300', error: 'text-red-800 dark:text-red-300', danger: 'text-red-800 dark:text-red-300', info: 'text-blue-800 dark:text-blue-300', warning: 'text-yellow-800 dark:text-yellow-300' };
+        toast.innerHTML = `${icons[type] || icons.success}<p class="${colors[type] || colors.success} font-medium flex-1">${message}</p><button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>`;
+        container.appendChild(toast);
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    function removeToast(toast) { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }
+
+    // Show flash messages as toasts
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) {
+            flashMessages.querySelectorAll('[data-message]').forEach((msg, i) => {
+                setTimeout(() => {
+                    let cat = msg.dataset.category;
+                    if (cat === 'danger') cat = 'error';
+                    showToast(msg.dataset.message, cat);
+                }, i * 100);
+            });
+        }
+    });
+
+    // Export Dropdown Toggle
+    function toggleExportDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => { if (dd.id !== dropdownId) dd.classList.add('hidden'); });
+        dropdown.classList.toggle('hidden');
+    }
+    document.addEventListener('click', function(e) { if (!e.target.closest('.relative.inline-block')) document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => dd.classList.add('hidden')); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') document.querySelectorAll('[id$="ExportDropdown"]').forEach(dd => dd.classList.add('hidden')); });
+</script>
+{% endblock %}
+

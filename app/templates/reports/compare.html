@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block title %}Semester Comparison - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'reports/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="reports-content bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Semester Comparison</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Compare statistics across academic periods</p>
+                    </div>
+                    <!-- Program Filter -->
+                    <div class="reports-toolbar flex items-center gap-2 flex-shrink-0">
+                        {% if programs|length > 1 %}
+                        <select id="filter-program" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                            <option value="">All Programs</option>
+                            {% for dept in programs %}
+                            <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.program_code }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif programs|length == 1 %}
+                        <input type="hidden" id="filter-program" value="{{ programs[0].id }}">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">{{ programs[0].program_code }}</span>
+                        {% else %}
+                        <input type="hidden" id="filter-program" value="">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
+                <!-- Comparison Header & Period Selectors -->
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
+                    <h2 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Semester Comparison
+                    </h2>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full lg:w-auto">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Period 1:</span>
+                            <select id="compare-period1" class="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                                <option value="">Select period...</option>
+                            </select>
+                        </div>
+                        
+                        <span class="text-gray-400 dark:text-gray-500 text-center">vs</span>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Period 2:</span>
+                            <select id="compare-period2" class="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                                <option value="">Select period...</option>
+                            </select>
+                        </div>
+                        
+                        <button onclick="loadComparison()" class="w-full sm:w-auto justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Compare
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="comparison-loading" class="hidden text-center py-12">
+                    <svg class="animate-spin h-10 w-10 mx-auto text-purple-600 mb-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-gray-500 dark:text-gray-400">Loading comparison data...</p>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="comparison-empty" class="text-center py-10 sm:py-12">
+                    <svg class="w-14 h-14 sm:w-16 sm:h-16 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Select Periods to Compare</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">Choose two academic periods above to see how schedules, faculty, and rooms compare.</p>
+                </div>
+                
+                <!-- Comparison Results -->
+                <div id="comparison-results" class="hidden">
+                    <!-- Period Labels -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                        <div class="text-center">
+                            <span id="period1-label" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"></span>
+                        </div>
+                        <div class="text-center text-gray-400 dark:text-gray-500 font-medium">Change</div>
+                        <div class="text-center">
+                            <span id="period2-label" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Comparison Stats -->
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-schedules1">-</p></div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Class Schedules</p>
+                                <p class="text-lg font-bold" id="compare-schedules-diff">-</p>
+                            </div>
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-schedules2">-</p></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-exams1">-</p></div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Exam Schedules</p>
+                                <p class="text-lg font-bold" id="compare-exams-diff">-</p>
+                            </div>
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-exams2">-</p></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-faculty1">-</p></div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Faculty Assigned</p>
+                                <p class="text-lg font-bold" id="compare-faculty-diff">-</p>
+                            </div>
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-faculty2">-</p></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-rooms1">-</p></div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Rooms Used</p>
+                                <p class="text-lg font-bold" id="compare-rooms-diff">-</p>
+                            </div>
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-rooms2">-</p></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-util1">-</p></div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Avg Faculty Load</p>
+                                <p class="text-lg font-bold" id="compare-util-diff">-</p>
+                            </div>
+                            <div class="text-center"><p class="text-2xl font-bold text-gray-900 dark:text-white" id="compare-util2">-</p></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Weekly Distribution Comparison Chart -->
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Weekly Distribution Comparison
+                        </h3>
+                        <div class="chart-container-large">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Semester Trends (All Periods) -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700 mt-3">
+                <h2 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center mb-3">
+                    <svg class="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    Semester Trend Lines
+                </h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Historical trends across all recorded academic periods</p>
+
+                <!-- Loading / Empty states for trend -->
+                <div id="trend-loading" class="text-center py-8">
+                    <svg class="animate-spin h-8 w-8 mx-auto text-purple-500 mb-2" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">Loading trend data…</p>
+                </div>
+                <div id="trend-empty" class="hidden text-center py-8">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Not enough semester data to display trends.</p>
+                </div>
+                <div id="trend-chart-wrapper" class="hidden">
+                    <div class="chart-container-large">
+                        <canvas id="semesterTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================================
+// SEMESTER COMPARISON PAGE - Scoped JavaScript
+// ============================================================================
+
+// Hold the universal loading indicator until data is ready
+window._holdPageLoading = true;
+
+let comparisonChart = null;
+let semesterTrendChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAcademicPeriods();
+    loadSemesterTrends();
+});
+
+function loadAcademicPeriods() {
+    fetch('/reports/api/academic-periods')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.periods.length > 0) {
+                const select1 = document.getElementById('compare-period1');
+                const select2 = document.getElementById('compare-period2');
+                
+                select1.innerHTML = '<option value="">Select period...</option>';
+                select2.innerHTML = '<option value="">Select period...</option>';
+                
+                data.periods.forEach(period => {
+                    const option1 = document.createElement('option');
+                    option1.value = `${period.academic_year}|${period.semester}`;
+                    option1.textContent = period.label;
+                    select1.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = `${period.academic_year}|${period.semester}`;
+                    option2.textContent = period.label;
+                    select2.appendChild(option2);
+                });
+                
+                if (data.periods.length >= 2) {
+                    select1.value = data.periods[1].academic_year + '|' + data.periods[1].semester;
+                    select2.value = data.periods[0].academic_year + '|' + data.periods[0].semester;
+                }
+            } else {
+                document.getElementById('comparison-empty').innerHTML = `
+                    <svg class="w-14 h-14 sm:w-16 sm:h-16 mx-auto text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Historical Data Available</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">Schedule data from multiple semesters is required for comparison.</p>
+                `;
+            }
+        })
+        .catch(error => console.error('Error loading academic periods:', error))
+        .finally(() => {
+            // Dismiss universal loading indicator
+            window._holdPageLoading = false;
+            hidePageLoading();
+        });
+}
+
+function loadComparison() {
+    const period1Value = document.getElementById('compare-period1').value;
+    const period2Value = document.getElementById('compare-period2').value;
+    
+    if (!period1Value || !period2Value) {
+        showToast('Please select both periods for comparison', 'warning');
+        return;
+    }
+    
+    const [year1, sem1] = period1Value.split('|');
+    const [year2, sem2] = period2Value.split('|');
+    const departmentFilter = document.getElementById('filter-program').value;
+    
+    const params = new URLSearchParams();
+    params.append('year1', year1);
+    params.append('sem1', sem1);
+    params.append('year2', year2);
+    params.append('sem2', sem2);
+    if (departmentFilter) params.append('program', departmentFilter);
+    
+    document.getElementById('comparison-loading').classList.remove('hidden');
+    document.getElementById('comparison-empty').classList.add('hidden');
+    document.getElementById('comparison-results').classList.add('hidden');
+    
+    fetch('/reports/api/semester-comparison?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('comparison-loading').classList.add('hidden');
+            if (data.success) {
+                displayComparisonResults(data);
+            } else {
+                document.getElementById('comparison-empty').classList.remove('hidden');
+                console.error('Comparison error:', data.error);
+            }
+        })
+        .catch(error => {
+            document.getElementById('comparison-loading').classList.add('hidden');
+            document.getElementById('comparison-empty').classList.remove('hidden');
+            console.error('Error loading comparison:', error);
+        });
+}
+
+function displayComparisonResults(data) {
+    document.getElementById('comparison-results').classList.remove('hidden');
+    
+    document.getElementById('period1-label').textContent = data.period1.label;
+    document.getElementById('period2-label').textContent = data.period2.label;
+    
+    document.getElementById('compare-schedules1').textContent = data.period1.total_schedules;
+    document.getElementById('compare-schedules2').textContent = data.period2.total_schedules;
+    updateDiffDisplay('compare-schedules-diff', data.comparison.schedule_diff, data.comparison.schedule_pct_change);
+    
+    document.getElementById('compare-exams1').textContent = data.period1.total_exam_schedules;
+    document.getElementById('compare-exams2').textContent = data.period2.total_exam_schedules;
+    updateDiffDisplay('compare-exams-diff', data.comparison.exam_diff, data.comparison.exam_pct_change);
+    
+    document.getElementById('compare-faculty1').textContent = data.period1.faculty_with_schedules;
+    document.getElementById('compare-faculty2').textContent = data.period2.faculty_with_schedules;
+    updateDiffDisplay('compare-faculty-diff', data.comparison.faculty_assigned_diff, data.comparison.faculty_assigned_pct_change);
+    
+    document.getElementById('compare-rooms1').textContent = data.period1.rooms_in_use;
+    document.getElementById('compare-rooms2').textContent = data.period2.rooms_in_use;
+    updateDiffDisplay('compare-rooms-diff', data.comparison.rooms_used_diff, data.comparison.rooms_used_pct_change);
+    
+    document.getElementById('compare-util1').textContent = data.period1.avg_faculty_utilization.toFixed(1) + '%';
+    document.getElementById('compare-util2').textContent = data.period2.avg_faculty_utilization.toFixed(1) + '%';
+    updateDiffDisplay('compare-util-diff', data.comparison.avg_utilization_diff, null, '%');
+    
+    updateComparisonChart(data);
+}
+
+function updateDiffDisplay(elementId, diff, pctChange, suffix = '') {
+    const element = document.getElementById(elementId);
+    let displayText = '';
+    let colorClass = '';
+    
+    if (diff > 0) {
+        displayText = `+${diff}${suffix}`;
+        colorClass = 'text-green-600 dark:text-green-400';
+    } else if (diff < 0) {
+        displayText = `${diff}${suffix}`;
+        colorClass = 'text-red-600 dark:text-red-400';
+    } else {
+        displayText = '0';
+        colorClass = 'text-gray-500 dark:text-gray-400';
+    }
+    
+    if (pctChange !== null && pctChange !== undefined) {
+        const pctColor = pctChange >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400';
+        displayText += ` <span class="text-xs ${pctColor}">(${pctChange >= 0 ? '+' : ''}${pctChange}%)</span>`;
+    }
+    
+    element.innerHTML = displayText;
+    element.className = `text-lg font-bold ${colorClass}`;
+}
+
+function getChartTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+        legendColor: isDark ? '#cbd5e1' : '#475569',
+        tickColor: isDark ? '#cbd5e1' : '#475569',
+        gridColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(0, 0, 0, 0.08)'
+    };
+}
+
+function loadSemesterTrends() {
+    const departmentFilter = document.getElementById('filter-program').value;
+    const params = new URLSearchParams();
+    if (departmentFilter) params.append('program', departmentFilter);
+
+    fetch('/reports/api/semester-trends?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('trend-loading').classList.add('hidden');
+            if (data.success && data.trends && data.trends.length >= 2) {
+                document.getElementById('trend-chart-wrapper').classList.remove('hidden');
+                renderSemesterTrendChart(data.trends);
+            } else {
+                document.getElementById('trend-empty').classList.remove('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading semester trends:', error);
+            document.getElementById('trend-loading').classList.add('hidden');
+            document.getElementById('trend-empty').classList.remove('hidden');
+        });
+}
+
+function renderSemesterTrendChart(trends) {
+    const ctx = document.getElementById('semesterTrendChart').getContext('2d');
+    if (semesterTrendChart) semesterTrendChart.destroy();
+    const theme = getChartTheme();
+
+    const labels = trends.map(t => t.label);
+
+    semesterTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Class Schedules',
+                    data: trends.map(t => t.schedules),
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Exam Schedules',
+                    data: trends.map(t => t.exams),
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Faculty Assigned',
+                    data: trends.map(t => t.faculty),
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { color: theme.legendColor }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        title: function(items) { return items[0].label; }
+                    }
+                }
+            },
+            interaction: { mode: 'nearest', axis: 'x', intersect: false },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, font: { size: 11 }, color: theme.tickColor },
+                    grid: { color: theme.gridColor }
+                },
+                x: {
+                    ticks: { font: { size: 11 }, color: theme.tickColor },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+function updateComparisonChart(data) {
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+    const theme = getChartTheme();
+    
+    if (comparisonChart) {
+        comparisonChart.destroy();
+    }
+    
+    const dayOrder = {{ operation_days|default(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])|tojson }};
+    const labels = dayOrder.filter(day => day in data.period1.schedule_by_day || day in data.period2.schedule_by_day);
+    
+    comparisonChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: data.period1.label,
+                    data: labels.map(day => data.period1.schedule_by_day[day] || 0),
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                },
+                {
+                    label: data.period2.label,
+                    data: labels.map(day => data.period2.schedule_by_day[day] || 0),
+                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: theme.legendColor }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: theme.tickColor },
+                    grid: { color: theme.gridColor }
+                },
+                x: {
+                    ticks: { color: theme.tickColor },
+                    grid: { color: theme.gridColor }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% macro schedule_empty_state(title, description, theme='blue', icon='calendar', cta_label=None, cta_action=None, compact=False) %}
+    {% if theme == 'orange' %}
+        {% set ring_bg = 'bg-orange-50 dark:bg-orange-900/20' %}
+        {% set icon_bg = 'bg-orange-100 dark:bg-orange-900/30' %}
+        {% set icon_color = 'text-orange-500 dark:text-orange-400' %}
+        {% set cta_bg = 'bg-orange-50 dark:bg-orange-900/30' %}
+        {% set cta_text = 'text-orange-700 dark:text-orange-300' %}
+        {% set cta_border = 'border-orange-200 dark:border-orange-800' %}
+        {% set cta_hover = 'hover:bg-orange-100 dark:hover:bg-orange-900/50' %}
+    {% else %}
+        {% set ring_bg = 'bg-blue-50 dark:bg-blue-900/20' %}
+        {% set icon_bg = 'bg-blue-100 dark:bg-blue-900/30' %}
+        {% set icon_color = 'text-blue-500 dark:text-blue-400' %}
+        {% set cta_bg = 'bg-blue-50 dark:bg-blue-900/30' %}
+        {% set cta_text = 'text-blue-700 dark:text-blue-300' %}
+        {% set cta_border = 'border-blue-200 dark:border-blue-800' %}
+        {% set cta_hover = 'hover:bg-blue-100 dark:hover:bg-blue-900/50' %}
+    {% endif %}
+
+    <div class="{{ 'py-10 sm:py-12' if compact else 'h-full' }} flex items-center justify-center">
+        <div class="text-center px-6 max-w-xs">
+            <div class="relative mx-auto mb-5 w-20 h-20">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-20 h-20 rounded-full {{ ring_bg }}"></div>
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-14 h-14 rounded-full {{ icon_bg }} flex items-center justify-center">
+                        {% if icon == 'exam' %}
+                        <svg class="w-7 h-7 {{ icon_color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        {% elif icon == 'section' %}
+                        <svg class="w-7 h-7 {{ icon_color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        {% elif icon == 'sections' %}
+                        <svg class="w-7 h-7 {{ icon_color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        {% else %}
+                        <svg class="w-7 h-7 {{ icon_color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2">{{ title }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ description }}</p>
+            {% if cta_label and cta_action %}
+            <button type="button" onclick="{{ cta_action }}" class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all {{ cta_bg }} {{ cta_text }} {{ cta_border }} {{ cta_hover }}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+                <span>{{ cta_label }}</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}

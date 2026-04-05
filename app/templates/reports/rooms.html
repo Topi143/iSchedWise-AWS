@@ -1,0 +1,860 @@
+{% extends "base.html" %}
+
+{% block title %}Room Utilization Report - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'reports/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="reports-content bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Room Utilization</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if academic_year and semester %}
+                                {{ semester }}, A.Y. {{ academic_year }}
+                            {% else %}
+                                Room usage analysis
+                            {% endif %}
+                        </p>
+                    </div>
+                    <!-- Program Filter -->
+                    <div class="reports-toolbar flex items-center gap-2 flex-shrink-0">
+                        {% if programs|length > 1 %}
+                        <select id="filter-program" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                            <option value="">All Programs</option>
+                            {% for dept in programs %}
+                            <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.program_code }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif programs|length == 1 %}
+                        <input type="hidden" id="filter-program" value="{{ programs[0].id }}">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">{{ programs[0].program_code }}</span>
+                        {% else %}
+                        <input type="hidden" id="filter-program" value="">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+            <!-- Room Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- Total Rooms -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Total Rooms</span>
+                    </div>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400" id="stat-total-rooms">{{ stats.total_rooms }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">available rooms</p>
+                </div>
+                <!-- Rooms In Use -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Rooms In Use</span>
+                    </div>
+                    <p class="text-xl font-bold text-green-600 dark:text-green-400" id="stat-rooms-in-use">{{ stats.rooms_in_use }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">with scheduled classes/exams</p>
+                </div>
+                <!-- Unused Rooms -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Unused Rooms</span>
+                    </div>
+                    <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400" id="stat-unused-rooms">{{ stats.unused_rooms_count }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">no schedules assigned</p>
+                </div>
+                <!-- Avg Utilization -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Avg Utilization</span>
+                    </div>
+                    <p class="text-xl font-bold text-orange-600 dark:text-orange-400" id="stat-avg-room-util">{{ stats.avg_room_utilization }}%</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="stat-max-hours-label">hours-based ({{ stats.max_weekly_hours }}h/week max)</p>
+                </div>
+            </div>
+
+            <!-- Room Availability Peek -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-10 4h6m-2 6h2a2 2 0 002-2V7a2 2 0 00-2-2h-2M7 21h2a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Room Availability Peek
+                        <span class="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs px-2 py-0.5 rounded-full font-medium" id="room-availability-count">{{ stats.room_availability_count or 0 }} rooms</span>
+                    </h3>
+                    <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 w-full sm:w-auto" id="availabilityTabs">
+                        <button onclick="switchAvailabilityTab('all')" id="availabilityTab-all" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm">All</button>
+                        <button onclick="switchAvailabilityTab('has-schedule')" id="availabilityTab-has-schedule" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">With Schedule</button>
+                        <button onclick="switchAvailabilityTab('no-schedule')" id="availabilityTab-no-schedule" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">No Schedule</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs px-2.5 py-1 rounded-full font-medium" id="room-availability-with-schedule">With Class Schedule: {{ stats.room_availability_with_schedule_count or 0 }}</span>
+                    <span class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs px-2.5 py-1 rounded-full font-medium" id="room-availability-no-schedule">No Schedule: {{ stats.room_availability_no_schedule_count or 0 }}</span>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <p class="text-xs text-gray-500 dark:text-gray-400" id="room-availability-shown">Showing 0 of 0 rooms</p>
+                    <button id="room-availability-view-all" type="button" onclick="openRoomAvailabilityModal()" class="hidden px-2.5 py-1 text-xs font-medium rounded-md border border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">View All</button>
+                </div>
+
+                <div id="room-availability-list" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    {% for room in stats.room_availability or [] %}
+                    <div class="rounded-lg border {% if room.no_schedule %}border-yellow-200 dark:border-yellow-800/40 bg-yellow-50/60 dark:bg-yellow-900/15{% else %}border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/20{% endif %} p-3 transition-colors hover:bg-gray-100/70 dark:hover:bg-gray-900/35">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ room.room }}">{{ room.room }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 break-words" title="{{ room.building }}">{{ room.building }} • {{ room.room_type }}</p>
+                            </div>
+                            {% if room.no_schedule %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">No schedule</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Has schedule</span>
+                            {% endif %}
+                        </div>
+
+                        {% if room.no_schedule %}
+                        <p class="text-xs text-gray-600 dark:text-gray-400">No class schedule assigned for this academic period.</p>
+                        {% else %}
+                        <div class="space-y-1.5">
+                            {% for day, slots in room.available_slots_by_day.items() %}
+                            <div class="flex gap-2 text-xs">
+                                <span class="w-12 shrink-0 font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/70 rounded px-1.5 py-0.5 text-center">{{ day[:3] }}</span>
+                                <span class="text-gray-600 dark:text-gray-400 break-words">{{ slots|join(', ') if slots else 'No free slot' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Room Utilization Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <h3 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Most Utilized Rooms
+                        </h3>
+                        <div class="flex flex-wrap bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 w-full sm:w-auto" id="roomChartTabs">
+                            <button onclick="switchRoomChartTab('all')" id="roomTab-all" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm">All</button>
+                            <button onclick="switchRoomChartTab('class')" id="roomTab-class" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">Class</button>
+                            <button onclick="switchRoomChartTab('exam')" id="roomTab-exam" class="px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">Exam</button>
+                        </div>
+                    </div>
+                    <div class="chart-container-large">
+                        <canvas id="roomDetailChart"></canvas>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:gap-4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <h3 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                        </svg>
+                        Room Availability Status
+                    </h3>
+                    <div class="chart-container-large">
+                        <canvas id="roomStatusChart"></canvas>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Room Utilization Table -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h2 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Complete Room Usage Data
+                        {% if stats.room_utilizations %}
+                        <span class="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">({{ stats.room_utilizations|length }} rooms)</span>
+                        {% endif %}
+                    </h2>
+                </div>
+                
+                <div class="reports-table-wrap overflow-x-auto">
+                    <table class="reports-table-mobile min-w-full table-fixed" id="room-usage-table">
+                        <colgroup>
+                            <col style="width: 20%;">
+                            <col style="width: 25%;">
+                            <col style="width: 13%;">
+                            <col style="width: 13%;">
+                            <col style="width: 14%;">
+                            <col style="width: 15%;">
+                        </colgroup>
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Room</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Building</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Classes</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Exams</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total Usage</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="room-usage-tbody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        Showing <span id="room-showing">0</span> of <span id="room-total">0</span> rooms
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                        <button onclick="changeRoomPage(-1)" id="room-prev-btn" class="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </button>
+                        <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Page <span id="room-current-page">1</span></span>
+                        <button onclick="changeRoomPage(1)" id="room-next-btn" class="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            Next
+                            <svg class="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'reports/_room_availability_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================================
+// ROOM UTILIZATION PAGE - Scoped JavaScript
+// ============================================================================
+
+let roomDetailChart = null;
+let roomStatusChart = null;
+let allRooms = {{ stats.room_utilizations|tojson }};
+let roomAvailability = {{ (stats.room_availability or [])|tojson }};
+let currentRoomPage = 1;
+const roomsPerPage = 10;
+let currentRoomTab = 'all';
+let currentAvailabilityTab = 'all';
+let currentBuildingFilter = '';
+const roomAvailabilityPreviewLimit = 6;
+
+function isDarkThemeActive() {
+    return document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+}
+
+function getRoomChartTheme() {
+    const dark = isDarkThemeActive();
+    return {
+        text: dark ? '#94a3b8' : '#4b5563',
+        title: dark ? '#cbd5e1' : '#374151',
+        grid: dark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(17, 24, 39, 0.10)',
+        doughnutBorder: dark ? '#1f2937' : '#ffffff',
+        tooltipBg: dark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(17, 24, 39, 0.92)',
+        tooltipTitle: '#f8fafc',
+        tooltipBody: dark ? '#e2e8f0' : '#f9fafb'
+    };
+}
+
+function applyRoomChartTheme() {
+    const theme = getRoomChartTheme();
+
+    if (roomDetailChart) {
+        roomDetailChart.options.scales.x.ticks.color = theme.text;
+        roomDetailChart.options.scales.x.grid.color = theme.grid;
+        roomDetailChart.options.scales.y.ticks.color = theme.text;
+        roomDetailChart.options.scales.y.grid.color = theme.grid;
+        roomDetailChart.options.plugins.legend.labels.color = theme.text;
+        roomDetailChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+        roomDetailChart.options.plugins.tooltip.titleColor = theme.tooltipTitle;
+        roomDetailChart.options.plugins.tooltip.bodyColor = theme.tooltipBody;
+        roomDetailChart.update('none');
+    }
+
+    if (roomStatusChart) {
+        roomStatusChart.data.datasets[0].borderColor = [theme.doughnutBorder, theme.doughnutBorder];
+        roomStatusChart.options.plugins.legend.labels.color = theme.text;
+        roomStatusChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+        roomStatusChart.options.plugins.tooltip.titleColor = theme.tooltipTitle;
+        roomStatusChart.options.plugins.tooltip.bodyColor = theme.tooltipBody;
+        roomStatusChart.update('none');
+    }
+}
+
+function setupRoomChartThemeObserver() {
+    const target = document.documentElement;
+    if (!target || typeof MutationObserver === 'undefined') return;
+
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                applyRoomChartTheme();
+                break;
+            }
+        }
+    });
+
+    observer.observe(target, { attributes: true, attributeFilter: ['class'] });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    displayRoomPage(1);
+    applyAvailabilityTabStyles();
+    refreshRoomAvailabilityBuildingFilter();
+    renderActiveRoomAvailability();
+    applyRoomChartTheme();
+    setupRoomChartThemeObserver();
+});
+
+function applyAvailabilityTabStyles() {
+    const groups = ['availabilityTab-', 'modalAvailabilityTab-'];
+    groups.forEach(prefix => {
+        ['all', 'has-schedule', 'no-schedule'].forEach(tab => {
+            const btn = document.getElementById(prefix + tab);
+            if (!btn) return;
+            if (tab === currentAvailabilityTab) {
+                btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition-all bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm';
+            } else {
+                btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100';
+            }
+        });
+    });
+}
+
+function filterRoomAvailabilityByTab(rooms, tab) {
+    if (tab === 'has-schedule') return rooms.filter(r => !r.no_schedule);
+    if (tab === 'no-schedule') return rooms.filter(r => r.no_schedule);
+    return rooms;
+}
+
+function getRoomBuildingKey(room) {
+    if (room && room.building_id !== null && room.building_id !== undefined && room.building_id !== '') {
+        return String(room.building_id);
+    }
+    return '__unassigned__';
+}
+
+function getRoomBuildingLabel(room) {
+    return room && room.building ? room.building : 'N/A';
+}
+
+function getRoomAvailabilityBuildingOptions(rooms) {
+    const optionMap = new Map();
+    (rooms || []).forEach(room => {
+        const key = getRoomBuildingKey(room);
+        if (!optionMap.has(key)) {
+            optionMap.set(key, getRoomBuildingLabel(room));
+        }
+    });
+
+    return Array.from(optionMap.entries())
+        .map(([value, label]) => ({ value, label }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function refreshRoomAvailabilityBuildingFilter() {
+    const select = document.getElementById('modal-room-building-filter');
+    const wrapper = document.getElementById('modal-room-building-filter-wrap');
+    if (!select || !wrapper) return;
+
+    const options = getRoomAvailabilityBuildingOptions(roomAvailability);
+    const validValues = new Set(options.map(option => option.value));
+    if (currentBuildingFilter && !validValues.has(currentBuildingFilter)) {
+        currentBuildingFilter = '';
+    }
+
+    select.innerHTML = '<option value="">All Buildings</option>';
+    options.forEach(option => {
+        const el = document.createElement('option');
+        el.value = option.value;
+        el.textContent = option.label;
+        select.appendChild(el);
+    });
+
+    if (options.length > 1) {
+        wrapper.classList.remove('hidden');
+    } else {
+        wrapper.classList.add('hidden');
+        currentBuildingFilter = '';
+    }
+
+    select.value = currentBuildingFilter;
+}
+
+function filterRoomAvailabilityByBuildingKey(rooms, buildingKey) {
+    if (!buildingKey) return rooms;
+    return rooms.filter(room => getRoomBuildingKey(room) === buildingKey);
+}
+
+function filterRoomAvailabilityByBuilding(buildingKey) {
+    currentBuildingFilter = buildingKey || '';
+    renderActiveRoomAvailability();
+}
+
+function renderActiveRoomAvailability() {
+    const previewFiltered = filterRoomAvailabilityByTab(roomAvailability, currentAvailabilityTab);
+
+    const modalBuildingFiltered = filterRoomAvailabilityByBuildingKey(roomAvailability, currentBuildingFilter);
+    const modalFiltered = filterRoomAvailabilityByTab(modalBuildingFiltered, currentAvailabilityTab);
+
+    renderRoomAvailability(previewFiltered);
+    renderRoomAvailabilityModal(modalFiltered, modalBuildingFiltered);
+}
+
+function switchAvailabilityTab(tab) {
+    currentAvailabilityTab = tab;
+    applyAvailabilityTabStyles();
+    renderActiveRoomAvailability();
+}
+
+function openRoomAvailabilityModal() {
+    const modal = document.getElementById('room-availability-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    renderActiveRoomAvailability();
+}
+
+function closeRoomAvailabilityModal() {
+    const modal = document.getElementById('room-availability-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+
+    if (currentBuildingFilter) {
+        currentBuildingFilter = '';
+        const select = document.getElementById('modal-room-building-filter');
+        if (select) select.value = '';
+        renderActiveRoomAvailability();
+    }
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildRoomAvailabilityCard(room) {
+    const statusBadge = room.no_schedule
+        ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">No schedule</span>'
+        : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Has schedule</span>';
+
+    let detailsHtml = '<p class="text-xs text-gray-600 dark:text-gray-400">No class schedule assigned for this academic period.</p>';
+    if (!room.no_schedule) {
+        const slotsByDay = room.available_slots_by_day || {};
+        const dayRows = Object.keys(slotsByDay).map(day => {
+            const slots = slotsByDay[day] || [];
+            const slotText = slots.length ? slots.join(', ') : 'No free slot';
+            return `
+                <div class="flex gap-2 text-xs">
+                    <span class="w-12 shrink-0 font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/70 rounded px-1.5 py-0.5 text-center">${escapeHtml(day.slice(0, 3))}</span>
+                    <span class="text-gray-600 dark:text-gray-400 break-words">${escapeHtml(slotText)}</span>
+                </div>
+            `;
+        }).join('');
+        detailsHtml = `<div class="space-y-1.5">${dayRows}</div>`;
+    }
+
+    return `
+        <div class="rounded-lg border ${room.no_schedule
+            ? 'border-yellow-200 dark:border-yellow-800/40 bg-yellow-50/60 dark:bg-yellow-900/15'
+            : 'border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/20'} p-3 transition-colors hover:bg-gray-100/70 dark:hover:bg-gray-900/35">
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" title="${escapeHtml(room.room || 'N/A')}">${escapeHtml(room.room || 'N/A')}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 break-words" title="${escapeHtml(room.building || 'N/A')}">${escapeHtml(room.building || 'N/A')} • ${escapeHtml(room.room_type || 'Lecture')}</p>
+                </div>
+                ${statusBadge}
+            </div>
+            ${detailsHtml}
+        </div>
+    `;
+}
+
+function renderRoomAvailability(rooms, buildingScopedRooms = roomAvailability) {
+    const container = document.getElementById('room-availability-list');
+    if (!container) return;
+
+    const withScheduleTotal = buildingScopedRooms.filter(r => !r.no_schedule).length;
+    const noScheduleTotal = buildingScopedRooms.filter(r => r.no_schedule).length;
+
+    const countEl = document.getElementById('room-availability-count');
+    if (countEl) countEl.textContent = `${rooms.length} rooms`;
+
+    const visibleRooms = rooms.slice(0, roomAvailabilityPreviewLimit);
+
+    const shownEl = document.getElementById('room-availability-shown');
+    if (shownEl) shownEl.textContent = `Showing ${visibleRooms.length} of ${rooms.length} rooms`;
+
+    const viewAllBtn = document.getElementById('room-availability-view-all');
+    if (viewAllBtn) {
+        if (rooms.length > 0) {
+            viewAllBtn.classList.remove('hidden');
+            viewAllBtn.textContent = `View All (${rooms.length})`;
+        } else {
+            viewAllBtn.classList.add('hidden');
+        }
+    }
+
+    const withScheduleEl = document.getElementById('room-availability-with-schedule');
+    if (withScheduleEl) withScheduleEl.textContent = `With Class Schedule: ${withScheduleTotal}`;
+
+    const noScheduleEl = document.getElementById('room-availability-no-schedule');
+    if (noScheduleEl) noScheduleEl.textContent = `No Schedule: ${noScheduleTotal}`;
+
+    if (!rooms.length) {
+        if (shownEl) shownEl.textContent = 'Showing 0 of 0 rooms';
+        container.innerHTML = '<div class="col-span-full rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-500 dark:text-gray-400">No room availability data found for this filter.</div>';
+        return;
+    }
+
+    const cards = visibleRooms.map(room => buildRoomAvailabilityCard(room));
+
+    container.innerHTML = cards.join('');
+}
+
+function renderRoomAvailabilityModal(rooms, buildingScopedRooms = roomAvailability) {
+    const container = document.getElementById('room-availability-modal-list');
+    if (!container) return;
+
+    const totalRooms = buildingScopedRooms.length;
+    const filteredWithSchedule = buildingScopedRooms.filter(r => !r.no_schedule).length;
+    const filteredNoSchedule = buildingScopedRooms.filter(r => r.no_schedule).length;
+
+    const shownEl = document.getElementById('modal-room-availability-shown');
+    if (shownEl) shownEl.textContent = `Showing ${rooms.length} of ${totalRooms} rooms`;
+
+    const countEl = document.getElementById('modal-room-availability-count');
+    if (countEl) countEl.textContent = `${rooms.length} rooms in this view`;
+
+    const withScheduleEl = document.getElementById('modal-room-availability-with-schedule');
+    if (withScheduleEl) withScheduleEl.textContent = `With Class Schedule: ${filteredWithSchedule}`;
+
+    const noScheduleEl = document.getElementById('modal-room-availability-no-schedule');
+    if (noScheduleEl) noScheduleEl.textContent = `No Schedule: ${filteredNoSchedule}`;
+
+    if (!rooms.length) {
+        container.innerHTML = '<div class="col-span-full rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-500 dark:text-gray-400">No room availability data found for this filter.</div>';
+        return;
+    }
+
+    container.innerHTML = rooms.map(room => buildRoomAvailabilityCard(room)).join('');
+}
+
+function getRoomChartData(rooms, tab) {
+    // Sort by the relevant metric and take top 15
+    let sorted;
+    if (tab === 'class') {
+        sorted = rooms.filter(r => r.schedules > 0).sort((a, b) => b.schedules - a.schedules).slice(0, 15);
+    } else if (tab === 'exam') {
+        sorted = rooms.filter(r => r.exams > 0).sort((a, b) => b.exams - a.exams).slice(0, 15);
+    } else {
+        sorted = rooms.filter(r => r.total_usage > 0).sort((a, b) => b.total_usage - a.total_usage).slice(0, 15);
+    }
+    
+    const labels = sorted.map(r => r.room + ' - ' + r.building);
+    const datasets = [];
+    
+    if (tab === 'all' || tab === 'class') {
+        datasets.push({
+            label: 'Class Schedules',
+            data: sorted.map(r => r.schedules),
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1,
+            borderRadius: 3
+        });
+    }
+    if (tab === 'all' || tab === 'exam') {
+        datasets.push({
+            label: 'Exam Schedules',
+            data: sorted.map(r => r.exams),
+            backgroundColor: 'rgba(249, 115, 22, 0.8)',
+            borderColor: 'rgb(249, 115, 22)',
+            borderWidth: 1,
+            borderRadius: 3
+        });
+    }
+    
+    return { labels, datasets, stacked: tab === 'all' };
+}
+
+function switchRoomChartTab(tab) {
+    currentRoomTab = tab;
+    ['all', 'class', 'exam'].forEach(t => {
+        const btn = document.getElementById('roomTab-' + t);
+        if (t === tab) {
+            btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition-all bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm';
+        } else {
+            btn.className = 'px-2.5 py-1 text-xs font-medium rounded-md transition-all text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100';
+        }
+    });
+    
+    const chartData = getRoomChartData(allRooms, tab);
+    roomDetailChart.data.labels = chartData.labels;
+    roomDetailChart.data.datasets = chartData.datasets;
+    roomDetailChart.options.scales.x.stacked = chartData.stacked;
+    roomDetailChart.options.scales.y.stacked = chartData.stacked;
+    roomDetailChart.options.plugins.legend.display = tab === 'all';
+    roomDetailChart.update();
+}
+
+function initializeCharts() {
+    const topRooms = {{ stats.room_utilizations[:15]|tojson }};
+    const chartTheme = getRoomChartTheme();
+    
+    // Room Detail Chart - stacked horizontal bar
+    const roomDetailCtx = document.getElementById('roomDetailChart').getContext('2d');
+    const initialData = getRoomChartData(topRooms, 'all');
+    roomDetailChart = new Chart(roomDetailCtx, {
+        type: 'bar',
+        data: {
+            labels: initialData.labels,
+            datasets: initialData.datasets
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                },
+                y: {
+                    stacked: true,
+                    ticks: { color: chartTheme.text },
+                    grid: { color: chartTheme.grid }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { padding: 15, font: { size: 11 }, color: chartTheme.text }
+                },
+                tooltip: {
+                    backgroundColor: chartTheme.tooltipBg,
+                    titleColor: chartTheme.tooltipTitle,
+                    bodyColor: chartTheme.tooltipBody,
+                    callbacks: {
+                        footer: function(context) {
+                            let total = 0;
+                            context.forEach(item => { total += item.parsed.x; });
+                            return 'Total Usage: ' + total;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Room Status Chart - doughnut
+    const roomStatusCtx = document.getElementById('roomStatusChart').getContext('2d');
+    const roomsInUse = allRooms.filter(r => r.total_usage > 0).length;
+    const roomsAvailable = allRooms.length - roomsInUse;
+    roomStatusChart = new Chart(roomStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Rooms In Use', 'Available Rooms'],
+            datasets: [{
+                data: [roomsInUse, roomsAvailable],
+                backgroundColor: ['rgba(249, 115, 22, 0.8)', 'rgba(34, 197, 94, 0.8)'],
+                borderColor: [chartTheme.doughnutBorder, chartTheme.doughnutBorder],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 20, font: { size: 12 }, color: chartTheme.text } },
+                tooltip: {
+                    backgroundColor: chartTheme.tooltipBg,
+                    titleColor: chartTheme.tooltipTitle,
+                    bodyColor: chartTheme.tooltipBody,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = allRooms.length;
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function displayRoomPage(page) {
+    currentRoomPage = page;
+    const tbody = document.getElementById('room-usage-tbody');
+    tbody.innerHTML = '';
+    
+    const startIndex = (page - 1) * roomsPerPage;
+    const endIndex = startIndex + roomsPerPage;
+    const roomsToDisplay = allRooms.slice(startIndex, endIndex);
+    
+    if (roomsToDisplay.length === 0) {
+        tbody.innerHTML = '<tr class="reports-table-empty-row"><td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No room data available</td></tr>';
+    } else {
+        roomsToDisplay.forEach(room => {
+            const row = document.createElement('tr');
+            row.className = 'reports-table-data-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors';
+            
+            const usageBadge = room.total_usage > 0 
+                ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300">${room.total_usage}</span>`
+                : `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">0</span>`;
+                
+            const statusBadge = room.total_usage > 0
+                ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">In Use</span>`
+                : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Available</span>`;
+            
+            row.innerHTML = `
+                <td data-label="Room" class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${room.room}</td>
+                <td data-label="Building" class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${room.building}</td>
+                <td data-label="Classes" class="px-4 py-3 text-sm text-blue-600 text-center font-medium">${room.schedules}</td>
+                <td data-label="Exams" class="px-4 py-3 text-sm text-orange-600 text-center font-medium">${room.exams}</td>
+                <td data-label="Total Usage" class="px-4 py-3 text-center">${usageBadge}</td>
+                <td data-label="Status" class="px-4 py-3 text-center">${statusBadge}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    updateRoomPagination();
+}
+
+function updateRoomPagination() {
+    const totalPages = Math.ceil(allRooms.length / roomsPerPage);
+    const startIndex = (currentRoomPage - 1) * roomsPerPage + 1;
+    const endIndex = Math.min(currentRoomPage * roomsPerPage, allRooms.length);
+    
+    document.getElementById('room-showing').textContent = allRooms.length > 0 ? `${startIndex}-${endIndex}` : '0';
+    document.getElementById('room-total').textContent = allRooms.length;
+    document.getElementById('room-current-page').textContent = currentRoomPage;
+    
+    document.getElementById('room-prev-btn').disabled = currentRoomPage === 1;
+    document.getElementById('room-next-btn').disabled = currentRoomPage >= totalPages;
+}
+
+function changeRoomPage(direction) {
+    const totalPages = Math.ceil(allRooms.length / roomsPerPage);
+    const newPage = currentRoomPage + direction;
+    if (newPage >= 1 && newPage <= totalPages) {
+        displayRoomPage(newPage);
+    }
+}
+
+function applyFilters() {
+    const program = document.getElementById('filter-program').value;
+    const params = new URLSearchParams();
+    if (program) params.append('program', program);
+    params.append('include', 'counts,rooms');
+    
+    fetch('/reports/api/filtered-data?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            // Update Room Detail Chart with current tab
+            const chartData = getRoomChartData(data.stats.room_utilizations, currentRoomTab);
+            roomDetailChart.data.labels = chartData.labels;
+            roomDetailChart.data.datasets = chartData.datasets;
+            roomDetailChart.options.scales.x.stacked = chartData.stacked;
+            roomDetailChart.options.scales.y.stacked = chartData.stacked;
+            roomDetailChart.options.plugins.legend.display = currentRoomTab === 'all';
+            roomDetailChart.update();
+            
+            // Update Room Status Chart
+            const roomsInUse = data.stats.room_utilizations.filter(r => r.total_usage > 0).length;
+            const roomsAvailable = data.stats.room_utilizations.length - roomsInUse;
+            roomStatusChart.data.datasets[0].data = [roomsInUse, roomsAvailable];
+            roomStatusChart.update();
+            
+            // Update table
+            allRooms = data.stats.room_utilizations;
+            displayRoomPage(1);
+            
+            // Update summary cards
+            const s = data.stats;
+            const totalEl = document.getElementById('stat-total-rooms');
+            if (totalEl) totalEl.textContent = s.total_rooms || 0;
+            const inUseEl = document.getElementById('stat-rooms-in-use');
+            if (inUseEl) inUseEl.textContent = s.rooms_in_use || 0;
+            const unusedEl = document.getElementById('stat-unused-rooms');
+            if (unusedEl) unusedEl.textContent = s.unused_rooms_count || 0;
+            const avgEl = document.getElementById('stat-avg-room-util');
+            if (avgEl) avgEl.textContent = (s.avg_room_utilization || 0) + '%';
+            const maxHoursEl = document.getElementById('stat-max-hours-label');
+            if (maxHoursEl) maxHoursEl.textContent = `hours-based (${s.max_weekly_hours || 0}h/week max)`;
+
+            roomAvailability = s.room_availability || [];
+            refreshRoomAvailabilityBuildingFilter();
+            closeRoomAvailabilityModal();
+            applyAvailabilityTabStyles();
+            renderActiveRoomAvailability();
+        })
+        .catch(error => console.error('Error fetching filtered data:', error));
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key !== 'Escape') return;
+    const modal = document.getElementById('room-availability-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        closeRoomAvailabilityModal();
+    }
+});
+</script>
+{% endblock %}

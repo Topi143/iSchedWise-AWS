@@ -1,54 +1,82 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Program Management - iSchedWise{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Custom Scrollbar - Consistent with settings */
+    /* ========================================
+       PROGRAMS DESIGN SYSTEM
+       Fixed-Viewport Application Layout
+    - App fits 100vw x 100vh
+       - No body scrolling
+       - Content area scrolls independently
+       ======================================== */
+    
+    /* Custom Scrollbar - Matches Sidebar */
     .overflow-y-auto::-webkit-scrollbar {
-        width: 5px;
+        width: 4px;
     }
     .overflow-y-auto::-webkit-scrollbar-track {
         background: transparent;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 3px;
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
+        background: rgba(148, 163, 184, 0.6);
+    }
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.5);
+    }
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.7);
     }
     
-    /* Card Styles - Consistent with building and faculty */
-    .department-card {
+    /* Card Styles - Matches Faculty Page */
+    .program-card {
         background: white;
         border: 1px solid #e5e7eb;
-        border-radius: 0.75rem;
-        transition: all 0.2s ease;
+        border-radius: 0.5rem;
+        transition: all 0.15s ease;
+    }
+    .dark .program-card {
+        background: #1f2937;
+        border-color: #374151;
     }
     
-    .department-card:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* Program List Item Styles - Matches Faculty Page */
+    .program-list-item {
+        transition: all 0.15s ease;
+        position: relative;
+        border-left: 2px solid transparent;
     }
     
-    /* Department List Item Styles */
-    .department-list-item {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    .program-list-item:hover {
+        background: #f9fafb;
+    }
+    .dark .program-list-item:hover {
+        background: #374151;
     }
     
-    .department-list-item:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%);
-        transform: translateX(2px);
+    .program-list-item.selected {
+        background: #eff6ff;
+        border-left: 2px solid #2563eb;
+    }
+    .dark .program-list-item.selected {
+        background: rgba(37, 99, 235, 0.15);
     }
     
-    .department-list-item.selected {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
-        border-left: 3px solid #3b82f6;
-        border-bottom: none;
+    .program-list-item.selected:hover {
+        background: #dbeafe;
+    }
+    .dark .program-list-item.selected:hover {
+        background: rgba(37, 99, 235, 0.25);
     }
     
-    .department-list-item.selected:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%);
+    /* Section List Item Styles */
+    .section-list-item {
+        transition: all 0.15s ease;
     }
     
     /* Responsive Layout - Master-Detail Pattern */
@@ -62,16 +90,19 @@
         display: none;
     }
     
-    @media (max-width: 768px) {
-        /* Mobile: Show master panel by default, hide detail panel */
+    /* Mobile & Tablet: Combined responsive layout (up to 1023px) */
+    @media (max-width: 1023px) {
+        /* Show master panel by default, hide detail panel */
         .master-panel {
             display: flex !important;
             width: 100% !important;
-            max-height: none !important;
+            height: 100% !important;
+            max-height: 100% !important;
         }
         
         .detail-panel {
             display: none !important;
+            height: 100% !important;
         }
         
         /* When mobile-detail-view is active, swap visibility */
@@ -82,23 +113,45 @@
         .mobile-detail-view .detail-panel {
             display: flex !important;
             width: 100% !important;
+            height: 100% !important;
         }
         
-        /* Show back button on mobile detail view */
+        /* Show back button on mobile/tablet detail view */
         .mobile-back-btn {
             display: flex !important;
+        }
+        
+        /* Ensure panels fill the container */
+        #program-container {
+            height: 100% !important;
+        }
+
+        .detail-header-wrap {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .detail-header-actions {
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .detail-action-btn,
+        .section-action-btn {
+            min-width: 2rem;
+            min-height: 2rem;
         }
     }
     
     /* Desktop: Hide back button */
-    @media (min-width: 769px) {
+    @media (min-width: 1024px) {
         .mobile-back-btn {
             display: none !important;
         }
     }
     
-    /* Tablet optimizations */
-    @media (max-width: 768px) {
+    /* Tablet & Mobile Modal optimizations */
+    @media (max-width: 1023px) {
         /* Ensure modals are full-screen on mobile */
         #addDepartmentModal > div,
         #editDepartmentModal > div,
@@ -116,38 +169,112 @@
             width: 2.5rem !important;
             height: 2.5rem !important;
         }
+
+        .toast-container {
+            left: 0.5rem;
+            right: 0.5rem;
+            max-width: calc(100vw - 1rem);
+        }
+
+        .toast {
+            min-width: 0;
+            width: 100%;
+            max-width: 100%;
+        }
         
-        /* Compact department list items */
-        .department-list-item {
+        /* Compact program list items */
+        .program-list-item {
             padding: 0.75rem !important;
         }
         
-        /* Full-width buttons in modals */
-        #addDepartmentModal button[type="submit"],
-        #editDepartmentModal button[type="submit"],
-        #addSectionModal button[type="submit"],
-        #editSectionModal button[type="submit"] {
+        /* Full-width stacked modal actions */
+        .modal-actions {
+            flex-direction: column-reverse;
+            align-items: stretch;
+        }
+
+        .modal-actions button {
             width: 100%;
+        }
+
+        .detail-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .detail-header-wrap {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .detail-header-actions .action-label {
+            display: none;
+        }
+
+        .detail-header-actions .detail-action-btn {
+            min-width: 2.25rem;
+            min-height: 2.25rem;
+            padding: 0.4rem;
+        }
+
+        .section-action-btn {
+            min-width: 2.25rem;
+            min-height: 2.25rem;
+            padding: 0.45rem;
         }
     }
     
     /* Disable hover effects on touch devices */
     @media (hover: none) {
-        .department-list-item:hover {
+        .program-list-item:hover {
             background: inherit;
             transform: none;
         }
         
-        .department-list-item.selected:hover {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
-            transform: none;
+        .program-list-item.selected:hover {
+            background: #eff6ff;
+        }
+        .dark .program-list-item:hover {
+            background: inherit;
+        }
+        .dark .program-list-item.selected:hover {
+            background: rgba(37, 99, 235, 0.15);
         }
         
         .subject-row:hover {
             background: inherit;
             transform: none;
-            border-color: #e5e7eb;
         }
+        
+        .program-card:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-primary:hover {
+            transform: none;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+        }
+    }
+    
+    /* Year Level Checkbox Option Styles */
+    .year-level-option {
+        transition: all 0.15s ease;
+    }
+    
+    .year-level-option:has(input:checked) {
+        background: #f0fdf4;
+        border-color: #86efac;
+    }
+    .dark .year-level-option:has(input:checked) {
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.4);
+    }
+    
+    .year-level-option input[type="checkbox"] {
+        cursor: pointer;
     }
     
     /* Year Level & Semester Badges */
@@ -155,20 +282,29 @@
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
         border: 1px solid rgba(59, 130, 246, 0.2);
     }
+    .dark .year-badge {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
     
     .semester-badge {
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
         border: 1px solid rgba(16, 185, 129, 0.2);
     }
+    .dark .semester-badge {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
     
     .subject-row {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.15s ease;
     }
     
     .subject-row:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(37, 99, 235, 0.02) 100%);
-        transform: translateX(2px);
-        border-color: #3b82f6;
+        background: #f9fafb;
+    }
+    .dark .subject-row:hover {
+        background: #374151;
     }
     
     .accordion-toggle {
@@ -186,18 +322,17 @@
         max-height: 2000px;
     }
     
-    /* Button Styles - Consistent with base */
+    /* Button Primary */
     .btn-primary {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        transition: all 0.2s ease;
+        background: #2563eb;
+        transition: all 0.15s ease;
     }
     
     .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        background: #1d4ed8;
     }
     
-    /* Toast Notifications */
+    /* Toast Notifications - Enhanced design */
     .toast-container {
         position: fixed;
         top: 1rem;
@@ -206,37 +341,39 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        max-width: 400px;
+        max-width: 90vw;
+        pointer-events: none;
     }
     
     .toast {
         display: flex;
         align-items: center;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
-        transform: translateX(400px);
-        animation: slideIn 0.3s ease forwards;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        animation: slideIn 0.4s ease both;
         min-width: 250px;
         max-width: 400px;
+        pointer-events: auto;
+    }
+    .dark .toast {
+        background: #1f2937;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     }
     
     .toast.removing {
-        animation: slideOut 0.3s ease forwards;
+        animation: slideOut 0.3s ease both;
     }
     
     @keyframes slideIn {
-        to {
-            transform: translateX(0);
-        }
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
     
     @keyframes slideOut {
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(120%); opacity: 0; }
     }
     
     .toast-success {
@@ -253,6 +390,11 @@
     
     .toast-info {
         border-left: 4px solid #3b82f6;
+    }
+    
+    /* Toast text in dark mode */
+    .dark .toast p {
+        color: #e5e7eb;
     }
     
     /* Modal animations */
@@ -277,7 +419,8 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 
-<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
+<!-- Fixed-Viewport Application Layout -->
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
     <div class="w-full flex flex-col h-full overflow-hidden">
         <!-- Flash Messages (Hidden - converted to toasts) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -290,73 +433,71 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Page Header -->
+        <!-- Page Header - Fixed -->
         <div class="mb-2 sm:mb-3 flex-shrink-0">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-lg sm:text-xl font-bold text-gray-900">Program Management</h1>
-                        <p class="text-xs sm:text-sm text-gray-600">Manage programs and sections</p>
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Programs & Sections</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Manage programs and sections</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Two-Panel Layout: Department List + Detail View -->
-        <div id="department-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 sm:gap-3">
-            {% if departments %}
-            <!-- Master Panel: Department List -->
-            <div class="master-panel department-list-panel w-full lg:w-80 flex-shrink-0 department-card overflow-hidden flex flex-col left-sidebar">
-                <div class="bg-white p-3 sm:p-4 flex-shrink-0 border-b border-gray-200">
-                    <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center mb-3">
-                        <div class="mr-2 sm:mr-3 h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Two-Panel Layout: Program List + Detail View -->
+        <div id="program-container" class="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 sm:gap-3">
+            {% if programs %}
+            <!-- Master Panel: Program List -->
+            <div class="master-panel program-list-panel w-full lg:w-72 xl:w-80 flex-shrink-0 program-card overflow-hidden flex flex-col left-sidebar">
+                <!-- Panel Header with Page Title -->
+                <div class="bg-white dark:bg-gray-800 px-3 py-3 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <span class="text-sm sm:text-base">Programs</span>
-                        <span id="department-count-badge" class="ml-auto px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">{{ departments|length }}</span>
-                    </h3>
-                    {% if current_user.is_admin %}
-                    <button onclick="openAddDepartmentModal()" class="btn-primary w-full inline-flex items-center justify-center px-3 py-2 text-white font-semibold rounded-lg shadow-md text-xs sm:text-sm transition-all min-h-[44px]">
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Add Program
-                    </button>
-                    {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <h1 class="text-sm font-semibold text-gray-900 dark:text-white">Programs</h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Manage programs & sections</p>
+                        </div>
+                        {% if current_user.is_admin %}
+                        <button onclick="openAddDepartmentModal()" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Add
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Total</span>
+                            <span id="program-count-badge" class="px-1.5 py-0.5 text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">{{ programs|length }}</span>
+                        </div>
+                    </div>
                 </div>
                 
-                <!-- Department List -->
+                <!-- Program List -->
                 <div class="flex-1 overflow-y-auto" id="departmentList">
-                    {% for department in departments %}
-                    <div class="department-list-item border-b border-gray-100 transition-all duration-200 cursor-pointer {% if selected_department and department.id == selected_department.id %}selected{% endif %}" 
-                         onclick="selectDepartment({{ department.id }}, '{{ department.department_code }}')">
-                        <div class="p-3 sm:p-4">
-                            <div class="flex items-start justify-between mb-2">
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-xs sm:text-sm font-bold text-gray-900 truncate">{{ department.department_code }}</h4>
-                                    <p class="text-xs sm:text-sm text-gray-600 truncate mt-0.5">{{ department.department_name }}</p>
-                                </div>
+                    {% for program in programs %}
+                    <div class="program-list-item border-b border-gray-100 dark:border-gray-700 cursor-pointer {% if selected_department and program.id == selected_department.id %}selected{% endif %}" 
+                         data-program-id="{{ program.id }}"
+                         onclick="selectDepartment({{ program.id }}, '{{ program.program_code }}')">
+                        <div class="px-3 py-3">
+                            <div class="flex-1 min-w-0 mb-1.5">
+                                <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ program.display_code_with_shared }}</h4>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ program.program_name }}</p>
                             </div>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-xs text-gray-500">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                    </svg>
-                                    {{ department.sections|length }} {{ 'Section' if department.sections|length == 1 else 'Sections' }}
-                                </span>
-                                <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                    </svg>
-                                    {{ department.curricula|length }} {{ 'Curriculum' if department.curricula|length == 1 else 'Curricula' }}
-                                </span>
+                            <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                <span>{{ program.sections|length }} {{ 'section' if program.sections|length == 1 else 'sections' }}</span>
+                                <span>{{ program.curricula|length }} curriculum</span>
                             </div>
                         </div>
                     </div>
@@ -364,118 +505,163 @@
                 </div>
             </div>
 
-            <!-- Detail Panel: Department Detail View -->
-            <div class="detail-panel department-detail-panel flex-1 department-card overflow-hidden flex flex-col" id="departmentDetailPanel">
+            <!-- Detail Panel: Program Detail View -->
+            <div class="detail-panel program-detail-panel flex-1 program-card overflow-hidden flex flex-col" id="departmentDetailPanel">
                 <!-- Mobile Back Button -->
-                <button onclick="closeMobileDepartmentView()" class="mobile-back-btn w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm flex items-center gap-2 border-b border-blue-200 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="closeMobileDepartmentView()" class="mobile-back-btn w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1.5 border-b border-gray-200 dark:border-gray-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
-                    <span>Back to Programs</span>
+                    <span>Back to list</span>
                 </button>
                 
                 {% if selected_department %}
                 {% set display_department = selected_department %}
-                <div class="bg-white p-2 sm:p-3 flex-shrink-0 border-b border-gray-200">
-                    <div class="flex items-center justify-between gap-2">
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-sm sm:text-base font-bold text-gray-900 truncate" id="detailDepartmentCode">{{ display_department.department_code }}</h3>
-                            <p class="text-xs sm:text-sm text-gray-600" id="detailDepartmentName">{{ display_department.department_name }}</p>
+                <!-- Header -->
+                <div class="px-4 py-3 flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div class="detail-header-wrap flex items-center gap-3">
+                        <!-- Program Badge -->
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold text-blue-600 dark:text-blue-400" id="detailDepartmentInitial">{{ display_department.program_code[:2] }}</span>
                         </div>
-                        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                            <button onclick="openAddSectionModal({{ display_department.id }})" class="p-1.5 sm:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Add Section">
-                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate" id="detailDepartmentCode">{{ display_department.display_code_with_shared }}</h3>
+                                {% if display_department.shared_program_code and display_department.shared_until_year %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                    Shared with {{ display_department.shared_program_code }} (Y1-{{ display_department.shared_until_year }})
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate" id="detailDepartmentName">{{ display_department.program_name }}</p>
+                            {% if display_department.department %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                <span class="inline-flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                                    </svg>
+                                    {{ display_department.department.department_name }}
+                                </span>
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="detail-header-actions flex items-center gap-1.5 flex-shrink-0">
+                            <button onclick="openAddSectionModal({{ display_department.id }})" class="detail-action-btn inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Add Section" aria-label="Add Section">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
+                                <span class="action-label">Add</span>
                             </button>
                             {% if current_user.is_admin %}
-                            <button onclick="editDepartment({{ display_department.id }}, '{{ display_department.department_code }}', '{{ display_department.department_name }}')" class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit Program">
-                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="editDepartment({{ display_department.id }}, '{{ display_department.program_code }}', '{{ display_department.program_name|replace("'", "\\'") }}', {{ display_department.year_levels or 4 }}, '{{ display_department.shared_program_code or "" }}', '{{ display_department.shared_until_year or "" }}', '{{ display_department.department_id or "" }}')"  class="detail-action-btn inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Edit Program" aria-label="Edit Program">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
+                                <span class="action-label">Edit</span>
                             </button>
-                            <button onclick="archiveDepartment({{ display_department.id }}, '{{ display_department.department_code }}')" class="p-1.5 sm:p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Archive Program">
-                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onclick="archiveDepartment({{ display_department.id }}, '{{ display_department.program_code }}')" class="detail-action-btn inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors" title="Archive Program" aria-label="Archive Program">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                                 </svg>
+                                <span class="action-label">Archive</span>
                             </button>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- Department Content -->
-                <div class="flex-1 overflow-y-auto p-3 sm:p-4" id="departmentContent">
+                <!-- Program Content -->
+                <!-- Section Batch Toolbar -->
+                <div id="sectionBatchToolbar" style="display:none" class="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-800 flex-shrink-0">
+                    <input type="checkbox" id="sectionBatchSelectAll" onchange="BatchSelect.selectAll('section', this.checked)" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-red-600 focus:ring-red-500 cursor-pointer">
+                    <span id="sectionBatchCount" class="text-xs font-medium text-red-700 dark:text-red-300">0 selected</span>
+                    <div class="flex-1"></div>
+                    <button id="sectionBatchToolbarDeleteBtn" onclick="BatchSelect.execute('section', 'delete')" disabled class="px-2.5 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors">Delete</button>
+                    <button onclick="BatchSelect.exit('section')" class="px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+                </div>
+                <div class="flex-1 overflow-y-auto" id="departmentContent">
                     <!-- Sections List -->
                     {% if display_department.sections %}
-                    <div class="space-y-2">
+                    <div class="divide-y divide-gray-100 dark:divide-gray-700">
                         {% for section in display_department.sections|sort(attribute='year_level') %}
-                        <div class="subject-row bg-white rounded-lg p-2.5 sm:p-3 border border-gray-200 hover:border-blue-300 transition-all">
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                <div class="flex items-center space-x-2 sm:space-x-3 flex-1 w-full sm:w-auto">
-                                    <div class="bg-blue-100 rounded-lg p-1.5 sm:p-2 flex-shrink-0">
-                                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs sm:text-sm font-semibold text-gray-900 truncate">{{ display_department.department_code }}-{{ section.year_level }}{{ section.section_name }}</h4>
-                                        <p class="text-xs text-gray-600">Year {{ section.year_level }}</p>
-                                    </div>
-                                    <span class="px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold rounded-full {{ 'bg-green-100 text-green-700' if section.is_active else 'bg-gray-100 text-gray-600' }} flex-shrink-0">
-                                        {{ 'Active' if section.is_active else 'Inactive' }}
-                                    </span>
+                        <div class="section-list-item flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-section-id="{{ section.id }}">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ section.full_section_name }}</h4>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Year {{ section.year_level }}</p>
                                 </div>
-                                <div class="flex items-center gap-1 flex-shrink-0 self-end sm:self-center">
-                                    <button onclick="editSection({{ section.id }}, '{{ section.section_name }}', {{ section.year_level }}, {{ display_department.id }})" class="p-1.5 hover:bg-blue-100 rounded-md transition-colors" title="Edit Section">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
-                                    <button onclick="deleteSection({{ section.id }}, '{{ section.section_name }}', {{ display_department.id }})" class="p-1.5 hover:bg-red-100 rounded-md transition-colors" title="Delete Section">
-                                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 flex-shrink-0 ml-3">
+                                <button onclick="deleteSection({{ section.id }}, '{{ section.section_name }}', {{ display_department.id }})" class="section-action-btn p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors" title="Delete Section" aria-label="Delete Section">
+                                    <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
                     <div class="h-full flex items-center justify-center">
-                        <div class="text-center px-4">
-                            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
+                        <div class="text-center px-6 max-w-xs">
+                            <div class="relative mx-auto mb-5 w-20 h-20">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-20 h-20 rounded-full bg-blue-50 dark:bg-blue-900/20"></div>
+                                </div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                        <svg class="w-7 h-7 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
-                            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Sections Yet</h3>
-                            <p class="text-xs sm:text-sm text-gray-500">This department doesn't have any sections yet</p>
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2">No Sections Yet</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Add sections to organize students by year level in this program</p>
                         </div>
                     </div>
                     {% endif %}
                 </div>
                 {% else %}
-                <!-- Empty State when no program is selected -->
-                <div class="bg-white border-b border-gray-200 p-2 sm:p-3 flex-shrink-0">
-                    <div class="flex items-center justify-between gap-2">
+                <!-- Header -->
+                <div class="px-4 py-3 flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-sm sm:text-base font-bold text-gray-900">Program Details</h3>
-                            <p class="text-xs sm:text-sm text-gray-600">Select a program to view sections</p>
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">Select Program</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Choose from the list</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="h-full flex items-center justify-center bg-gray-50 p-4">
-                    <div class="text-center px-4">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
+                <!-- Content Area -->
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div class="h-full flex items-center justify-center">
+                        <div class="text-center px-6 max-w-xs">
+                            <div class="relative mx-auto mb-5 w-20 h-20">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-20 h-20 rounded-full bg-blue-50 dark:bg-blue-900/20"></div>
+                                </div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                        <svg class="w-7 h-7 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2">Select a Program</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Choose a program from the list to view and manage its sections</p>
                         </div>
-                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Program Selected</h3>
-                        <p class="text-xs sm:text-sm text-gray-500">Select a program to view details</p>
                     </div>
                 </div>
                 {% endif %}
@@ -483,29 +669,42 @@
             {% else %}
             <!-- Empty State: No Programs -->
             <!-- Left Panel: Empty List -->
-            <div class="department-list-panel w-full lg:w-80 flex-shrink-0 department-card overflow-hidden flex flex-col">
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
-                    <h3 class="text-base font-bold text-gray-900 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                        </svg>
-                        Programs
-                        <span class="ml-auto px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">0</span>
-                    </h3>
-                </div>
-                
-                <div class="h-full flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center">
-                        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="program-list-panel w-full lg:w-80 flex-shrink-0 program-card overflow-hidden flex flex-col">
+                <!-- Panel Header with Page Title -->
+                <div class="bg-white dark:bg-gray-800 px-3 py-3 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4">No programs yet</p>
+                        <div class="flex-1 min-w-0">
+                            <h1 class="text-sm font-semibold text-gray-900 dark:text-white">Programs</h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Manage programs & sections</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="h-full flex items-center justify-center p-4 sm:p-6">
+                    <div class="text-center px-4">
+                        <div class="relative mx-auto mb-4 w-16 h-16">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700"></div>
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No programs yet</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">Add your first program</p>
                         {% if current_user.is_admin %}
-                        <button onclick="openAddDepartmentModal()" class="btn-primary inline-flex items-center px-4 py-2 text-white font-medium rounded-lg shadow-md transition-all text-xs min-h-[44px]">
-                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        <button onclick="openAddDepartmentModal()" class="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm">
+                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>
                             Add Program
                         </button>
@@ -515,33 +714,80 @@
             </div>
 
             <!-- Right Panel: Getting Started -->
-            <div class="flex-1 department-card overflow-hidden flex flex-col">
-                <div class="bg-white p-4 flex-shrink-0 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900">Getting Started</h3>
-                            <p class="text-sm text-gray-600">Add your first department to begin</p>
+            <div class="flex-1 program-card overflow-hidden flex flex-col">
+                <div class="flex-1 flex items-center justify-center p-6 sm:p-8">
+                    <div class="text-center max-w-md">
+                        <!-- Illustration -->
+                        <div class="relative mx-auto mb-8">
+                            <div class="flex items-center justify-center gap-3">
+                                <!-- Left building silhouette -->
+                                <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center opacity-60">
+                                    <svg class="w-7 h-7 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+                                    </svg>
+                                </div>
+                                <!-- Center building (main) -->
+                                <div class="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-lg relative z-10">
+                                    <svg class="w-10 h-10 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                                <!-- Right building silhouette -->
+                                <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center opacity-60">
+                                    <svg class="w-7 h-7 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="flex-1 flex items-center justify-center p-8 bg-gray-50">
-                    <div class="text-center max-w-md px-8">
-                        <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-3">No Programs Yet</h3>
-                        <p class="text-sm text-gray-600 mb-8 leading-relaxed">Get started by creating your first program. Programs organize your academic courses and sections.</p>
                         
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3">Set Up Your Programs</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+                            Get started by creating academic programs. You'll be able to add sections, assign curriculum, and organize students.
+                        </p>
+                        
+                        <!-- Action Button -->
                         {% if current_user.is_admin %}
-                        <button onclick="openAddDepartmentModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all hover:shadow-md text-sm">
+                        <button onclick="openAddDepartmentModal()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>
-                            Create First Program
+                            Add First Program
                         </button>
                         {% endif %}
+                        
+                        <!-- Feature hints -->
+                        <div class="mt-10 pt-6 border-t border-gray-100 dark:border-gray-700">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                                <div class="text-center">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Sections</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Organize students</p>
+                                </div>
+                                <div class="text-center">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Curriculum</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Assign courses</p>
+                                </div>
+                                <div class="text-center">
+                                    <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300">Schedules</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Manage classes</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -551,58 +797,151 @@
 </div>
 
 <!-- Add Program Modal -->
-<div id="addDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
-        <div class="bg-white border-b border-gray-200 p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl sticky top-0 z-10">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Add New Program</h3>
-                </div>
-                <button onclick="closeAddDepartmentModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<div id="addDepartmentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-100 dark:border-gray-700 max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
-                </button>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Add New Program</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Create a new academic program</p>
+                </div>
             </div>
+            <button onclick="closeAddDepartmentModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
         
-        <form id="addDepartmentForm" method="POST" action="{{ url_for('department.add') }}" class="p-3 sm:p-4">
+        <form id="addDepartmentForm" method="POST" action="{{ url_for('program.add') }}" class="p-5 overflow-y-auto flex-1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <div class="space-y-3">
-                <div>
-                    <label for="department_code" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Program Code <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="department_code" name="department_code" required
-                        placeholder="e.g., BSCS, BSHM, BSIT"
-                        maxlength="20"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors uppercase">
-                </div>
+                <!-- Basic Information Section (always open) -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Basic Information</span>
+                    </div>
+                    
+                    <div>
+                        <label for="program_code" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Program Code <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="program_code" name="program_code" required
+                                placeholder="e.g., BSCS, BSHM, BSIT"
+                                maxlength="20"
+                                oninput="validateAddDeptCode(this)"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase pr-8">
+                            <!-- Validation indicator -->
+                            <div id="add_code_status" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden">
+                                <svg id="add_code_ok" class="w-4 h-4 text-green-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <svg id="add_code_err" class="w-4 h-4 text-red-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <svg id="add_code_loading" class="w-4 h-4 text-gray-400 animate-spin hidden" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            </div>
+                        </div>
+                        <p id="add_code_msg" class="mt-1 text-xs text-gray-500 dark:text-gray-400"></p>
+                    </div>
 
+                    <div>
+                        <label for="program_name" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Program Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="program_name" name="program_name" required
+                            placeholder="e.g., Bachelor of Science in Computer Science"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    </div>
+                    
+                    <!-- Year Levels -->
+                    <div>
+                        <label for="year_levels" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Year Levels <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="year_levels" name="year_levels" required
+                            value="4" min="1" max="10"
+                            oninput="updateSharedUntilYearOptions('add')"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Number of year levels in this program (1-10)</p>
+                    </div>
+                </div>
+                
+                <!-- Department Assignment (for exports) -->
                 <div>
-                    <label for="department_name" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Program Name <span class="text-red-500">*</span>
+                    <label for="add_department_id" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Department <span class="text-xs text-gray-400 dark:text-gray-500 font-normal">- for exports</span>
                     </label>
-                    <input type="text" id="department_name" name="department_name" required
-                        placeholder="e.g., Computer Science"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    <select id="add_department_id" name="department_id"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors">
+                        <option value="">-- No department assigned --</option>
+                        {% for department in departments %}
+                        <option value="{{ department.id }}">{{ department.department_name }}{% if department.department_code %} ({{ department.department_code }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Department name & secretary appear in schedule exports. <a href="{{ url_for('settings.index') }}" class="text-emerald-600 hover:underline">Manage departments in Settings</a></p>
+                </div>
+                
+                <!-- Shared Program Settings (collapsible) -->
+                <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <button type="button" onclick="toggleSection('add_shared')" 
+                        class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            </svg>
+                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Shared Program</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">- optional</span>
+                        </div>
+                        <svg id="add_shared_chevron" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div id="add_shared_content" class="hidden px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">If this program shares students with another program for certain year levels</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="shared_program_code" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Shared With
+                                </label>
+                                <input type="text" id="shared_program_code" name="shared_program_code"
+                                    placeholder="e.g., ACT"
+                                    maxlength="20"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors uppercase">
+                            </div>
+                            <div>
+                                <label for="shared_until_year" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Until Year Level
+                                </label>
+                                <select id="shared_until_year" name="shared_until_year"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors">
+                                    <option value="">Not shared</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sticky bottom-0 bg-white p-3 sm:p-0 -mx-3 sm:mx-0 -mb-3 sm:mb-0 border-t sm:border-t-0 border-gray-200">
+            <div class="modal-actions mt-5 flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeAddDepartmentModal()"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Cancel
                 </button>
-                <button type="submit"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md">
-                    Add Program
+                <button type="submit" id="add_submit_btn"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Program
+                    </span>
                 </button>
             </div>
         </form>
@@ -610,57 +949,150 @@
 </div>
 
 <!-- Edit Program Modal -->
-<div id="editDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
-        <div class="bg-white border-b border-gray-200 p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl sticky top-0 z-10">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Edit Program</h3>
-                </div>
-                <button onclick="closeEditDepartmentModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<div id="editDepartmentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-100 dark:border-gray-700 max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
-                </button>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Edit Program</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Update program details and branding</p>
+                </div>
             </div>
+            <button onclick="closeEditDepartmentModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
         
-        <form id="editDepartmentForm" method="POST" action="{{ url_for('department.edit') }}" class="p-3 sm:p-4">
+        <form id="editDepartmentForm" method="POST" action="{{ url_for('program.edit') }}" class="p-5 overflow-y-auto flex-1">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" id="edit_department_id" name="department_id">
+            <input type="hidden" id="edit_program_id" name="program_id">
             
             <div class="space-y-3">
-                <div>
-                    <label for="edit_department_code" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Program Code <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="edit_department_code" name="department_code" required
-                        maxlength="20"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors uppercase">
-                </div>
+                <!-- Basic Information Section (always open) -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Basic Information</span>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_department_code" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Program Code <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="edit_department_code" name="program_code" required
+                                maxlength="20"
+                                oninput="validateEditDeptCode(this)"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase pr-8">
+                            <div id="edit_code_status" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden">
+                                <svg id="edit_code_ok" class="w-4 h-4 text-green-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <svg id="edit_code_err" class="w-4 h-4 text-red-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <svg id="edit_code_loading" class="w-4 h-4 text-gray-400 animate-spin hidden" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            </div>
+                        </div>
+                        <p id="edit_code_msg" class="mt-1 text-xs text-gray-500 dark:text-gray-400"></p>
+                    </div>
 
+                    <div>
+                        <label for="edit_department_name" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Program Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="edit_department_name" name="program_name" required
+                            placeholder="e.g., Bachelor of Science in Computer Science"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    </div>
+                    
+                    <!-- Year Levels -->
+                    <div>
+                        <label for="edit_year_levels" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Year Levels <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="edit_year_levels" name="year_levels" required
+                            value="4" min="1" max="10"
+                            oninput="updateSharedUntilYearOptions('edit')"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Number of year levels in this program (1-10)</p>
+                    </div>
+                </div>
+                
+                <!-- Department Assignment (for exports) -->
                 <div>
-                    <label for="edit_department_name" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Program Name <span class="text-red-500">*</span>
+                    <label for="edit_department_id" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Department <span class="text-xs text-gray-400 dark:text-gray-500 font-normal">- for exports</span>
                     </label>
-                    <input type="text" id="edit_department_name" name="department_name" required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    <select id="edit_department_id" name="department_id"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors">
+                        <option value="">-- No department assigned --</option>
+                        {% for department in departments %}
+                        <option value="{{ department.id }}">{{ department.department_name }}{% if department.department_code %} ({{ department.department_code }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Department name & secretary appear in schedule exports. <a href="{{ url_for('settings.index') }}" class="text-emerald-600 hover:underline">Manage departments in Settings</a></p>
+                </div>
+                
+                <!-- Shared Program Settings (collapsible) -->
+                <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <button type="button" onclick="toggleSection('edit_shared')" 
+                        class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            </svg>
+                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Shared Program</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">- optional</span>
+                        </div>
+                        <svg id="edit_shared_chevron" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div id="edit_shared_content" class="hidden px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">If this program shares students with another program for certain year levels</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="edit_shared_program_code" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Shared With
+                                </label>
+                                <input type="text" id="edit_shared_program_code" name="shared_program_code"
+                                    placeholder="e.g., ACT"
+                                    maxlength="20"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors uppercase">
+                            </div>
+                            <div>
+                                <label for="edit_shared_until_year" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Until Year Level
+                                </label>
+                                <select id="edit_shared_until_year" name="shared_until_year"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors">
+                                    <option value="">Not shared</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sticky bottom-0 bg-white p-3 sm:p-0 -mx-3 sm:mx-0 -mb-3 sm:mb-0 border-t sm:border-t-0 border-gray-200">
+            <div class="modal-actions mt-5 flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeEditDepartmentModal()"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Cancel
                 </button>
-                <button type="submit"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md">
-                    Update Program
+                <button type="submit" id="edit_submit_btn"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Update Program
+                    </span>
                 </button>
             </div>
         </form>
@@ -668,59 +1100,96 @@
 </div>
 
 <!-- Add Section Modal -->
-<div id="addSectionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
-        <div class="bg-white p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl border-b border-gray-200 sticky top-0 z-10">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="p-1.5 sm:p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Add New Section</h3>
-                </div>
-                <button onclick="closeAddSectionModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<div id="addSectionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                </button>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Add Sections</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Create multiple sections at once</p>
+                </div>
             </div>
+            <button onclick="closeAddSectionModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
         
-        <form id="addSectionForm" method="POST" action="{{ url_for('department.add_section') }}" class="p-3 sm:p-4">
+        <form id="addSectionForm" method="POST" action="{{ url_for('program.add_section') }}" class="p-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" id="section_department_id" name="department_id">
+            <input type="hidden" id="section_department_id" name="program_id">
             
-            <div class="space-y-3">
+            <div class="space-y-4">
+                <!-- Year Levels Selection -->
                 <div>
-                    <label for="section_name" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Section Name <span class="text-red-500">*</span>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Year Levels <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="section_name" name="section_name" required
-                        placeholder="e.g., A, B, C"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 p-2.5 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors year-level-option">
+                            <input type="checkbox" name="year_levels" value="1" class="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">1st Year</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors year-level-option">
+                            <input type="checkbox" name="year_levels" value="2" class="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">2nd Year</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors year-level-option">
+                            <input type="checkbox" name="year_levels" value="3" class="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">3rd Year</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors year-level-option">
+                            <input type="checkbox" name="year_levels" value="4" class="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">4th Year</span>
+                        </label>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                        <button type="button" onclick="selectAllYears()" class="text-xs text-green-600 dark:text-green-400 hover:text-green-700 font-medium">Select All</button>
+                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                        <button type="button" onclick="clearAllYears()" class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 font-medium">Clear</button>
+                    </div>
                 </div>
 
+                <!-- Section Names -->
                 <div>
-                    <label for="year_level" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Year Level <span class="text-red-500">*</span>
+                    <label for="section_names" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Section Names <span class="text-red-500">*</span>
                     </label>
-                    <input type="number" id="year_level" name="year_level" required
-                        min="1" max="10" value="1"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
-                    <p class="mt-0.5 text-xs text-gray-500">Enter year level (1-10)</p>
+                    <input type="text" id="section_names" name="section_names" required
+                        placeholder="e.g., A, B, C"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors uppercase">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Separate multiple sections with commas</p>
+                </div>
+
+                <!-- Preview -->
+                <div id="sectionPreview" class="hidden">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Preview</label>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Sections to be created:</p>
+                        <div id="sectionPreviewList" class="flex flex-wrap gap-1.5"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sticky bottom-0 bg-white p-3 sm:p-0 -mx-3 sm:mx-0 -mb-3 sm:mb-0 border-t sm:border-t-0 border-gray-200">
+            <div class="modal-actions mt-5 flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeAddSectionModal()"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Cancel
                 </button>
                 <button type="submit"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md">
-                    Add Section
+                    class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span id="addSectionBtnText">Add Sections</span>
+                    </span>
                 </button>
             </div>
         </form>
@@ -728,108 +1197,155 @@
 </div>
 
 <!-- Edit Section Modal -->
-<div id="editSectionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full border border-gray-200">
-        <div class="bg-white p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl border-b border-gray-200 sticky top-0 z-10">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="p-1.5 sm:p-2 rounded-lg" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-base sm:text-xl font-bold text-gray-900">Edit Section</h3>
-                </div>
-                <button onclick="closeEditSectionModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<div id="editSectionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
-                </button>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Edit Section</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Update section details</p>
+                </div>
             </div>
+            <button onclick="closeEditSectionModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
         
-        <form id="editSectionForm" method="POST" action="{{ url_for('department.edit_section') }}" class="p-3 sm:p-4">
+        <form id="editSectionForm" method="POST" action="{{ url_for('program.edit_section') }}" class="p-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="edit_section_id" name="section_id">
             
             <div class="space-y-3">
                 <div>
-                    <label for="edit_section_name" class="block text-xs font-semibold text-gray-700 mb-1">
+                    <label for="edit_section_name" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Section Name <span class="text-red-500">*</span>
                     </label>
                     <input type="text" id="edit_section_name" name="section_name" required
                         placeholder="e.g., A, B, C"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
                 </div>
 
                 <div>
-                    <label for="edit_year_level" class="block text-xs font-semibold text-gray-700 mb-1">
+                    <label for="edit_year_level" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Year Level <span class="text-red-500">*</span>
                     </label>
                     <input type="number" id="edit_year_level" name="year_level" required
                         min="1" max="10"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                    <p class="mt-0.5 text-xs text-gray-500">Enter year level (1-10)</p>
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Enter year level (1-10)</p>
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sticky bottom-0 bg-white p-3 sm:p-0 -mx-3 sm:mx-0 -mb-3 sm:mb-0 border-t sm:border-t-0 border-gray-200">
+            <div class="modal-actions mt-5 flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeEditSectionModal()"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Cancel
                 </button>
                 <button type="submit"
-                    class="w-full sm:w-auto px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md">
-                    Update Section
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Update Section
+                    </span>
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Archive Department Modal -->
-<div id="archiveDepartmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
-        <div class="bg-gradient-to-r from-orange-500 to-red-600 p-6 rounded-t-2xl">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white">Archive Program</h3>
-                </div>
-                <button onclick="closeArchiveDepartmentModal()" class="text-white hover:text-gray-200 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<!-- Program Name Manager Modal -->
+<div id="deptNameManagerModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700 animate-scale-in">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Manage Program Names</h3>
+            </div>
+            <button onclick="closeDeptNameManager()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-5 space-y-4">
+            <!-- Add New Name -->
+            <div class="flex gap-2">
+                <input type="text" id="deptNameManagerInput" placeholder="e.g., Department of Computer Studies"
+                    class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();addDeptNameFromManager();}">
+                <button type="button" onclick="addDeptNameFromManager()" class="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                    Add
                 </button>
             </div>
+            <!-- Existing Names List -->
+            <div id="deptNameManagerList" class="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+                <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-3">Loading...</p>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">These names persist independently and are available in all program forms.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Program Modal -->
+<div id="archiveDepartmentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Archive Program</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Move program to archives</p>
+                </div>
+            </div>
+            <button onclick="closeArchiveDepartmentModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
         
-        <form id="archiveDepartmentForm" method="POST" action="{{ url_for('department.archive') }}" class="p-6">
+        <form id="archiveDepartmentForm" method="POST" action="{{ url_for('program.archive') }}" class="p-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" id="archive_department_id" name="department_id">
+            <input type="hidden" id="archive_department_id" name="program_id">
             
-            <div class="mb-6">
-                <p class="text-gray-700 mb-4">
-                    You are about to archive program: <span class="font-bold text-orange-600" id="archive_department_code"></span>
+            <div class="mb-5">
+                <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    You are about to archive program: <span class="font-semibold text-orange-600 dark:text-orange-400" id="archive_department_code"></span>
                 </p>
                 
-                <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded">
-                    <p class="text-sm text-orange-800 font-medium mb-2">⚠️ This will:</p>
-                    <ul class="text-sm text-orange-700 space-y-1 ml-4">
-                        <li>• Hide the program from the main list</li>
-                        <li>• Automatically archive ALL active curricula in this program</li>
-                        <li>• Move everything to the Archives page</li>
-                        <li>• Keep all data intact (sections, curricula, subjects)</li>
+                <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-3 mb-3 rounded-lg">
+                    <p class="text-xs text-orange-800 dark:text-orange-300 font-medium mb-2 flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        This will:
+                    </p>
+                    <ul class="text-xs text-orange-700 dark:text-orange-400 space-y-1 ml-5">
+                        <li>- Hide the program from the main list</li>
+                        <li>- Automatically archive ALL active curriculum</li>
+                        <li>- Move everything to the Archives page</li>
+                        <li>- Keep all data intact</li>
                     </ul>
                 </div>
                 
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                    <p class="text-sm text-blue-800">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
+                    <p class="text-xs text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         You can restore this program later from the Archives page.
@@ -837,23 +1353,28 @@
                 </div>
             </div>
             
-            <div class="mb-6">
-                <label for="archive_reason" class="block text-sm font-semibold text-gray-700 mb-2">
+            <div class="mb-4">
+                <label for="archive_reason" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Archive Reason <span class="text-red-500">*</span>
                 </label>
                 <textarea id="archive_reason" name="archive_reason" required rows="3"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
                     placeholder="Please provide a reason for archiving this program...">Program reorganization</textarea>
             </div>
             
-            <div class="flex items-center justify-end gap-3">
+            <div class="modal-actions flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeArchiveDepartmentModal()"
-                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Cancel
                 </button>
                 <button type="submit"
-                    class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all font-medium shadow-md">
-                    Archive Program
+                    class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                        Archive Program
+                    </span>
                 </button>
             </div>
         </form>
@@ -861,53 +1382,62 @@
 </div>
 
 <!-- Delete Section Modal -->
-<div id="deleteSectionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
-        <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white">Delete Section</h3>
-                </div>
-                <button onclick="closeDeleteSectionModal()" class="text-white hover:text-gray-200 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<div id="deleteSectionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
-                </button>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Delete Section</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Permanently remove section</p>
+                </div>
             </div>
+            <button onclick="closeDeleteSectionModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
         
-        <form id="deleteSectionForm" method="POST" action="{{ url_for('department.delete_section') }}" class="p-6">
+        <form id="deleteSectionForm" method="POST" action="{{ url_for('program.delete_section') }}" class="p-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="delete_section_id" name="section_id">
             
-            <div class="mb-6">
-                <p class="text-gray-700 mb-4">
-                    Are you sure you want to delete section: <span class="font-bold text-red-600" id="delete_section_name"></span>?
+            <div class="mb-5">
+                <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    Are you sure you want to delete section: <span class="font-semibold text-red-600 dark:text-red-400" id="delete_section_name"></span>?
                 </p>
                 
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                    <p class="text-sm text-red-800 font-semibold">
-                        ⚠️ This action cannot be undone!
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
+                    <p class="text-xs text-red-800 dark:text-red-300 font-medium flex items-center gap-1.5 mb-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        This action cannot be undone!
                     </p>
-                    <p class="text-sm text-red-700 mt-2">
+                    <p class="text-xs text-red-700 dark:text-red-400 ml-5">
                         This will permanently delete the section and all associated data.
                     </p>
                 </div>
             </div>
             
-            <div class="flex items-center justify-end gap-3">
+            <div class="modal-actions flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeDeleteSectionModal()"
-                    class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Cancel
                 </button>
                 <button type="submit"
-                    class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-md">
-                    Delete Section
+                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Delete Section
+                    </span>
                 </button>
             </div>
         </form>
@@ -916,39 +1446,43 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/batch_select.js') }}"></script>
 <script>
     // Toast Notification System
     function showToast(message, type = 'success') {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         
         const icons = {
-            success: `<svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            success: `<svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>`,
-            error: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            error: `<svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>`,
-            danger: `<svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            danger: `<svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>`,
-            info: `<svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            info: `<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>`
         };
         
         const colors = {
-            success: 'text-green-800',
-            error: 'text-red-800',
-            danger: 'text-red-800',
-            info: 'text-blue-800'
+            success: 'text-green-800 dark:text-green-200',
+            error: 'text-red-800 dark:text-red-200',
+            danger: 'text-red-800 dark:text-red-200',
+            info: 'text-blue-800 dark:text-blue-200'
         };
         
         toast.innerHTML = `
             ${icons[type] || icons.success}
-            <p class="${colors[type] || colors.success} font-medium flex-1">${message}</p>
-            <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600">
+            <p class="${colors[type] || colors.success} font-medium flex-1 text-sm">${message}</p>
+            <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -965,13 +1499,29 @@
         toast.classList.add('removing');
         setTimeout(() => toast.remove(), 300);
     }
+
+    const MOBILE_BREAKPOINT = 1023;
     
     // Show flash messages as toasts on page load
     document.addEventListener('DOMContentLoaded', function() {
+        // Batch select for sections (right panel)
+        BatchSelect.init({
+            entityType: 'section',
+            listContainerId: 'departmentContent',
+            itemSelector: '.section-list-item',
+            idAttribute: 'data-section-id',
+            bulkActionUrl: '/program/section/bulk-delete',
+            toggleBtnId: 'sectionBatchToggle',
+            toolbarId: 'sectionBatchToolbar',
+            countId: 'sectionBatchCount',
+            selectAllId: 'sectionBatchSelectAll',
+            entityLabel: 'section',
+            entityLabelPlural: 'sections'
+        });
+
         // Clear any invalid localStorage data
         const stored = localStorage.getItem('openDepartmentId');
         if (stored && (stored.includes('-') || isNaN(stored))) {
-            console.log('❌ Clearing invalid localStorage data:', stored);
             localStorage.removeItem('openDepartmentId');
         }
         
@@ -989,13 +1539,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const openDepartmentId = urlParams.get('open');
         
-        console.log('🔍 URL parameter "open":', openDepartmentId);
-        console.log('🔍 Full URL:', window.location.href);
-        
         if (openDepartmentId) {
             const departmentAccordion = document.getElementById('dept-' + openDepartmentId);
             if (departmentAccordion) {
-                console.log('✅ Opening department accordion:', openDepartmentId);
                 departmentAccordion.classList.add('open');
                 const toggle = departmentAccordion.previousElementSibling.querySelector('.accordion-toggle');
                 if (toggle) {
@@ -1005,15 +1551,11 @@
                 // Store in localStorage (expires after 30 seconds)
                 localStorage.setItem('openDepartmentId', openDepartmentId);
                 localStorage.setItem('openDepartmentTimestamp', Date.now().toString());
-                console.log('💾 Saved to localStorage:', openDepartmentId);
-            } else {
-                console.log('❌ Department accordion not found:', 'dept-' + openDepartmentId);
             }
             
             // Clean up URL
             const cleanUrl = window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
-            console.log('🧹 URL cleaned');
         } else {
             // Fallback to localStorage if no URL parameter (e.g., after refresh)
             const storedDepartmentId = localStorage.getItem('openDepartmentId');
@@ -1023,7 +1565,6 @@
                 const elapsed = Date.now() - parseInt(timestamp);
                 // Only restore if less than 30 seconds have passed
                 if (elapsed < 30000) {
-                    console.log('🔄 Restoring from localStorage:', storedDepartmentId);
                     const departmentAccordion = document.getElementById('dept-' + storedDepartmentId);
                     if (departmentAccordion) {
                         departmentAccordion.classList.add('open');
@@ -1031,20 +1572,18 @@
                         if (toggle) {
                             toggle.classList.add('open');
                         }
-                        console.log('✅ Department accordion restored from localStorage');
                     }
                 } else {
-                    console.log('⏱️ localStorage data expired, clearing...');
                     localStorage.removeItem('openDepartmentId');
                     localStorage.removeItem('openDepartmentTimestamp');
                 }
             }
         }
         
-        // On mobile, if a department is selected, show the detail panel
-        if (window.innerWidth <= 768) {
+        // On mobile/tablet, if a program is selected, show the detail panel
+        if (window.innerWidth <= MOBILE_BREAKPOINT) {
             const urlParams = new URLSearchParams(window.location.search);
-            const departmentId = urlParams.get('department_id');
+            const departmentId = urlParams.get('program_id');
             
             if (departmentId) {
                 handleMobileSelection();
@@ -1054,22 +1593,26 @@
 
     // Master-Detail View Switching for Mobile
     function showMasterView() {
-        const container = document.getElementById('department-container');
+        const container = document.getElementById('program-container');
         if (container) {
             container.classList.remove('mobile-detail-view');
         }
     }
     
     function showDetailView() {
-        const container = document.getElementById('department-container');
+        const container = document.getElementById('program-container');
         if (container) {
             container.classList.add('mobile-detail-view');
+            const detailPanel = container.querySelector('.detail-panel');
+            if (detailPanel) {
+                detailPanel.scrollTop = 0;
+            }
         }
     }
     
     function handleMobileSelection() {
-        // Only switch views on mobile screens
-        if (window.innerWidth <= 768) {
+        // Only switch views on mobile/tablet screens
+        if (window.innerWidth <= MOBILE_BREAKPOINT) {
             showDetailView();
         }
     }
@@ -1086,43 +1629,39 @@
             chevron.classList.toggle('open');
         }
         
-        // Save state to localStorage for department accordions
+        // Save state to localStorage for program accordions
         if (id.startsWith('dept-')) {
             const departmentId = id.replace('dept-', '');
             if (isOpening) {
                 // Only save numeric IDs, not year-X or semester-X
                 if (!departmentId.includes('-') && !isNaN(departmentId)) {
-                    console.log('💾 Saving department accordion state:', departmentId);
                     localStorage.setItem('openDepartmentId', departmentId);
                     localStorage.setItem('openDepartmentTimestamp', Date.now().toString());
                 }
             } else {
-                console.log('🗑️ Clearing department accordion state');
                 localStorage.removeItem('openDepartmentId');
                 localStorage.removeItem('openDepartmentTimestamp');
             }
         }
     }
 
-    // Select Department Function (for two-panel layout)
+    // Select Program Function (for two-panel layout)
     function selectDepartment(departmentId, departmentCode) {
-        console.log('🖱️ Department selected:', departmentId, departmentCode);
-        
         // Get current URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const currentDepartmentId = urlParams.get('department_id');
+        const currentDepartmentId = urlParams.get('program_id');
         
-        // Check if mobile view
-        if (window.innerWidth <= 768) {
-            // If this department is already selected (loaded on page), just show the detail panel
+        // Check if mobile/tablet view
+        if (window.innerWidth <= MOBILE_BREAKPOINT) {
+            // If this program is already selected (loaded on page), just show the detail panel
             if (currentDepartmentId && currentDepartmentId == departmentId) {
                 handleMobileSelection();
                 return; // Don't redirect
             }
         }
         
-        // Update URL to reflect the selected department
-        const newUrl = `{{ url_for('department.index') }}?department_id=${departmentId}`;
+        // Update URL to reflect the selected program
+        const newUrl = `{{ url_for('program.index') }}?program_id=${departmentId}`;
         window.location.href = newUrl;
     }
     
@@ -1131,24 +1670,62 @@
         showMasterView();
     }
     
+    // Deselect program and go back to list (mobile)
+    function deselectProgram() {
+        showMasterView();
+        // Navigate to programs page without program_id
+        window.location.href = '{{ url_for('program.index') }}';
+    }
+    
     // Handle window resize - ensure proper display
+    let resizeTimeout;
     window.addEventListener('resize', function() {
-        if (window.innerWidth > 768) {
-            // Desktop: Remove mobile classes
-            showMasterView();
-        }
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if (window.innerWidth > MOBILE_BREAKPOINT) {
+                // Desktop: Remove mobile/tablet classes
+                showMasterView();
+            }
+        }, 150);
     });
 
-    // Department Modals
+    // Keep layout stable on orientation changes
+    window.addEventListener('orientationchange', function() {
+        setTimeout(function() {
+            window.dispatchEvent(new Event('resize'));
+        }, 250);
+    });
+
+    // Program Modals
     function openAddDepartmentModal() {
         document.getElementById('addDepartmentModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        // Initialize shared_until_year options based on default year_levels (4)
+        updateSharedUntilYearOptions('add');
+        // Reset program name fields (if they exist)
+        const addFullDeptSelect = document.getElementById('add_full_department_name_select');
+        if (addFullDeptSelect) addFullDeptSelect.value = '';
+        const fullDeptName = document.getElementById('full_department_name');
+        if (fullDeptName) fullDeptName.value = '';
+        // Collapse optional sections
+        setSectionOpen('add_branding', false);
+        setSectionOpen('add_shared', false);
+        // Reset inline code validation
+        const addCodeStatus = document.getElementById('add_code_status');
+        if (addCodeStatus) addCodeStatus.classList.add('hidden');
+        const addCodeMsg = document.getElementById('add_code_msg');
+        if (addCodeMsg) addCodeMsg.textContent = '';
+        const addSubmitBtn = document.getElementById('add_submit_btn');
+        if (addSubmitBtn) addSubmitBtn.disabled = false;
     }
 
     function closeAddDepartmentModal() {
         document.getElementById('addDepartmentModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         document.getElementById('addDepartmentForm').reset();
+        // Collapse sections
+        setSectionOpen('add_branding', false);
+        setSectionOpen('add_shared', false);
     }
 
     function openEditDepartmentModal() {
@@ -1160,12 +1737,364 @@
         document.getElementById('editDepartmentModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         document.getElementById('editDepartmentForm').reset();
+        // Collapse sections
+        setSectionOpen('edit_branding', false);
+        setSectionOpen('edit_shared', false);
+    }
+    
+    // Toggle between select existing and add new program name (Add modal)
+    // -- REPLACED: Now uses managed Program Name list --
+    
+    // Program Name Manager
+    let _deptNameManagerContext = 'add'; // which modal opened the manager
+    
+    function openDeptNameManager(context) {
+        _deptNameManagerContext = context;
+        document.getElementById('deptNameManagerModal').classList.remove('hidden');
+        document.getElementById('deptNameManagerInput').value = '';
+        loadDeptNameManagerList();
+    }
+    
+    function closeDeptNameManager() {
+        document.getElementById('deptNameManagerModal').classList.add('hidden');
+    }
+    
+    function loadDeptNameManagerList() {
+        fetch('{{ url_for("program.get_department_names") }}')
+            .then(r => r.json())
+            .then(data => {
+                const list = document.getElementById('deptNameManagerList');
+                if (!data.names || data.names.length === 0) {
+                    list.innerHTML = '<p class="text-xs text-gray-400 text-center py-3">No program names yet. Add one above.</p>';
+                    return;
+                }
+                list.innerHTML = data.names.map(name => `
+                    <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">${name}</span>
+                        <button type="button" onclick="deleteDeptNameFromManager('${name.replace(/'/g, "\\'")}')" 
+                            class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors" title="Delete">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `).join('');
+            })
+            .catch(() => {
+                document.getElementById('deptNameManagerList').innerHTML = '<p class="text-xs text-red-400 text-center py-3">Failed to load names.</p>';
+            });
+    }
+    
+    function addDeptNameFromManager() {
+        const input = document.getElementById('deptNameManagerInput');
+        const name = input.value.trim();
+        if (!name) return;
+        
+        fetch('{{ url_for("program.add_department_name") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                input.value = '';
+                refreshDeptNameDropdowns(data.names);
+                loadDeptNameManagerList();
+            } else {
+                showToast(data.message || 'Failed to add', 'error');
+            }
+        })
+        .catch(() => showToast('Failed to add program name', 'error'));
+    }
+    
+    function deleteDeptNameFromManager(name) {
+        fetch('{{ url_for("program.delete_department_name") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                refreshDeptNameDropdowns(data.names);
+                loadDeptNameManagerList();
+            } else {
+                showToast(data.message || 'Failed to delete', 'error');
+            }
+        })
+        .catch(() => showToast('Failed to delete program name', 'error'));
+    }
+    
+    function refreshDeptNameDropdowns(names) {
+        ['add_full_department_name_select', 'edit_full_department_name_select'].forEach(id => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Select program --</option>';
+            names.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n;
+                opt.textContent = n;
+                if (n === currentVal) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        });
+    }
+    
+    // Update shared_until_year options based on year_levels selection
+    function updateSharedUntilYearOptions(mode, selectedValue = '') {
+        const yearLevelsSelect = mode === 'add' 
+            ? document.getElementById('year_levels') 
+            : document.getElementById('edit_year_levels');
+        const sharedUntilYearSelect = mode === 'add' 
+            ? document.getElementById('shared_until_year') 
+            : document.getElementById('edit_shared_until_year');
+        
+        if (!yearLevelsSelect || !sharedUntilYearSelect) return;
+        
+        const maxYear = parseInt(yearLevelsSelect.value) || 4;
+        
+        // Clear existing options except the first one
+        sharedUntilYearSelect.innerHTML = '<option value="">Not shared</option>';
+        
+        // Year level suffixes
+        const suffixes = ['st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th', 'th'];
+        
+        // Add options based on year_levels (up to maxYear, inclusive)
+        for (let i = 1; i <= maxYear; i++) {
+            const suffix = i <= 3 ? suffixes[i - 1] : 'th';
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i}${suffix} Year`;
+            if (selectedValue && parseInt(selectedValue) === i) {
+                option.selected = true;
+            }
+            sharedUntilYearSelect.appendChild(option);
+        }
     }
 
-    function editDepartment(id, code, name) {
-        document.getElementById('edit_department_id').value = id;
+    // ===== Collapsible Section Toggle =====
+    function toggleSection(sectionId) {
+        const content = document.getElementById(sectionId + '_content');
+        const chevron = document.getElementById(sectionId + '_chevron');
+        if (!content) return;
+        content.classList.toggle('hidden');
+        if (chevron) {
+            chevron.classList.toggle('rotate-180');
+        }
+    }
+
+    function setSectionOpen(sectionId, open) {
+        const content = document.getElementById(sectionId + '_content');
+        const chevron = document.getElementById(sectionId + '_chevron');
+        if (!content) return;
+        if (open) {
+            content.classList.remove('hidden');
+            if (chevron) chevron.classList.add('rotate-180');
+        } else {
+            content.classList.add('hidden');
+            if (chevron) chevron.classList.remove('rotate-180');
+        }
+    }
+
+    // ===== Program Code Smart Suggestion =====
+    const CODE_TO_DEPARTMENT = {
+        'BSCS': 'Department of Computer Studies',
+        'BSIT': 'Department of Computer Studies',
+        'BSIS': 'Department of Computer Studies',
+        'ACT': 'Department of Computer Studies',
+        'BSCE': 'Department of Engineering',
+        'BSEE': 'Department of Engineering',
+        'BSME': 'Department of Engineering',
+        'BSIE': 'Department of Engineering',
+        'BSECE': 'Department of Engineering',
+        'BSA': 'Department of Business Administration',
+        'BSBA': 'Department of Business Administration',
+        'BSMA': 'Department of Business Administration',
+        'BSN': 'Department of Nursing',
+        'BSEd': 'Department of Education',
+        'BEEd': 'Department of Education',
+        'BSED': 'Department of Education',
+        'BEED': 'Department of Education',
+        'AB': 'Department of Arts and Sciences',
+        'BS': 'Department of Arts and Sciences',
+        'BSCRIM': 'Department of Criminal Justice Education',
+        'BSCrim': 'Department of Criminal Justice Education',
+    };
+
+    function suggestDepartmentName(code, prefix) {
+        if (!code) return;
+        const upperCode = code.trim().toUpperCase();
+        const suggestion = CODE_TO_DEPARTMENT[upperCode];
+        if (!suggestion) return;
+
+        const selectEl = document.getElementById(prefix + '_full_department_name_select');
+        const hiddenEl = document.getElementById(prefix === 'add' ? 'full_department_name' : 'edit_full_department_name');
+        
+        // Check if suggestion exists in dropdown
+        for (let i = 0; i < selectEl.options.length; i++) {
+            if (selectEl.options[i].value === suggestion) {
+                // Auto-select it
+                selectEl.value = suggestion;
+                hiddenEl.value = suggestion;
+                // Auto-open branding section so user sees the suggestion
+                setSectionOpen(prefix + '_branding', true);
+                return;
+            }
+        }
+        // Not in dropdown - set hidden field directly
+        hiddenEl.value = suggestion;
+        setSectionOpen(prefix + '_branding', true);
+    }
+
+    // ===== Inline Duplicate Code Validation =====
+    let _addCodeTimer = null;
+    let _editCodeTimer = null;
+
+    function validateAddDeptCode(input) {
+        const code = input.value.trim().toUpperCase();
+        const statusEl = document.getElementById('add_code_status');
+        const okEl = document.getElementById('add_code_ok');
+        const errEl = document.getElementById('add_code_err');
+        const loadEl = document.getElementById('add_code_loading');
+        const msgEl = document.getElementById('add_code_msg');
+        const submitBtn = document.getElementById('add_submit_btn');
+
+        if (!code) {
+            statusEl.classList.add('hidden');
+            msgEl.textContent = '';
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        // Suggest department name
+        suggestDepartmentName(code, 'add');
+
+        // Show loading
+        statusEl.classList.remove('hidden');
+        okEl.classList.add('hidden');
+        errEl.classList.add('hidden');
+        loadEl.classList.remove('hidden');
+        msgEl.textContent = 'Checking...';
+        msgEl.className = 'mt-1 text-xs text-gray-400 dark:text-gray-500';
+
+        clearTimeout(_addCodeTimer);
+        _addCodeTimer = setTimeout(() => {
+            fetch('{{ url_for("program.check_code") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+                body: JSON.stringify({code: code})
+            })
+            .then(r => r.json())
+            .then(data => {
+                loadEl.classList.add('hidden');
+                if (data.exists) {
+                    errEl.classList.remove('hidden');
+                    msgEl.textContent = `"${data.code}" is already taken`;
+                    msgEl.className = 'mt-1 text-xs text-red-500';
+                    if (submitBtn) submitBtn.disabled = true;
+                } else {
+                    okEl.classList.remove('hidden');
+                    msgEl.textContent = `"${data.code}" is available`;
+                    msgEl.className = 'mt-1 text-xs text-green-500';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            })
+            .catch(() => {
+                loadEl.classList.add('hidden');
+                statusEl.classList.add('hidden');
+                msgEl.textContent = '';
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        }, 400);
+    }
+
+    function validateEditDeptCode(input) {
+        const code = input.value.trim().toUpperCase();
+        const excludeId = document.getElementById('edit_program_id').value;
+        const statusEl = document.getElementById('edit_code_status');
+        const okEl = document.getElementById('edit_code_ok');
+        const errEl = document.getElementById('edit_code_err');
+        const loadEl = document.getElementById('edit_code_loading');
+        const msgEl = document.getElementById('edit_code_msg');
+        const submitBtn = document.getElementById('edit_submit_btn');
+
+        if (!code) {
+            statusEl.classList.add('hidden');
+            msgEl.textContent = '';
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        // Suggest department name
+        suggestDepartmentName(code, 'edit');
+
+        // Show loading
+        statusEl.classList.remove('hidden');
+        okEl.classList.add('hidden');
+        errEl.classList.add('hidden');
+        loadEl.classList.remove('hidden');
+        msgEl.textContent = 'Checking...';
+        msgEl.className = 'mt-1 text-xs text-gray-400 dark:text-gray-500';
+
+        clearTimeout(_editCodeTimer);
+        _editCodeTimer = setTimeout(() => {
+            fetch('{{ url_for("program.check_code") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+                body: JSON.stringify({code: code, exclude_id: excludeId})
+            })
+            .then(r => r.json())
+            .then(data => {
+                loadEl.classList.add('hidden');
+                if (data.exists) {
+                    errEl.classList.remove('hidden');
+                    msgEl.textContent = `"${data.code}" is already taken by another program`;
+                    msgEl.className = 'mt-1 text-xs text-red-500';
+                    if (submitBtn) submitBtn.disabled = true;
+                } else {
+                    okEl.classList.remove('hidden');
+                    msgEl.textContent = '';
+                    msgEl.className = 'mt-1 text-xs text-green-500';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            })
+            .catch(() => {
+                loadEl.classList.add('hidden');
+                statusEl.classList.add('hidden');
+                msgEl.textContent = '';
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        }, 400);
+    }
+
+    function editDepartment(id, code, name, yearLevels, sharedProgramCode, sharedUntilYear, departmentId) {
+        document.getElementById('edit_program_id').value = id;
         document.getElementById('edit_department_code').value = code;
         document.getElementById('edit_department_name').value = name;
+        document.getElementById('edit_year_levels').value = yearLevels || 4;
+        document.getElementById('edit_shared_program_code').value = sharedProgramCode || '';
+        
+        // Set department dropdown
+        var departmentSelect = document.getElementById('edit_department_id');
+        if (departmentSelect) {
+            departmentSelect.value = departmentId || '';
+        }
+        
+        // Update shared_until_year options based on year_levels, then set the value
+        updateSharedUntilYearOptions('edit', sharedUntilYear || '');
+        
+        // Auto-expand shared section if shared program code exists
+        const hasShared = !!(sharedProgramCode);
+        setSectionOpen('edit_shared', hasShared);
+        
+        // Reset inline code validation state
+        const editCodeStatus = document.getElementById('edit_code_status');
+        if (editCodeStatus) editCodeStatus.classList.add('hidden');
+        const editCodeMsg = document.getElementById('edit_code_msg');
+        if (editCodeMsg) editCodeMsg.textContent = '';
+        const editSubmitBtn = document.getElementById('edit_submit_btn');
+        if (editSubmitBtn) editSubmitBtn.disabled = false;
+        
         openEditDepartmentModal();
     }
 
@@ -1182,9 +2111,9 @@
         document.getElementById('archiveDepartmentForm').reset();
     }
 
-    // Helper function to find which department is currently open
+    // Helper function to find which program is currently open
     function getCurrentOpenDepartmentId() {
-        // Check all accordion contents to find which department is open
+        // Check all accordion contents to find which program is open
         const allAccordions = document.querySelectorAll('[id^="dept-"]');
         for (let accordion of allAccordions) {
             if (accordion.classList.contains('open')) {
@@ -1207,12 +2136,113 @@
         document.getElementById('section_department_id').value = departmentId;
         document.getElementById('addSectionModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        
+        // Reset form and preview
+        document.getElementById('addSectionForm').reset();
+        updateSectionPreview();
+        
+        // Setup event listeners for live preview
+        setupSectionPreviewListeners();
     }
 
     function closeAddSectionModal() {
         document.getElementById('addSectionModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
         document.getElementById('addSectionForm').reset();
+        document.getElementById('sectionPreview').classList.add('hidden');
+    }
+    
+    // Year level selection helpers
+    function selectAllYears() {
+        const checkboxes = document.querySelectorAll('input[name="year_levels"]');
+        checkboxes.forEach(cb => cb.checked = true);
+        updateYearLevelStyles();
+        updateSectionPreview();
+    }
+    
+    function clearAllYears() {
+        const checkboxes = document.querySelectorAll('input[name="year_levels"]');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateYearLevelStyles();
+        updateSectionPreview();
+    }
+    
+    function updateYearLevelStyles() {
+        const options = document.querySelectorAll('.year-level-option');
+        options.forEach(option => {
+            const checkbox = option.querySelector('input[type="checkbox"]');
+            if (checkbox.checked) {
+                option.classList.add('bg-green-50', 'border-green-300');
+                option.classList.remove('border-gray-200');
+            } else {
+                option.classList.remove('bg-green-50', 'border-green-300');
+                option.classList.add('border-gray-200');
+            }
+        });
+    }
+    
+    function setupSectionPreviewListeners() {
+        // Listen for year level changes
+        const yearCheckboxes = document.querySelectorAll('input[name="year_levels"]');
+        yearCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                updateYearLevelStyles();
+                updateSectionPreview();
+            });
+        });
+        
+        // Listen for section names input
+        const sectionNamesInput = document.getElementById('section_names');
+        if (sectionNamesInput) {
+            sectionNamesInput.addEventListener('input', updateSectionPreview);
+        }
+    }
+    
+    function updateSectionPreview() {
+        const yearCheckboxes = document.querySelectorAll('input[name="year_levels"]:checked');
+        const sectionNamesInput = document.getElementById('section_names');
+        const previewContainer = document.getElementById('sectionPreview');
+        const previewList = document.getElementById('sectionPreviewList');
+        const btnText = document.getElementById('addSectionBtnText');
+        
+        const years = Array.from(yearCheckboxes).map(cb => parseInt(cb.value));
+        const sections = sectionNamesInput.value.split(',')
+            .map(s => s.trim().toUpperCase())
+            .filter(s => s.length > 0);
+        
+        // Clear preview
+        previewList.innerHTML = '';
+        
+        if (years.length > 0 && sections.length > 0) {
+            previewContainer.classList.remove('hidden');
+            
+            const combinations = [];
+            years.forEach(year => {
+                sections.forEach(section => {
+                    combinations.push({ year, section });
+                });
+            });
+            
+            // Sort by year then section
+            combinations.sort((a, b) => {
+                if (a.year !== b.year) return a.year - b.year;
+                return a.section.localeCompare(b.section);
+            });
+            
+            combinations.forEach(combo => {
+                const badge = document.createElement('span');
+                badge.className = 'inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md';
+                badge.textContent = `${combo.year}${combo.section}`;
+                previewList.appendChild(badge);
+            });
+            
+            // Update button text with count
+            const count = combinations.length;
+            btnText.textContent = count === 1 ? 'Add 1 Section' : `Add ${count} Sections`;
+        } else {
+            previewContainer.classList.add('hidden');
+            btnText.textContent = 'Add Sections';
+        }
     }
 
     function openEditSectionModal() {
@@ -1251,3 +2281,4 @@
     // Outside click and Escape key closing has been disabled for better user experience
 </script>
 {% endblock %}
+

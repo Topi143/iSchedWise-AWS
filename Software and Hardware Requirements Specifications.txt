@@ -1,0 +1,387 @@
+ Software and Hardware Requirements Specifications
+
+Appendix A
+REQUIREMENTS SPECIFICATION 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I. INTRODUCTION
+
+1.1 Purpose 
+The purpose of this document is to define the software and hardware requirements for iSchedWise V4, a web-based scheduling management system designed for educational institutions. The system is being developed to streamline academic scheduling processes, including class and exam scheduling, faculty assignment, and room allocation. The intended users are institutional administrators (Admins), department heads (Deans), and system operators (Super Admins). The system addresses the need for an efficient, conflict-free scheduling tool that replaces error-prone manual scheduling methods, provides real-time conflict detection, and supports data-driven decision-making through AI-powered recommendations.
+
+1.2 Objectives 
+The specific objectives of iSchedWise V4 are as follows:
+• To automate the creation, modification, and management of class and exam schedules, reducing manual effort and human error.
+• To detect and prevent scheduling conflicts (section, faculty, and room overlaps) in real time using built-in conflict detection algorithms.
+• To manage faculty workload distribution by tracking unit assignments against configurable maximum unit limits, ensuring balanced and fair workload allocation.
+• To optimize room and building utilization by providing visibility into room usage, availability, and capacity.
+• To maintain structured curriculum and subject data organized by programs, year levels, and semesters.
+• To provide comprehensive reporting and analytics, including the Schedule Quality Index (SQI), faculty workload reports, and room utilization statistics.
+• To support data export in Excel (.xlsx) and PDF formats for official documentation and institutional reporting.
+• To offer AI-powered scheduling suggestions and conflict explanations via optional Google Gemini API integration.
+• To implement a robust archive system that preserves historical schedule data across academic years and semesters.
+• To enforce role-based access control, ensuring Deans access only their assigned programs while Admins and Super Admins maintain broader system privileges.
+
+1.3 Scope 
+This section defines the boundaries of iSchedWise V4 in terms of features, functions, and limitations. It explains what the system will and will not provide.
+
+• In Scope 
+	- Class schedule management (create, edit, delete, archive) with day-of-week and time-based scheduling
+	- Exam schedule management with exam period configuration (Prelim, Midterm, Final) and date-specific scheduling
+	- Faculty management including workload tracking, subject assignments, and availability configuration
+	- Room and building management with capacity tracking and utilization analysis
+	- Curriculum and subject management structured by programs, year levels, and semesters
+	- Program and department management with section organization
+	- Role-based access control for Super Admin, Admin, and Dean roles
+	- Conflict detection and prevention for section, faculty, and room overlaps
+	- AI-powered scheduling recommendations and conflict explanations (Google Gemini integration)
+	- Real-time multi-user coordination via WebSocket (Flask-SocketIO)
+	- Comprehensive reporting dashboard with Schedule Quality Index (SQI), workload distribution, and room utilization
+	- Excel and PDF export for schedules, faculty lineups, room schedules, and user reports
+	- Archive system with soft-delete architecture for historical data retention
+	- User authentication with password hashing, session management, and login history tracking
+	- Audit logging of all user actions with IP address and timestamp recording
+	- Academic settings management (academic year, semester, exam periods, time windows)
+	- Institution settings (name, logo) for branding
+	- Super Admin tools including maintenance mode, force logout, and system statistics
+	- Password reset via email
+
+• Out of Scope 
+	- Student enrollment and registration management
+	- Grade management and academic transcript generation
+	- Tuition and financial management
+	- Student portal or student-facing interfaces
+	- Learning management system (LMS) integration
+	- Mobile application (native iOS/Android)
+	- Multi-institution or multi-campus support within a single deployment
+	- Automated timetable generation without user input (the system provides recommendations, not fully automated scheduling)
+
+1.4 Definitions, Acronyms, and Abbreviations 
+
+Term                    Definition
+iSchedWise              Intelligent Schedule Wise — the name of the scheduling system
+SQI                     Schedule Quality Index — a composite score measuring schedule quality across three active metrics
+CRUD                    Create, Read, Update, Delete — basic data operations
+RBAC                    Role-Based Access Control — security mechanism restricting access based on user roles
+ORM                     Object-Relational Mapping — technique for querying databases using object-oriented code
+CSRF                    Cross-Site Request Forgery — a web security vulnerability prevented by token validation
+API                     Application Programming Interface — protocols for software component interaction
+WebSocket               A communication protocol for real-time, bidirectional data transfer
+Flask                   A lightweight Python web application framework
+SQLAlchemy              A Python SQL toolkit and ORM used for database interactions
+Tailwind CSS            A utility-first CSS framework for building responsive user interfaces
+Jinja2                  A template engine for Python, used for rendering HTML pages
+MySQL                   An open-source relational database management system
+PyMySQL                 A pure Python MySQL client library
+Gemini API              Google's generative AI API used for intelligent scheduling suggestions
+PDF                     Portable Document Format — used for printable report exports
+XLSX                    Microsoft Excel Open XML Spreadsheet format — used for data exports
+Admin                   Administrator — a user role with full scheduling and data management access
+Dean                    Department head — a user role with access restricted to assigned programs
+Super Admin             System operator — a user role with full system access including maintenance and configuration
+SRS                     Software Requirements Specification
+TAM                     Technology Acceptance Model
+
+1.5 References 
+• ISO 9241-210:2019 — Ergonomics of human-system interaction — Part 210: Human-centred design for interactive systems. This standard guides the user-centered design approach used in iSchedWise V4, ensuring that the interface design process involves users and addresses their needs throughout the system development lifecycle. The system's fixed-viewport application layout, responsive design, and custom UI components (toast notifications, confirmation modals) are aligned with this standard's principles of iterative design and usability evaluation.
+
+• Technology Acceptance Model (TAM) — Davis, F.D. (1989). Perceived usefulness, perceived ease of use, and user acceptance of information technology. MIS Quarterly, 13(3), 319–340. TAM provides the theoretical foundation for evaluating user adoption of iSchedWise V4. The system's design prioritizes perceived usefulness through features such as AI-powered conflict detection, automated workload tracking, and comprehensive reporting. Perceived ease of use is addressed through intuitive navigation (fixed sidebar), role-appropriate dashboards, and minimal training requirements.
+
+• ISO/IEC 25010:2011 — Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models. This standard defines the quality characteristics used to evaluate iSchedWise V4, including functional suitability (scheduling conflict detection, export features), performance efficiency (database connection pooling, eager loading), usability (responsive design, role-based interfaces), reliability (error handling, database rollback), security (password hashing, CSRF protection, RBAC), maintainability (modular blueprint architecture, service layer separation), and portability (cross-browser compatibility, configurable deployment).
+
+
+II. Software Requirements Specifications
+
+This section presents the Software Requirements Specification (SRS) of iSchedWise V4, specifically outlining its functional and non-functional requirements. These requirements define what the system must do and how the system must perform under specified conditions.
+The functional requirements describe the core features and services that iSchedWise V4 must provide. These include class and exam schedule management, faculty workload tracking, room allocation, conflict detection, AI-powered recommendations, curriculum management, reporting and analytics, data export, user authentication and authorization, archive management, and real-time multi-user coordination.
+The non-functional requirements define the quality attributes, performance standards, and operational constraints of iSchedWise V4. These include system security (password hashing, CSRF protection, role-based access), reliability (database rollback on failures, graceful AI degradation), performance (connection pooling, eager loading), and usability (responsive design, fixed-viewport layout).
+
+2.1 Functional Requirements
+The following functional requirements define the essential capabilities that iSchedWise V4 must provide:
+
+Authentication and User Management
+• The system shall allow users to log in using a username or email address with a hashed password.
+• The system shall support three user roles: Super Admin, Admin, and Dean, each with specific access privileges.
+• The system shall allow Super Admins to create, edit, archive, and force logout user accounts.
+• The system shall support temporary quick-generated user accounts (user### pattern) with 24-hour expiry and a first-login setup flow.
+• The system shall provide password reset functionality via email using secure time-limited tokens.
+• The system shall track login history including login/logout timestamps, IP addresses, and user agents.
+• The system shall allow users to update their profile information (name, email, password).
+
+Class Schedule Management
+• The system shall allow authorized users to create, edit, and delete class schedules with the following attributes: day of week, start time, end time, section, subject, faculty, and room.
+• The system shall support lecture and laboratory schedule types.
+• The system shall organize schedules by academic year and semester.
+• The system shall detect scheduling conflicts in real time for section overlaps, faculty double-booking, and room double-booking.
+• The system shall implement optimistic locking to prevent concurrent editing conflicts.
+• The system shall broadcast real-time schedule updates to connected users via WebSocket.
+
+Exam Schedule Management
+• The system shall allow authorized users to create, edit, and delete exam schedules with date-specific scheduling.
+• The system shall support exam period configuration (Prelim, Midterm, Final) with date range validation.
+• The system shall enforce configurable exam slot durations (30, 60, 90, or 120 minutes) and maximum exam duration limits.
+• The system shall configure lunch break periods for exam scheduling.
+• The system shall verify faculty availability when assigning exam proctors.
+
+Faculty Management
+• The system shall allow authorized users to create, edit, and archive faculty profiles.
+• The system shall track faculty subject assignments per academic year and semester.
+• The system shall calculate and display faculty workload as a percentage of their maximum unit limit.
+• The system shall provide configurable maximum unit limits per individual faculty and a system-wide default.
+• The system shall display workload status badges (normal, warning, exceeded).
+• The system shall allow configuration of faculty availability by day and time.
+
+Room and Building Management
+• The system shall allow authorized users to create, edit, and archive buildings and rooms.
+• The system shall track room capacity for each room.
+• The system shall link rooms to their parent buildings.
+• The system shall provide room utilization reports showing occupancy and availability.
+
+Curriculum and Subject Management
+• The system shall support curriculum creation organized by program, year level (1st through 4th year), and semester (1st, 2nd, Summer).
+• The system shall manage subjects with attributes including subject code, description, total units, lecture hours, lab hours, credit units, and prerequisites.
+• The system shall support subject templates to reduce data duplication across curricula.
+
+Program and Section Management
+• The system shall allow authorized users to create, edit, and archive academic programs linked to departments.
+• The system shall manage student sections within programs.
+• The system shall restrict Dean users to view and manage only their assigned programs.
+
+Archive System
+• The system shall implement soft-delete architecture using is_archived and is_active flags on main tables.
+• The system shall record archive metadata including archived_by, archived_at, and archive_reason.
+• The system shall automatically archive schedules when academic settings (year/semester) change.
+• The system shall support unarchiving of previously archived records.
+• The system shall allow browsing of archived data filtered by academic year, semester, and exam period.
+
+Reports and Analytics
+• The system shall provide a reports dashboard displaying schedule counts, faculty workload analysis, room utilization statistics, and weekly activity trends.
+• The system shall calculate and display a Schedule Quality Index (SQI) as a three-metric composite score.
+• The system shall generate faculty workload distribution reports by department.
+• The system shall generate room utilization reports showing peak usage hours and availability.
+• The system shall restrict Dean users to reports for their assigned programs only.
+
+Export Capabilities
+• The system shall export class schedules, faculty schedules, room schedules, faculty lineups, and user lists in Excel (.xlsx) format with formatted headers, colors, borders, and alignment.
+• The system shall export class schedules, faculty schedules, room schedules, and user reports in PDF format with institution branding (name, logo).
+• The system shall include timestamps and user information on all exports.
+
+AI-Powered Decision Support
+• The system shall detect scheduling conflicts using built-in Python algorithms (no external API required) with severity levels: Critical, High, Medium, and Low.
+• The system shall provide smart recommendations for alternative time slots, days, rooms, and faculty with workload-aware ranking.
+• The system shall optionally integrate with Google Gemini API (gemini-2.5-flash model) for natural language conflict explanations and scheduling advice.
+• The system shall gracefully degrade to built-in algorithms if the Gemini API is unavailable.
+
+Academic and Institution Settings
+• The system shall allow configuration of academic year, semester, and exam period.
+• The system shall allow configuration of schedule and exam time windows (start/end hours).
+• The system shall allow configuration of exam parameters (lunch break times, slot duration, maximum duration).
+• The system shall allow configuration of institution name and logo for report branding.
+
+System Administration
+• The system shall provide a Super Admin panel with system statistics, recent activity feed, and system information.
+• The system shall support maintenance mode that blocks non-Super-Admin users with a custom message.
+• The system shall allow Super Admins to force logout specific users.
+• The system shall log all user actions (create, edit, delete, archive) with entity type, entity ID, IP address, user agent, and timestamp.
+
+2.2 Non-Functional Requirements
+
+Security
+• The system shall hash all user passwords using Werkzeug's security module (not stored in plain text).
+• The system shall enforce password length validation (8–30 characters).
+• The system shall implement CSRF token validation on all forms using Flask-WTF.
+• The system shall prevent SQL injection through the use of SQLAlchemy ORM parameterized queries.
+• The system shall enforce role-based access control (RBAC) using @login_required and @role_required decorators on all protected routes.
+• The system shall restrict Dean users to data within their assigned programs and departments only.
+• The system shall log all authentication events including login attempts, IP addresses, and user agents.
+• The system shall support secure password reset tokens with a 1-hour expiration period.
+• The system shall manage API keys (Gemini) through environment variables, not hardcoded in source code.
+
+Reliability
+• The system shall perform automatic database rollback on transaction failures to maintain data integrity.
+• The system shall enforce foreign key constraints with appropriate ON DELETE behavior (SET NULL, CASCADE).
+• The system shall provide graceful degradation when the optional Gemini AI API is unavailable, falling back to built-in Python algorithms.
+• The system shall implement maintenance mode to prevent accidental modifications during system updates.
+• The system shall use optimistic locking to detect and handle concurrent edit conflicts.
+• The system shall validate all schedule data against configurable time windows and academic settings before saving.
+
+
+III. Hardware Requirements Specifications
+
+This section describes the hardware requirements necessary to support the proper development, deployment, and operation of iSchedWise V4. It specifies the minimum and recommended hardware configurations required to ensure system functionality, stability, and optimal performance.
+The hardware requirements define the physical components needed by developers, system administrators, and end users. These include computing devices for development and client access, server infrastructure for hosting the web application and database, and network connectivity for real-time WebSocket communication.
+
+3.1 Overview
+The hardware requirements for iSchedWise V4 are categorized into:
+•	Development Hardware Requirements — for building, testing, and deploying the system
+•	Client/User Hardware Requirements — for end users accessing the system via web browser
+•	Server Hardware Requirements — for hosting the Flask web application and MySQL database
+•	Peripheral Devices — for additional functional needs (printing, scanning)
+
+3.2 Development Hardware Requirements
+The following hardware specifications are required by developers to design, build, test, and deploy iSchedWise V4:
+
+Component               Specification
+Processor                Intel Core i5 (8th generation or newer) or AMD Ryzen 5 equivalent
+RAM                      8 GB minimum (16 GB recommended)
+Storage                  256 GB SSD minimum with at least 10 GB free for project files, virtual environments, and database
+Display                  1920 x 1080 resolution minimum (for responsive design testing)
+Network                  Stable internet connection for package installation, Gemini API access, and email functionality
+Operating System         Windows 10/11, macOS 11+, or Ubuntu 20.04+
+
+3.3 Client/User Hardware Requirements
+This subsection specifies the minimum and recommended hardware requirements for end users (Admins, Deans, Super Admins) who will access and operate iSchedWise V4 through a web browser.
+
+3.3.1 Minimum Requirements
+
+Component               Specification
+Processor                Intel Core i3 or equivalent
+RAM                      4 GB
+Storage                  1 GB free disk space (for browser cache and downloaded exports)
+Display                  1366 x 768 resolution
+Network                  Stable internet/LAN connection (minimum 1 Mbps)
+Browser                  Google Chrome 90+, Mozilla Firefox 88+, Microsoft Edge 90+, or Safari 14+
+Operating System         Windows 10, macOS 10.15+, or any Linux distribution with a supported browser
+
+3.3.2 Recommended Requirements
+
+Component               Specification
+Processor                Intel Core i5 or equivalent
+RAM                      8 GB
+Storage                  5 GB free disk space
+Display                  1920 x 1080 resolution
+Network                  Stable internet/LAN connection (5 Mbps or higher)
+Browser                  Latest version of Google Chrome or Microsoft Edge
+Operating System         Windows 11, macOS 12+, or Ubuntu 22.04+
+
+These specifications ensure that users experience smooth navigation, faster loading times, and reliable system access, especially when working with large schedule datasets and real-time WebSocket updates.
+
+3.4 Server Hardware Requirements (For Web-Based Systems)
+
+iSchedWise V4 is a web-based application that requires a server to host the Flask application and MySQL database. The following are the server hardware requirements:
+
+Component       Minimum                                 Recommended
+Processor        2-core CPU (Intel Xeon or equivalent)   4-core CPU
+RAM              4 GB                                    8 GB
+Storage          20 GB SSD                               50 GB SSD
+Network          100 Mbps                                1 Gbps
+Operating System Ubuntu 20.04 LTS / Windows Server 2019  Ubuntu 22.04 LTS
+
+Software stack required on the server:
+• Python 3.8 or higher
+• MySQL Server 5.7+ or MariaDB 10.3+
+• WSGI server for production (Gunicorn or uWSGI recommended)
+• Reverse proxy (Nginx or Apache) for production deployment
+• SMTP access for email functionality (e.g., Gmail SMTP or institutional mail server)
+
+3.5 Peripheral Devices
+Depending on institutional needs, the following peripheral devices may be required to support full iSchedWise V4 functionality:
+
+Device                   Purpose
+Printer                  Printing exported PDF reports (class schedules, faculty schedules, room schedules)
+Scanner                  Digitizing physical documents for reference (optional)
+Projector/Display        Presenting schedules and reports during meetings or consultations
+
+
+IV. OVERALL DESCRIPTION
+
+4.1 Summary
+iSchedWise V4 is a web-based scheduling management system designed for educational institutions. It enables administrators and department heads to create, manage, and optimize class and exam schedules while tracking faculty workloads, room utilization, and curriculum structures. The system features intelligent conflict detection, AI-powered scheduling recommendations, role-based access control, comprehensive reporting with a Schedule Quality Index (SQI), and data export capabilities in Excel and PDF formats. Built with Flask and MySQL, it provides real-time multi-user coordination through WebSocket technology and maintains historical scheduling data through an archive system.
+
+4.2 User Characteristics
+The following user roles are expected to interact with iSchedWise V4:
+
+Super Administrator
+• Background: IT staff or designated system operator responsible for overall system maintenance
+• Technical Proficiency: Moderate to high — familiar with web application administration, database management, and system configuration
+• Responsibilities: Full system access including user management, maintenance mode, force logout, system statistics monitoring, and institution settings configuration
+• Training Required: System administration training, understanding of academic scheduling processes
+
+Administrator (Admin)
+• Background: Institutional staff responsible for campus-wide academic scheduling
+• Technical Proficiency: Moderate — comfortable with web-based applications and office productivity tools
+• Responsibilities: Managing all scheduling operations, faculty assignments, room allocation, curriculum management, program management, report generation, and data exports
+• Training Required: Application orientation, scheduling workflow training, export and reporting capabilities
+
+Dean (Department Head)
+• Background: Academic department head overseeing scheduling for their assigned programs
+• Technical Proficiency: Basic to moderate — general familiarity with web browsers and standard office applications
+• Responsibilities: Viewing and managing schedules, faculty, and curricula within their assigned programs; generating program-specific reports
+• Training Required: Basic application orientation focused on department-specific workflows
+
+The system shall accommodate users with varying levels of expertise through an intuitive fixed-sidebar navigation layout, role-appropriate dashboards, confirmation modals for critical actions, toast notifications for feedback, and minimal learning curve design principles.
+
+4.3 Use Case Scenarios
+
+Use Case 1: Creating a Class Schedule
+Actor: Admin
+Precondition: Academic year, semester, sections, subjects, faculty, and rooms are configured.
+Flow: The Admin navigates to the Class Schedule page, clicks "Add Schedule," selects the section, subject, faculty, room, day, and time, and submits the form. The system checks for conflicts (section overlap, faculty double-booking, room double-booking) in real time. If no conflicts exist, the schedule is saved and broadcast to connected users via WebSocket. If conflicts are detected, the system displays severity-rated warnings and provides AI-powered alternative recommendations.
+
+Use Case 2: Managing Faculty Workload
+Actor: Admin/Dean
+Precondition: Faculty profiles and subject assignments exist.
+Flow: The user navigates to the Faculty page and views the workload summary showing each faculty member's assigned units versus their maximum unit limit. Workload status badges (normal, warning, exceeded) are displayed. The user can click on a faculty member to view detailed assignments, adjust maximum unit limits, or reassign subjects.
+
+Use Case 3: Generating Reports
+Actor: Admin/Dean
+Precondition: Schedules exist for the current academic year and semester.
+Flow: The user navigates to the Reports page and views the dashboard displaying schedule counts, faculty workload distribution, room utilization statistics, and the Schedule Quality Index (SQI). The user can filter data by department or program (Deans see only their assigned programs). The user exports the desired report as Excel or PDF.
+
+Use Case 4: Archiving Schedules
+Actor: Admin/Super Admin
+Precondition: Schedules exist for a completed academic period.
+Flow: When the Admin changes the academic year or semester in Settings, the system automatically archives all current schedules with metadata (archived_by, archived_at). Archived schedules can be browsed and exported from the Archive page, filtered by academic year, semester, and exam period.
+
+Use Case 5: Exam Scheduling
+Actor: Admin
+Precondition: Exam period is configured with date ranges, and class schedules exist.
+Flow: The Admin navigates to the Exam Schedule page, configures the exam period (Prelim/Midterm/Final) with start and end dates, and creates exam schedules with specific dates, times, sections, subjects, proctoring faculty, and rooms. The system validates against exam time windows, lunch breaks, slot durations, and checks for faculty availability conflicts.
+
+4.4 Operating Environment
+This section specifies the conditions under which iSchedWise V4 will operate.
+
+•	Hardware Requirements
+	- Client: Any device with a modern web browser (desktop, laptop, or tablet with minimum 1366x768 resolution)
+	- Server: 2-core CPU minimum, 4 GB RAM minimum, 20 GB SSD storage, stable network connection
+	- See Section III for detailed hardware specifications
+
+•	Software Requirements
+	- Server-side:
+		○ Python 3.8 or higher
+		○ Flask 3.1.2 web framework
+		○ MySQL Server 5.7+ or MariaDB 10.3+
+		○ PyMySQL 1.1.2 database connector
+		○ SQLAlchemy 2.0.43 ORM
+		○ Production WSGI server (Gunicorn or uWSGI)
+		○ Reverse proxy (Nginx or Apache) for production
+	- Client-side:
+		○ Modern web browser with JavaScript enabled (Chrome 90+, Firefox 88+, Edge 90+, Safari 14+)
+		○ WebSocket support (all modern browsers)
+		○ PDF viewer for exported reports
+		○ Spreadsheet application for Excel exports (Microsoft Excel, Google Sheets, LibreOffice Calc)
+	- Operating Systems:
+		○ Server: Ubuntu 20.04+ LTS (recommended), Windows Server 2019+, or any Linux distribution supporting Python 3.8+
+		○ Client: Windows 10+, macOS 10.15+, Linux, ChromeOS, or any OS with a supported browser
+	- Network:
+		○ HTTP/HTTPS connectivity between client and server
+		○ WebSocket connectivity for real-time updates (port 5000 default, configurable)
+		○ SMTP access for email notifications and password reset functionality
+	- External Dependencies (Optional):
+		○ Google Gemini API (gemini-2.5-flash model) for AI-powered scheduling recommendations — requires a valid API key configured via environment variable; system operates fully without it
+		○ Gmail SMTP or institutional mail server for email functionality

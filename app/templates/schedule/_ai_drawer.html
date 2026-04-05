@@ -1,0 +1,142 @@
+﻿{# Docked AI Assistant Panel — Shared across Class & Exam form tabs #}
+
+<!-- Hidden compatibility badge (kept for JS API compatibility only) -->
+<button id="aiBadge" type="button" class="hidden" tabindex="-1" aria-hidden="true" title="Schedule Assistant">
+    <span id="aiBadgeIcon" class="hidden"></span>
+    <span id="aiBadgeText" class="hidden">Schedule Assistant</span>
+</button>
+
+<!-- Docked AI Assistant Panel -->
+<div id="aiDrawer" class="h-full bg-white dark:bg-gray-800 flex flex-col overflow-hidden">
+
+    <!-- Panel Header -->
+    <div id="aiDrawerHeader" class="flex-shrink-0 border-b border-gray-100 dark:border-gray-700 px-3.5 sm:px-4 py-3 bg-white dark:bg-gray-800">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div id="aiDrawerHeaderIcon" class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 {% if ai_enabled %}bg-purple-600{% else %}bg-gray-500{% endif %}">
+                    {% if ai_enabled %}
+                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                    </svg>
+                    {% else %}
+                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 id="aiDrawerTitle" class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">Schedule Assistant</h3>
+                    <p id="aiDrawerSubtitle" class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{{ 'AI conflict checks and suggestions' if ai_enabled else 'Rule-based conflict checks' }}</p>
+                    <p id="aiDrawerModeLabel" class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-1">{{ 'AI mode' if ai_enabled else 'Basic mode' }}</p>
+                    <div class="mt-1">
+                        <span id="aiDrawerStatePill" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Idle</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Mode Toggle -->
+                <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700 rounded-full px-2 py-1">
+                    <span id="aiToggleLabelBasic" class="text-[10px] font-medium select-none transition-colors duration-200 {% if ai_enabled %}text-gray-400{% else %}text-gray-600{% endif %}">Basic</span>
+                    <label class="relative inline-flex items-center cursor-pointer" title="Switch between Basic and AI mode">
+                        <input type="checkbox" id="aiToggleClassDesktop" class="sr-only peer ai-toggle-checkbox" {% if ai_enabled %}checked{% endif %}>
+                        <div class="w-7 h-4 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-3 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all after:shadow-sm"></div>
+                    </label>
+                    <span id="aiToggleLabelAI" class="text-[10px] font-medium select-none transition-colors duration-200 {% if ai_enabled %}text-purple-600{% else %}text-gray-400{% endif %}">AI</span>
+                </div>
+                <div class="w-px h-4 bg-gray-200 dark:bg-gray-600"></div>
+                <button type="button" onclick="toggleAIDrawer()" class="hidden lg:inline-flex p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Collapse Assistant">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <button type="button" onclick="toggleAIDrawer()" class="lg:hidden p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Toggle Assistant">
+                    <svg id="aiDrawerToggleIcon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Content (collapsed by default on mobile) -->
+    <div id="aiDrawerContent" class="hidden lg:block flex-1 overflow-y-auto max-h-[45vh] lg:max-h-none custom-scrollbar bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/25 dark:to-gray-800/40">
+
+        <div class="px-4 pt-3 pb-2">
+            <div id="aiFallbackNotice" class="hidden mt-1 px-3 py-2.5 rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 shadow-sm">
+                <p id="aiFallbackNoticeText" class="text-[10px] text-amber-700 dark:text-amber-300"></p>
+            </div>
+        </div>
+
+        <!-- Class Schedule Content -->
+        <div id="aiDrawerClassContent" class="px-4 pb-4 pt-2">
+            <div id="autoCheckStatusAdd" class="mb-3"></div>
+            <div id="aiAssistantAdd" class="hidden">
+                <div id="aiExplanationWrapperAdd" class="mb-3 hidden">
+                    <p id="aiExplanationAdd" class="text-xs leading-relaxed"></p>
+                </div>
+                <div id="aiWorkloadSummaryAdd" class="hidden mb-3"></div>
+                <div id="aiConflictsAdd" class="hidden mb-3">
+                    <div id="aiConflictsListAdd" class="space-y-2.5"></div>
+                </div>
+                <div id="aiResolveAllAdd" class="hidden mb-3"></div>
+                <div id="aiRecommendationsAdd" class="hidden">
+                    <div id="aiRecommendationsHeaderAdd" class="mb-2.5 px-0.5">
+                        <p class="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Suggestions</p>
+                    </div>
+                    <div id="aiRecommendationsListAdd" class="space-y-2.5"></div>
+                    <div id="aiBasicModeHintAdd" class="hidden mt-3 py-2.5 px-3 bg-gray-50 dark:bg-gray-900/40 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-center">
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Switch to <strong class="text-purple-600 dark:text-purple-400">AI</strong> mode for one-click apply</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Empty State — Class -->
+            <div id="aiEmptyStateAdd" class="flex flex-col items-center justify-center py-12 text-center">
+                <div id="aiEmptyIconAdd" class="mb-4">
+                    <div class="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mx-auto">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h5 class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-1">Waiting for Input</h5>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 max-w-[180px] leading-relaxed">Fill in the schedule details to check for conflicts</p>
+            </div>
+        </div>
+
+        <!-- Exam Schedule Content -->
+        <div id="aiDrawerExamContent" class="hidden px-4 pb-4 pt-2">
+            <div id="autoCheckStatusExamAdd" class="mb-3"></div>
+            <div id="aiAssistantExamAdd" class="hidden">
+                <div id="aiExplanationWrapperExamAdd" class="mb-3 hidden">
+                    <p id="aiExplanationExamAdd" class="text-xs leading-relaxed"></p>
+                </div>
+                <div id="aiConflictsExamAdd" class="hidden mb-3">
+                    <div id="aiConflictsListExamAdd" class="space-y-2.5"></div>
+                </div>
+                <div id="aiResolveAllExamAdd" class="hidden mb-3"></div>
+                <div id="aiRecommendationsExamAdd" class="hidden">
+                    <div id="aiRecommendationsHeaderExamAdd" class="mb-2.5 px-0.5">
+                        <p class="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Suggestions</p>
+                    </div>
+                    <div id="aiRecommendationsListExamAdd" class="space-y-2.5"></div>
+                    <div id="aiBasicModeHintExamAdd" class="hidden mt-3 py-2.5 px-3 bg-gray-50 dark:bg-gray-900/40 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-center">
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Switch to <strong class="text-purple-600 dark:text-purple-400">AI</strong> mode for one-click apply</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Empty State — Exam -->
+            <div id="aiEmptyStateExamAdd" class="flex flex-col items-center justify-center py-12 text-center">
+                <div id="aiEmptyIconExamAdd" class="mb-4">
+                    <div class="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mx-auto">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h5 class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-1">Waiting for Input</h5>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 max-w-[180px] leading-relaxed">Fill in the exam details to check for conflicts</p>
+            </div>
+        </div>
+
+    </div>
+</div>

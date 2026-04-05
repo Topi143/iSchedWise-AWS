@@ -1,6 +1,11 @@
 """
 AI-Powered Decision Support for Schedule Management
 Uses Google Gemini API to provide intelligent scheduling recommendations
+
+Refactored Architecture:
+- ConflictDetector: Pure Python conflict checking (fast, no API)
+- RecommendationEngine: Smart suggestions with workload balancing
+- AISchedulerAssistant: Gemini AI explanations only
 """
 import os
 import google.generativeai as genai
@@ -10,67 +15,176 @@ from sqlalchemy import and_, or_
 from app.models.schedule import Schedule
 from app.models.faculty import Faculty
 from app.models.building import Room
-from app.models.department import Section
+from app.models.section import Section
 from app.models.curriculum import Subject
 from app.models.settings import AcademicSettings
 
+# Import new service layer
+from app.services.conflict_detector import ConflictDetector, conflict_detector, ConflictSeverity, ConflictType
+from app.services.recommendation_engine import RecommendationEngine, recommendation_engine
+
 
 class AISchedulerAssistant:
-    """AI-powered scheduling assistant using Google Gemini"""
+    """
+    AI-powered scheduling assistant using Google Gemini
+    
+    Now uses service layer for conflict detection and recommendations:
+    - conflict_detector: Fast pure Python conflict checking
+    - recommendation_engine: Workload-aware suggestions
+    - This class: Gemini AI explanations only
+    """
     
     def __init__(self):
         """Initialize Gemini AI"""
         api_key = os.getenv('GEMINI_API_KEY')
         if api_key and api_key != 'your-api-key-here':
             genai.configure(api_key=api_key)
-            # Use gemini-2.0-flash-exp (latest experimental model with best performance)
+            # Use gemini-2.5-flash (fast, cost-effective)
             self.model = genai.GenerativeModel('gemini-2.5-flash')
             self.enabled = True
         else:
             self.model = None
             self.enabled = False
+        
+        # Use service layer instances
+        self.conflict_detector = conflict_detector
+        self.recommendation_engine = recommendation_engine
     
-    def analyze_schedule_conflicts(self, schedule_data: Dict, existing_schedules: List) -> Dict:
+    def analyze_schedule_conflicts(self, schedule_data: Dict, existing_schedules: List, 
+                                   exclude_schedule_id: Optional[int] = None) -> Dict:
         """
         Analyze potential conflicts and provide recommendations
+        
+        Uses new service layer architecture:
+        1. ConflictDetector for fast conflict detection (no AI)
+        2. RecommendationEngine for smart suggestions
+        3. Gemini AI for natural language explanations only
         
         Args:
             schedule_data: Dictionary with section_id, subject_id, faculty_id, room_id, 
                           day_of_week, start_time, end_time
             existing_schedules: List of existing Schedule objects
+            exclude_schedule_id: Schedule ID to exclude (for edit mode)
         
         Returns:
             Dictionary with conflicts, recommendations, and AI explanation
         """
-        if not self.enabled:
-            return {
-                'has_conflicts': False,
-                'conflicts': [],
-                'recommendations': [],
-                'ai_enabled': False
-            }
+        # Step 1: Detect conflicts using pure Python (fast, no API)
+        conflicts = self.conflict_detector.detect_class_conflicts(
+            schedule_data, 
+            existing_schedules,
+            exclude_schedule_id
+        )
         
-        # Detect conflicts
-        conflicts = self._detect_conflicts(schedule_data, existing_schedules)
-        
-        # Get recommendations if conflicts exist
+        # Step 2: Generate recommendations if conflicts exist
         recommendations = []
         ai_explanation = ""
+        ai_fallback = not self.enabled
+        ai_fallback_reason = (
+            "AI guidance is disabled because Gemini API is not configured."
+            if not self.enabled else None
+        )
         
         if conflicts:
-            recommendations = self._generate_recommendations(schedule_data, conflicts, existing_schedules)
-            ai_explanation = self._get_ai_explanation(schedule_data, conflicts, recommendations)
+            # Get subject for workload-aware recommendations
+            subject = None
+            subject_id = schedule_data.get('subject_id')
+            if subject_id:
+                subject = Subject.query.get(subject_id)
+            
+            recommendations = self.recommendation_engine.generate_class_recommendations(
+                schedule_data, 
+                conflicts, 
+                existing_schedules,
+                subject,
+                exclude_schedule_id=exclude_schedule_id
+            )
+            
+            # Step 3: Get AI explanation (online or offline)
+            if self.enabled:
+                ai_explanation, ai_explanation_fallback, explanation_fallback_reason = self._get_ai_explanation_v2(
+                    schedule_data,
+                    conflicts,
+                    recommendations
+                )
+                if ai_explanation_fallback:
+                    ai_fallback = True
+                    ai_fallback_reason = explanation_fallback_reason
+            else:
+                ai_explanation = self._get_offline_explanation(conflicts, recommendations)
         
         return {
             'has_conflicts': len(conflicts) > 0,
-            'conflicts': conflicts,
-            'recommendations': recommendations,
+            'conflicts': [c.to_dict() for c in conflicts],
+            'recommendations': [r.to_dict() for r in recommendations],
             'ai_explanation': ai_explanation,
-            'ai_enabled': True
+            'ai_enabled': self.enabled,
+            'ai_fallback': ai_fallback,
+            'ai_fallback_reason': ai_fallback_reason
         }
     
+    def _get_ai_explanation_v2(self, schedule_data: Dict, conflicts: List,
+                               recommendations: List) -> Tuple[str, bool, Optional[str]]:
+        """
+        Generate AI explanation using Gemini (new version with service layer)
+        
+        Args:
+            schedule_data: Schedule form data
+            conflicts: List of Conflict objects from ConflictDetector
+            recommendations: List of Recommendation objects from RecommendationEngine
+            
+        Returns:
+            (explanation, used_fallback, fallback_reason)
+        """
+        if not self.enabled or not self.model:
+            return "", True, "AI guidance is disabled because Gemini API is not configured."
+        
+        try:
+            # Prepare conflict summary
+            conflict_summary = "\n".join([
+                f"- {c.severity.value.upper()} ({c.type.value}): {c.message}" 
+                for c in conflicts
+            ])
+            
+            # Prepare recommendation summary
+            rec_summary = "\n".join([
+                f"- {r.type.title()}: {len(r.options)} options available"
+                for r in recommendations
+            ]) if recommendations else "No alternatives found"
+            
+            prompt = f"""You are a university scheduling assistant. Be ultra-concise.
+
+A user is scheduling a class:
+- Day: {schedule_data.get('day_of_week')}
+- Time: {schedule_data.get('start_time').strftime('%I:%M %p') if isinstance(schedule_data.get('start_time'), time) else schedule_data.get('start_time')} - {schedule_data.get('end_time').strftime('%I:%M %p') if isinstance(schedule_data.get('end_time'), time) else schedule_data.get('end_time')}
+
+Conflicts detected:
+{conflict_summary}
+
+Available alternatives:
+{rec_summary}
+
+Provide a brief, helpful response (1-2 sentences max) that:
+1. Identifies the main issue
+2. Suggests the best resolution
+
+Be direct and actionable. No markdown formatting."""
+
+            response = self.model.generate_content(prompt)
+            return response.text.strip(), False, None
+            
+        except Exception as e:
+            print(f"AI explanation error: {str(e)}")
+            return (
+                "Conflicts detected. Review the suggestions below to resolve.",
+                True,
+                "AI guidance temporarily unavailable due to provider error."
+            )
+    
+    # ========== LEGACY METHODS (kept for backward compatibility) ==========
+    
     def _detect_conflicts(self, schedule_data: Dict, existing_schedules: List) -> List[Dict]:
-        """Detect scheduling conflicts"""
+        """Detect scheduling conflicts - LEGACY, use conflict_detector instead"""
         conflicts = []
         
         day = schedule_data.get('day_of_week')
@@ -92,7 +206,7 @@ class AISchedulerAssistant:
             # Section conflict
             if schedule.section_id == section_id:
                 # Format section name as DEPTCODE-YEARLEVELSECTIONName
-                section_display = f"{schedule.section.department.department_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.department else schedule.section.section_name if schedule.section else 'Unknown Section'
+                section_display = f"{schedule.section.program.program_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.program else schedule.section.section_name if schedule.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'section',
                     'message': f'Section {section_display} already has a class at this time',
@@ -103,7 +217,7 @@ class AISchedulerAssistant:
             # Faculty conflict
             if faculty_id and schedule.faculty_id == faculty_id:
                 # Format section name as DEPTCODE-YEARLEVELSECTIONName
-                section_display = f"{schedule.section.department.department_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.department else schedule.section.section_name if schedule.section else 'Unknown Section'
+                section_display = f"{schedule.section.program.program_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.program else schedule.section.section_name if schedule.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'faculty',
                     'message': f'Faculty {schedule.faculty.full_name} is already teaching {section_display} ({schedule.subject.subject_code if schedule.subject else "N/A"})',
@@ -114,7 +228,7 @@ class AISchedulerAssistant:
             # Room conflict
             if room_id and schedule.room_id == room_id:
                 # Format section name as DEPTCODE-YEARLEVELSECTIONName
-                section_display = f"{schedule.section.department.department_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.department else schedule.section.section_name if schedule.section else 'Unknown Section'
+                section_display = f"{schedule.section.program.program_code}-{schedule.section.year_level}{schedule.section.section_name}" if schedule.section and schedule.section.program else schedule.section.section_name if schedule.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'room',
                     'message': f'Room {schedule.room.room_number} is already occupied by {section_display} ({schedule.subject.subject_code if schedule.subject else "N/A"})',
@@ -128,48 +242,214 @@ class AISchedulerAssistant:
         """Check if two time ranges overlap"""
         return start1 < end2 and end1 > start2
     
-    def analyze_exam_conflicts(self, exam_data: Dict, existing_exams: List) -> Dict:
+    def analyze_exam_conflicts(self, exam_data: Dict, existing_exams: List,
+                               exclude_exam_id: Optional[int] = None) -> Dict:
         """
         Analyze potential conflicts for exam schedules
+        
+        Uses new service layer architecture for faster detection.
         
         Args:
             exam_data: Dictionary with section_id, subject_id, faculty_id, room_id, 
                       exam_date, start_time, end_time
             existing_exams: List of existing ExamSchedule objects
+            exclude_exam_id: Exam ID to exclude (for edit mode)
         
         Returns:
             Dictionary with conflicts, recommendations, and AI explanation
         """
-        if not self.enabled:
-            return {
-                'has_conflicts': False,
-                'conflicts': [],
-                'recommendations': [],
-                'ai_explanation': '',
-                'ai_enabled': False
-            }
+        # Step 1: Detect conflicts using pure Python (fast, no API)
+        conflicts = self.conflict_detector.detect_exam_conflicts(
+            exam_data,
+            existing_exams,
+            exclude_exam_id
+        )
         
-        # Detect conflicts
-        conflicts = self._detect_exam_conflicts(exam_data, existing_exams)
-        
-        # Get recommendations if conflicts exist
+        # Step 2: Generate recommendations if conflicts exist
         recommendations = []
         ai_explanation = ""
+        ai_fallback = not self.enabled
+        ai_fallback_reason = (
+            "AI guidance is disabled because Gemini API is not configured."
+            if not self.enabled else None
+        )
         
         if conflicts:
-            recommendations = self._generate_exam_recommendations(exam_data, conflicts, existing_exams)
-            ai_explanation = self._get_exam_ai_explanation(exam_data, conflicts, recommendations)
+            recommendations = self.recommendation_engine.generate_exam_recommendations(
+                exam_data,
+                conflicts,
+                existing_exams
+            )
+            
+            # Step 3: Get AI explanation (online or offline)
+            if self.enabled:
+                ai_explanation, ai_explanation_fallback, explanation_fallback_reason = self._get_exam_ai_explanation_v2(
+                    exam_data,
+                    conflicts,
+                    recommendations
+                )
+                if ai_explanation_fallback:
+                    ai_fallback = True
+                    ai_fallback_reason = explanation_fallback_reason
+            else:
+                ai_explanation = self._get_offline_explanation(conflicts, recommendations, is_exam=True)
         
         return {
             'has_conflicts': len(conflicts) > 0,
-            'conflicts': conflicts,
-            'recommendations': recommendations,
+            'conflicts': [c.to_dict() for c in conflicts],
+            'recommendations': [r.to_dict() for r in recommendations],
             'ai_explanation': ai_explanation,
-            'ai_enabled': True
+            'ai_enabled': self.enabled,
+            'ai_fallback': ai_fallback,
+            'ai_fallback_reason': ai_fallback_reason
         }
     
+    def _get_exam_ai_explanation_v2(self, exam_data: Dict, conflicts: List,
+                                    recommendations: List) -> Tuple[str, bool, Optional[str]]:
+        """
+        Generate AI explanation for exam conflicts using Gemini (new version)
+        
+        Args:
+            exam_data: Exam form data
+            conflicts: List of Conflict objects from ConflictDetector
+            recommendations: List of Recommendation objects from RecommendationEngine
+            
+        Returns:
+            (explanation, used_fallback, fallback_reason)
+        """
+        if not self.enabled or not self.model:
+            return "", True, "AI guidance is disabled because Gemini API is not configured."
+        
+        try:
+            # Check for duplicate conflict - provide direct message without API call
+            has_duplicate = any(c.type == ConflictType.DUPLICATE for c in conflicts)
+            if has_duplicate:
+                return (
+                    "⚠️ This subject already has an exam scheduled. You cannot create duplicate exams for the same subject in the same section. Please review the existing exam schedule.",
+                    False,
+                    None
+                )
+            
+            # Prepare conflict summary
+            conflict_summary = "\n".join([
+                f"- {c.severity.value.upper()} ({c.type.value}): {c.message}" 
+                for c in conflicts
+            ])
+            
+            # Prepare recommendation summary
+            rec_summary = "\n".join([
+                f"- {r.type.title()}: {len(r.options)} options available"
+                for r in recommendations
+            ]) if recommendations else "No alternatives found"
+            
+            prompt = f"""You are a university exam scheduling assistant. Be ultra-concise.
+
+A user is scheduling an exam:
+- Date: {exam_data.get('exam_date')}
+- Time: {exam_data.get('start_time').strftime('%I:%M %p') if isinstance(exam_data.get('start_time'), time) else exam_data.get('start_time')} - {exam_data.get('end_time').strftime('%I:%M %p') if isinstance(exam_data.get('end_time'), time) else exam_data.get('end_time')}
+
+Conflicts detected:
+{conflict_summary}
+
+Available alternatives:
+{rec_summary}
+
+Provide a brief, helpful response (1-2 sentences max) that:
+1. Identifies the main issue
+2. Suggests the best resolution
+
+Be direct and actionable. No markdown formatting."""
+
+            response = self.model.generate_content(prompt)
+            return response.text.strip(), False, None
+            
+        except Exception as e:
+            print(f"AI exam explanation error: {str(e)}")
+            return (
+                "Exam conflicts detected. Review the suggestions below to resolve.",
+                True,
+                "AI guidance temporarily unavailable due to provider error."
+            )
+    
+    # ========== OFFLINE AI EXPLANATIONS (No Gemini Required) ==========
+    
+    def _get_offline_explanation(self, conflicts: List, recommendations: List,
+                                 is_exam: bool = False) -> str:
+        """
+        Generate a rule-based offline explanation for conflicts.
+        Works without any API key.
+        """
+        if not conflicts:
+            return ""
+
+        # Group conflicts by type
+        conflict_types = {}
+        for c in conflicts:
+            ctype = c.type.value if hasattr(c.type, 'value') else str(c.type)
+            if ctype not in conflict_types:
+                conflict_types[ctype] = []
+            conflict_types[ctype].append(c)
+
+        parts = []
+        entity_label = "exam" if is_exam else "class"
+
+        # Severity summary
+        critical = [c for c in conflicts if c.severity == ConflictSeverity.CRITICAL]
+        high = [c for c in conflicts if c.severity == ConflictSeverity.HIGH]
+
+        if critical:
+            parts.append(f"⚠️ {len(critical)} critical conflict(s) found.")
+        if high:
+            parts.append(f"🔶 {len(high)} high-severity conflict(s) found.")
+
+        # Type-specific messages
+        if 'duplicate' in conflict_types:
+            parts.append(f"This subject already has a {entity_label} scheduled — duplicates are not allowed.")
+
+        if 'section' in conflict_types:
+            parts.append(f"The section already has a {entity_label} at the selected time.")
+
+        if 'faculty' in conflict_types:
+            parts.append("The faculty member is already assigned elsewhere at this time.")
+
+        if 'room' in conflict_types:
+            parts.append("The room is already occupied at this time.")
+
+        if 'time_invalid' in conflict_types:
+            parts.append("The selected time falls outside the allowed schedule hours.")
+
+        if 'workload' in conflict_types:
+            parts.append("Adding this would exceed the faculty member's maximum workload.")
+
+        if 'proctor_unavailable' in conflict_types:
+            parts.append("The proctor is marked as unavailable for this time slot.")
+
+        # Recommendations hint
+        if recommendations:
+            total_options = sum(len(r.options) for r in recommendations if hasattr(r, 'options'))
+            if total_options > 0:
+                rec_types = [r.type for r in recommendations if r.options]
+                hints = []
+                for rt in rec_types:
+                    if rt == 'time':
+                        hints.append("alternative times")
+                    elif rt == 'day':
+                        hints.append("other days")
+                    elif rt == 'room':
+                        hints.append("available rooms")
+                    elif rt == 'faculty':
+                        hints.append("other faculty")
+                    elif rt in ('exam_time', 'exam_date'):
+                        hints.append("alternative slots")
+                if hints:
+                    parts.append(f"💡 Suggestions available: {', '.join(hints)}.")
+
+        return " ".join(parts) if parts else f"Conflicts detected with this {entity_label}. Review suggestions below."
+
+    # ========== LEGACY EXAM METHODS (kept for backward compatibility) ==========
+    
     def _detect_exam_conflicts(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
-        """Detect exam scheduling conflicts"""
+        """Detect exam scheduling conflicts - LEGACY, use conflict_detector instead"""
         conflicts = []
         
         exam_date = exam_data.get('exam_date')
@@ -179,14 +459,17 @@ class AISchedulerAssistant:
         subject_id = exam_data.get('subject_id')
         faculty_id = exam_data.get('faculty_id')
         room_id = exam_data.get('room_id')
+        schedule_type = exam_data.get('schedule_type', 'lecture')
         
         for exam in existing_exams:
-            # Check if same subject is already scheduled for exam in the same section (regardless of date/time)
-            # This prevents double-booking the same exam
-            if subject_id and exam.subject_id == subject_id and exam.section_id == section_id:
+            # Check if same subject + section + schedule_type is already scheduled
+            # This prevents double-booking the same exam type
+            exam_type = getattr(exam, 'schedule_type', 'lecture') or 'lecture'
+            if subject_id and exam.subject_id == subject_id and exam.section_id == section_id and exam_type == schedule_type:
+                type_label = ' (Lab)' if schedule_type == 'lab' else ''
                 conflicts.append({
                     'type': 'duplicate',
-                    'message': f'Subject {exam.subject.subject_code} is already scheduled for an exam on {exam.exam_date.strftime("%B %d, %Y")} at {exam.start_time.strftime("%I:%M %p")}',
+                    'message': f'Subject {exam.subject.subject_code}{type_label} is already scheduled for an exam on {exam.exam_date.strftime("%B %d, %Y")} at {exam.start_time.strftime("%I:%M %p")}',
                     'schedule': exam,
                     'severity': 'critical'
                 })
@@ -203,7 +486,7 @@ class AISchedulerAssistant:
             # Section conflict - same section cannot have multiple exams at the same time
             if exam.section_id == section_id:
                 # Format section name as DEPTCODE-YEARLEVELSECTIONName
-                section_display = f"{exam.section.department.department_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.department else exam.section.section_name if exam.section else 'Unknown Section'
+                section_display = f"{exam.section.program.program_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.program else exam.section.section_name if exam.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'section',
                     'message': f'Section {section_display} already has an exam scheduled for {exam.subject.subject_code}',
@@ -214,7 +497,7 @@ class AISchedulerAssistant:
             # Faculty conflict - same faculty cannot proctor multiple exams at the same time (across ANY section)
             if faculty_id and exam.faculty_id == faculty_id:
                 # Format section name as DEPTCODE-YEARLEVELSECTIONName
-                section_display = f"{exam.section.department.department_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.department else exam.section.section_name if exam.section else 'Unknown Section'
+                section_display = f"{exam.section.program.program_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.program else exam.section.section_name if exam.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'faculty',
                     'message': f'Faculty {exam.faculty.full_name} is already proctoring an exam for {section_display} ({exam.subject.subject_code})',
@@ -225,7 +508,7 @@ class AISchedulerAssistant:
             # Room conflict - same room cannot host multiple exams at the same time (across ANY section)
             if room_id and exam.room_id == room_id:
                 # Format section name as DEPTCODE-YEARLEVELSECTIONName
-                section_display = f"{exam.section.department.department_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.department else exam.section.section_name if exam.section else 'Unknown Section'
+                section_display = f"{exam.section.program.program_code}-{exam.section.year_level}{exam.section.section_name}" if exam.section and exam.section.program else exam.section.section_name if exam.section else 'Unknown Section'
                 conflicts.append({
                     'type': 'room',
                     'message': f'Room {exam.room.room_number} is already occupied by {section_display} ({exam.subject.subject_code})',
@@ -402,15 +685,35 @@ class AISchedulerAssistant:
     def _find_alternative_exam_rooms(self, exam_data: Dict, existing_exams: List) -> List[Dict]:
         """Find alternative rooms for exam"""
         from app.models.building import Room
+        from app.models.curriculum import Subject
         
         alternatives = []
         exam_date = exam_data.get('exam_date')
         start_time = exam_data.get('start_time')
         end_time = exam_data.get('end_time')
         current_room_id = exam_data.get('room_id')
+        subject_id = exam_data.get('subject_id')
         
-        # Get all available rooms
-        all_rooms = Room.query.filter_by(is_available=True).all()
+        # Determine allowed room types based on subject
+        allowed_types = ['Lecture']
+        if subject_id:
+            subject = Subject.query.get(subject_id)
+            if subject:
+                # Check for PE/Sports
+                subject_code_lower = subject.subject_code.lower()
+                subject_desc_lower = subject.course_description.lower()
+                is_pe = any(keyword in subject_code_lower for keyword in ['pe', 'pathfit', 'p.e.']) or \
+                        any(keyword in subject_desc_lower for keyword in ['physical education', 'sports', 'fitness', 'gymnastics'])
+                
+                if is_pe:
+                    allowed_types = ['Court/Gym']
+                elif subject.lab_units > 0 and subject.lec_units > 0:
+                    allowed_types = ['Lecture', 'Laboratory']
+                elif subject.lab_units > 0:
+                    allowed_types = ['Laboratory']
+        
+        # Get all available rooms of the allowed types
+        all_rooms = Room.query.filter(Room.is_available==True, Room.room_type.in_(allowed_types)).all()
         
         for room in all_rooms:
             if room.id == current_room_id:
@@ -433,7 +736,7 @@ class AISchedulerAssistant:
             if is_available:
                 alternatives.append({
                     'room_id': room.id,
-                    'display': f'{room.room_number} ({room.building.building_name if room.building else "N/A"})',
+                    'display': f'{room.room_number} ({room.building.building_name if room.building else "N/A"}) - {room.room_type}',
                     'score': 100
                 })
         
@@ -532,391 +835,131 @@ Keep your response ultra-concise and actionable."""
             print(f"AI explanation error: {e}")
             return ""
     
-    def _generate_recommendations(self, schedule_data: Dict, conflicts: List[Dict], 
-                                 existing_schedules: List) -> List[Dict]:
-        """Generate recommendations to resolve conflicts"""
-        recommendations = []
-        
-        # Recommend alternative time slots
-        alternative_times = self._find_alternative_times(
-            schedule_data, 
-            existing_schedules,
-            schedule_data.get('day_of_week')
-        )
-        
-        if alternative_times:
-            recommendations.append({
-                'type': 'time_slot',
-                'title': 'Alternative Time Slots',
-                'options': alternative_times,
-                'priority': 1
-            })
-        
-        # Recommend alternative days
-        alternative_days = self._find_alternative_days(schedule_data, existing_schedules)
-        
-        if alternative_days:
-            recommendations.append({
-                'type': 'day',
-                'title': 'Alternative Days',
-                'options': alternative_days,
-                'priority': 2
-            })
-        
-        # Recommend alternative rooms (if room conflict)
-        if any(c['type'] == 'room' for c in conflicts):
-            alternative_rooms = self._find_alternative_rooms(schedule_data, existing_schedules)
-            if alternative_rooms:
-                recommendations.append({
-                    'type': 'room',
-                    'title': 'Alternative Rooms',
-                    'options': alternative_rooms,
-                    'priority': 3
-                })
-        
-        # Recommend alternative faculty (if faculty conflict)
-        if any(c['type'] == 'faculty' for c in conflicts):
-            alternative_faculty = self._find_alternative_faculty(schedule_data, existing_schedules)
-            if alternative_faculty:
-                recommendations.append({
-                    'type': 'faculty',
-                    'title': 'Alternative Faculty',
-                    'options': alternative_faculty,
-                    'priority': 4
-                })
-        
-        return sorted(recommendations, key=lambda x: x['priority'])
-    
-    def _find_alternative_times(self, schedule_data: Dict, existing_schedules: List, 
-                               day: str) -> List[Dict]:
-        """Find alternative time slots on the same day based on schedule type (lecture/lab/both)"""
-        alternatives = []
-        
-        # Get current academic settings for time range
-        current_settings = AcademicSettings.query.filter_by(is_active=True).first()
-        start_hour = current_settings.schedule_start_hour if current_settings else 7
-        end_hour = current_settings.schedule_end_hour if current_settings else 20
-        
-        # Get subject to determine required duration
-        subject_id = schedule_data.get('subject_id')
-        subject = Subject.query.get(subject_id) if subject_id else None
-        
-        # Get schedule type (lecture, lab, or both)
-        schedule_type = schedule_data.get('schedule_type', 'lecture')
-        
-        # Calculate required duration based on schedule type and subject units
-        # DYNAMIC: Duration matches the schedule type selection
-        # For LECTURE: use lec_units (lecture hours only)
-        # For LAB: use lab_units (lab hours only)
-        # For BOTH: use total_units (lecture + lab combined)
-        if subject:
-            if schedule_type == 'lab':
-                # Lab schedule: use lab_units directly (1 unit = 1 hour)
-                required_hours = float(subject.lab_units) if subject.lab_units else 1.5
-            elif schedule_type == 'both':
-                # Both schedule: use total_units (lec + lab = total)
-                required_hours = float(subject.total_units) if subject.total_units else 3.0
-            else:
-                # Lecture schedule: use lec_units (1 unit = 1 hour)
-                required_hours = float(subject.lec_units) if subject.lec_units else 1.5
-            # Convert hours to minutes for time calculation
-            required_minutes = int(required_hours * 60)
-        else:
-            # Default: assume 1.5 hours (90 minutes)
-            required_hours = 1.5
-        
-        # Generate time slots based on 30-minute intervals from configured start to end hour
-        # This matches the dropdown options in the UI which are now dynamic
-        time_slots = []
-        
-        # Use configured start and end hours from settings
-        start_minute = 0
-        
-        # Generate all possible 30-minute interval start times
-        current_datetime = datetime.combine(datetime.today(), time(start_hour, start_minute))
-        end_limit = datetime.combine(datetime.today(), time(end_hour, 0))
-        
-        while current_datetime <= end_limit:
-            current_time = current_datetime.time()
-            
-            # Calculate end time based on required duration
-            end_datetime = current_datetime + timedelta(minutes=required_minutes)
-            
-            # Only include if end time is within configured end hour and on same day
-            if end_datetime.time() <= time(end_hour, 0) and end_datetime.date() == current_datetime.date():
-                time_slots.append((current_time, end_datetime.time()))
-            
-            # Increment by 30 minutes
-            current_datetime = current_datetime + timedelta(minutes=30)
-        
-        section_id = schedule_data.get('section_id')
-        faculty_id = schedule_data.get('faculty_id')
-        room_id = schedule_data.get('room_id')
-        
-        for start, end in time_slots:
-            # Check if this slot is free for all entities
-            is_free = True
-            
-            for schedule in existing_schedules:
-                if schedule.day_of_week != day:
-                    continue
-                
-                if self._times_overlap(start, end, schedule.start_time, schedule.end_time):
-                    if (schedule.section_id == section_id or 
-                        (faculty_id and schedule.faculty_id == faculty_id) or
-                        (room_id and schedule.room_id == room_id)):
-                        is_free = False
-                        break
-            
-            if is_free:
-                # Calculate duration in hours for display
-                duration_minutes = (datetime.combine(datetime.today(), end) - 
-                                   datetime.combine(datetime.today(), start)).seconds // 60
-                duration_hours = duration_minutes / 60
-                
-                # Build unit information string for display
-                unit_info = ""
-                if subject:
-                    if schedule_type == 'lab':
-                        unit_info = f" - Lab: {subject.lab_units} units"
-                    elif schedule_type == 'both':
-                        unit_info = f" - Both: {subject.total_units} units"
-                    else:  # lecture
-                        unit_info = f" - Lecture: {subject.lec_units} units"
-                
-                alternatives.append({
-                    'start_time': start.strftime('%H:%M'),
-                    'end_time': end.strftime('%H:%M'),
-                    'display': f"{start.strftime('%I:%M %p')} - {end.strftime('%I:%M %p')} ({duration_hours:.1f} hrs{unit_info})",
-                    'duration_hours': duration_hours,
-                    'score': self._calculate_time_slot_score(start, end)
-                })
-        
-        # Sort by score (prefer morning slots)
-        return sorted(alternatives, key=lambda x: x['score'], reverse=True)[:5]
-    
-    def _find_alternative_days(self, schedule_data: Dict, existing_schedules: List) -> List[Dict]:
-        """Find alternative days for the schedule with subject-based duration"""
-        alternatives = []
-        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-        
-        current_day = schedule_data.get('day_of_week')
-        start_time = schedule_data.get('start_time')
-        end_time = schedule_data.get('end_time')
-        section_id = schedule_data.get('section_id')
-        faculty_id = schedule_data.get('faculty_id')
-        room_id = schedule_data.get('room_id')
-        
-        # Calculate duration for display
-        if start_time and end_time:
-            duration_minutes = (datetime.combine(datetime.today(), end_time) - 
-                               datetime.combine(datetime.today(), start_time)).seconds // 60
-            duration_hours = duration_minutes / 60
-        else:
-            duration_hours = 1.5
-        
-        for day in days:
-            if day == current_day:
-                continue
-            
-            # Check if this day/time is free
-            is_free = True
-            
-            for schedule in existing_schedules:
-                if schedule.day_of_week != day:
-                    continue
-                
-                if self._times_overlap(start_time, end_time, schedule.start_time, schedule.end_time):
-                    if (schedule.section_id == section_id or 
-                        (faculty_id and schedule.faculty_id == faculty_id) or
-                        (room_id and schedule.room_id == room_id)):
-                        is_free = False
-                        break
-            
-            if is_free:
-                alternatives.append({
-                    'day': day,
-                    'display': f"{day} at {start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')} ({duration_hours:.1f} hrs)",
-                    'duration_hours': duration_hours,
-                    'score': self._calculate_day_score(day)
-                })
-        
-        return sorted(alternatives, key=lambda x: x['score'], reverse=True)[:3]
-    
-    def _find_alternative_rooms(self, schedule_data: Dict, existing_schedules: List) -> List[Dict]:
-        """Find alternative available rooms"""
-        from app.extensions import db
-        
-        alternatives = []
-        day = schedule_data.get('day_of_week')
-        start_time = schedule_data.get('start_time')
-        end_time = schedule_data.get('end_time')
-        
-        # Get all available rooms
-        all_rooms = Room.query.filter_by(is_available=True).all()
-        
-        for room in all_rooms:
-            # Check if room is free at this time
-            is_free = True
-            
-            for schedule in existing_schedules:
-                if (schedule.room_id == room.id and 
-                    schedule.day_of_week == day and
-                    self._times_overlap(start_time, end_time, schedule.start_time, schedule.end_time)):
-                    is_free = False
-                    break
-            
-            if is_free:
-                alternatives.append({
-                    'room_id': room.id,
-                    'room_number': room.room_number,
-                    'building': room.building.building_name if room.building else 'Unknown',
-                    'display': f"{room.building.building_name if room.building else 'Unknown'} - {room.room_number}"
-                })
-        
-        return alternatives[:5]
-    
-    def _find_alternative_faculty(self, schedule_data: Dict, existing_schedules: List) -> List[Dict]:
-        """Find alternative available faculty assigned to this subject"""
-        from app.extensions import db
-        from app.models.faculty import FacultySubjectAssignment
+    def suggest_rooms(
+        self,
+        subject_id: int,
+        day: str,
+        start_time: time,
+        end_time: time,
+        exclude_schedule_id: Optional[int] = None
+    ) -> List[Dict]:
+        """Suggest appropriate rooms based on subject type and availability"""
+        from app.models.building import Room
+        from app.models.curriculum import Subject
+        from app.models.schedule import Schedule
         from app.models.settings import AcademicSettings
         
-        alternatives = []
-        day = schedule_data.get('day_of_week')
-        start_time = schedule_data.get('start_time')
-        end_time = schedule_data.get('end_time')
-        subject_id = schedule_data.get('subject_id')
+        suggestions = []
         
-        # Get subject to find assigned faculty
+        # Get subject to check type
         subject = Subject.query.get(subject_id)
         if not subject:
             return []
+            
+        is_lab = subject.lab_units > 0
+        is_lecture = subject.lec_units > 0
         
-        # Get current academic settings
+        # Check for PE/Sports subject
+        subject_code_lower = subject.subject_code.lower()
+        subject_desc_lower = subject.course_description.lower()
+        is_pe = any(keyword in subject_code_lower for keyword in ['pe', 'pathfit', 'p.e.']) or \
+                any(keyword in subject_desc_lower for keyword in ['physical education', 'sports', 'fitness', 'gymnastics'])
+        
+        # Get current settings
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
         if not current_settings:
             return []
-        
-        # Get faculty assignments for this subject and current academic period
-        assignments = FacultySubjectAssignment.query.filter_by(
-            subject_id=subject_id,
-            academic_year=current_settings.academic_year,
-            semester=current_settings.semester,
-            is_active=True,
-            is_archived=False
-        ).all()
-        
-        # Get unique faculty IDs assigned to this subject
-        faculty_ids = list(set([assignment.faculty_id for assignment in assignments]))
-        
-        # Get faculty details
-        assigned_faculty = Faculty.query.filter(
-            Faculty.id.in_(faculty_ids),
-            Faculty.is_active == True,
-            Faculty.is_archived == False
-        ).all()
-        
-        for faculty in assigned_faculty:
-            # Check if faculty is free at this time
-            is_free = True
             
-            for schedule in existing_schedules:
-                if (schedule.faculty_id == faculty.id and 
-                    schedule.day_of_week == day and
-                    self._times_overlap(start_time, end_time, schedule.start_time, schedule.end_time)):
-                    is_free = False
-                    break
+        # Get all active rooms
+        all_rooms = Room.query.filter_by(is_available=True).all()
+        
+        for room in all_rooms:
+            # Check for conflicts
+            conflicts = Schedule.query.filter(
+                Schedule.room_id == room.id,
+                Schedule.day_of_week == day,
+                Schedule.is_active == True,
+                Schedule.academic_year == current_settings.academic_year,
+                Schedule.semester == current_settings.semester,
+                or_(
+                    and_(Schedule.start_time < end_time, Schedule.end_time > start_time)
+                )
+            )
+
+            if exclude_schedule_id:
+                conflicts = conflicts.filter(Schedule.id != exclude_schedule_id)
+
+            conflicts = conflicts.count()
             
-            if is_free:
-                # Calculate workload
-                workload = len([s for s in existing_schedules if s.faculty_id == faculty.id])
+            if conflicts == 0:
+                # Score the room
+                score = 100
+                room_name_lower = room.room_number.lower()
+                room_type = getattr(room, 'room_type', 'Lecture')
                 
-                alternatives.append({
-                    'faculty_id': faculty.id,
-                    'name': faculty.full_name,
-                    'department': faculty.department.department_name if faculty.department else 'Unknown',
-                    'current_workload': workload,
-                    'display': f"{faculty.full_name} ({faculty.department.department_code if faculty.department else 'N/A'}) - {workload} classes"
+                # Exclude Court/Gym rooms for non-PE subjects
+                if room_type == 'Court/Gym' and not is_pe:
+                    continue
+                
+                # PE Logic
+                if is_pe:
+                    if room_type == 'Court/Gym':
+                        score += 100 # Perfect match
+                    elif room_type == 'Laboratory':
+                        score -= 80 # Strong penalty
+                    else:
+                        score -= 40 # Penalty for lecture rooms
+                        
+                    # Fallback name check
+                    pe_facilities = ['gym', 'court', 'field', 'oval', 'covered', 'sports', 'plaza']
+                    if any(facility in room_name_lower for facility in pe_facilities):
+                        score += 20
+                
+                # Lab Logic
+                elif is_lab:
+                    if is_lecture: # Mixed subject
+                        if room_type == 'Laboratory':
+                            score += 100
+                        elif room_type == 'Lecture':
+                            score += 90 # Almost as good
+                        elif room_type == 'Court/Gym':
+                            score -= 80
+                    else: # Pure Lab
+                        if room_type == 'Laboratory':
+                            score += 100 # Perfect match
+                        elif room_type == 'Court/Gym':
+                            score -= 80 # Strong penalty
+                        else:
+                            score -= 40 # Penalty for lecture rooms
+                        
+                    # Fallback name check
+                    if 'lab' in room_name_lower or 'com' in room_name_lower:
+                        score += 20
+                
+                # Lecture Logic
+                else:
+                    if room_type == 'Lecture':
+                        score += 50 # Good match
+                    elif room_type == 'Laboratory':
+                        score -= 30 # Can use lab for lecture but not ideal
+                    elif room_type == 'Court/Gym':
+                        score -= 80 # Strong penalty
+                    
+                    # Fallback name check
+                    if 'lab' in room_name_lower or 'com' in room_name_lower:
+                        score -= 10
+                
+                suggestions.append({
+                    'id': room.id,
+                    'name': room.room_number,
+                    'type': room_type,
+                    'score': score,
+                    'building': room.building.building_name if room.building else ""
                 })
         
-        # Sort by workload (prefer less loaded faculty)
-        return sorted(alternatives, key=lambda x: x['current_workload'])[:5]
-    
-    def _calculate_time_slot_score(self, start: time, end: time) -> int:
-        """Calculate preference score for a time slot (prefer morning, works with any configured time range)"""
-        hour = start.hour
-        
-        if hour <= 8:  # Early morning slots
-            return 85
-        elif 8 < hour < 10:  # Morning prime time
-            return 100
-        elif 10 <= hour < 12:  # Late morning
-            return 90
-        elif 13 <= hour < 15:  # Early afternoon
-            return 80
-        elif 15 <= hour < 17:  # Late afternoon
-            return 70
-        elif 17 <= hour < 19:  # Evening
-            return 60
-        else:  # Late evening/night
-            return 50
-    
-    def _calculate_day_score(self, day: str) -> int:
-        """Calculate preference score for a day (prefer early week)"""
-        day_scores = {
-            'Monday': 100,
-            'Tuesday': 95,
-            'Wednesday': 90,
-            'Thursday': 85,
-            'Friday': 80,
-            'Saturday': 60
-        }
-        return day_scores.get(day, 50)
-    
-    def _get_ai_explanation(self, schedule_data: Dict, conflicts: List[Dict], 
-                           recommendations: List[Dict]) -> str:
-        """Get AI-generated explanation and guidance"""
-        if not self.enabled or not self.model:
-            return ""
-        
-        try:
-            # Prepare context for AI
-            conflict_summary = "\n".join([
-                f"- {c['type'].title()} Conflict: {c['message']}" 
-                for c in conflicts
-            ])
-            
-            recommendation_summary = "\n".join([
-                f"- {r['title']}: {len(r['options'])} options available"
-                for r in recommendations
-            ])
-            
-            prompt = f"""You are an intelligent scheduling assistant for a university. 
-            
-A user is trying to schedule a class with the following details:
-- Day: {schedule_data.get('day_of_week')}
-- Time: {schedule_data.get('start_time').strftime('%I:%M %p')} - {schedule_data.get('end_time').strftime('%I:%M %p')}
+        # Sort by score
+        return sorted(suggestions, key=lambda x: x['score'], reverse=True)
 
-The following conflicts were detected:
-{conflict_summary}
-
-Available recommendations:
-{recommendation_summary}
-
-Provide a brief, helpful explanation (1-2 sentences) that:
-1. Identifies the main conflict
-2. Suggests the best resolution
-
-Keep your response ultra-concise and actionable."""
-
-            response = self.model.generate_content(prompt)
-            return response.text.strip()
-            
-        except Exception as e:
-            print(f"AI explanation error: {str(e)}")
-            return "Unable to generate AI explanation at this time."
-    
     def suggest_optimal_schedule(self, section: Section, subject: Subject, 
                                 faculty: Optional[Faculty] = None) -> Dict:
         """
@@ -925,9 +968,7 @@ Keep your response ultra-concise and actionable."""
         Returns:
             Dictionary with suggested day, time, and AI reasoning
         """
-        if not self.enabled:
-            return {'ai_enabled': False, 'suggestions': []}
-        
+        # Core logic is pure Python — no Gemini needed
         from app.extensions import db
         
         # Get current settings
@@ -947,6 +988,7 @@ Keep your response ultra-concise and actionable."""
         
         return {
             'ai_enabled': True,
+            'offline_mode': not self.enabled,
             'suggestions': suggestions
         }
     
@@ -962,7 +1004,8 @@ Keep your response ultra-concise and actionable."""
         used_days = set(s.day_of_week for s in section_schedules)
         
         # Find free days
-        all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        from app.models.settings import AcademicSettings
+        all_days = AcademicSettings.get_active_operation_days()
         free_days = [day for day in all_days if day not in used_days]
         
         # Prefer spreading classes across the week
@@ -992,8 +1035,8 @@ Keep your response ultra-concise and actionable."""
         
         # Get current academic settings for time range
         current_settings = AcademicSettings.query.filter_by(is_active=True).first()
-        start_hour = current_settings.schedule_start_hour if current_settings else 7
-        end_hour = current_settings.schedule_end_hour if current_settings else 20
+        start_hour = (current_settings.schedule_start_time.hour if current_settings and current_settings.schedule_start_time else 7)
+        end_hour = (current_settings.schedule_end_time.hour if current_settings and current_settings.schedule_end_time else 20)
         
         # Generate time slots dynamically based on configured time range (30-minute intervals)
         time_slots = []
@@ -1045,79 +1088,143 @@ Keep your response ultra-concise and actionable."""
         
         return free_slots
     
-    def generate_report_summary(self, stats: Dict, academic_year: str = None, 
-                               semester: str = None, department_name: str = None) -> Dict:
+    def generate_report_summary(self, stats: Dict, academic_year: str = None,
+                               semester: str = None, program_name: str = None) -> Dict:
         """
-        Generate a comprehensive AI summary of the report statistics
+        Generate a professional executive-style AI summary of the report statistics.
         
         Args:
             stats: Dictionary containing all report statistics
             academic_year: Current academic year
             semester: Current semester
-            department_name: Specific department being analyzed (if filtered)
+            program_name: Specific program being analyzed (if filtered)
         
         Returns:
-            Dictionary with summary text and key insights
+            Dictionary with summary text, severity-tagged insights, and prioritized recommendations
         """
         if not self.enabled or not self.model:
-            return {
-                'ai_enabled': False,
-                'summary': 'AI summary is not available. Please configure the Gemini API key.',
-                'insights': [],
-                'recommendations': []
-            }
+            return self._generate_offline_report_summary(stats, academic_year, semester, program_name)
         
         try:
             # Build scope context
-            scope = f"DEPARTMENT: {department_name}\n" if department_name else "SCOPE: All Departments\n"
+            scope = f"PROGRAM: {program_name}\n" if program_name else "SCOPE: All Programs / Institution-wide\n"
             
-            # Prepare context for AI
-            context = f"""
-You are an educational data analyst providing a CONCISE analysis of scheduling data.
+            # Calculate utilization rates
+            total_faculty = stats.get('total_faculty', 0)
+            faculty_with_schedules = stats.get('faculty_with_schedules', 0)
+            unassigned_faculty = stats.get('unassigned_faculty_count', total_faculty - faculty_with_schedules)
+            faculty_utilization = round((faculty_with_schedules / total_faculty * 100), 1) if total_faculty > 0 else 0
+            
+            total_rooms = stats.get('total_rooms', 0)
+            rooms_in_use = stats.get('rooms_in_use', 0)
+            unused_rooms = stats.get('unused_rooms_count', total_rooms - rooms_in_use)
+            room_usage_rate = round((rooms_in_use / total_rooms * 100), 1) if total_rooms > 0 else 0
+            
+            avg_room_utilization = stats.get('avg_room_utilization', 0)
+            total_hours_used = stats.get('total_room_hours_used', 0)
+            
+            completion_rate = stats.get('schedule_completion_rate', 0)
+            overloaded_count = stats.get('overloaded_faculty_count', 0)
+            
+            # Prepare context for AI with enhanced metrics
+            context = f"""You are a scheduling operations analyst preparing an executive briefing for a university dean or administrator. Analyze the following scheduling data and provide a professional, data-driven assessment.
 
 PERIOD: {academic_year or 'N/A'}, {semester or 'N/A'}
 {scope}
-KEY METRICS:
-- Schedules: {stats.get('total_schedules', 0)} classes, {stats.get('total_exam_schedules', 0)} exams
-- Faculty: {stats.get('faculty_with_schedules', 0)}/{stats.get('total_faculty', 0)} active
-- Rooms: {stats.get('rooms_in_use', 0)}/{stats.get('total_rooms', 0)} in use
-- Type: {stats.get('lecture_count', 0)} lectures, {stats.get('lab_count', 0)} labs
+=== OVERVIEW METRICS ===
+- Total Class Schedules: {stats.get('total_schedules', 0)}
+- Total Exam Schedules: {stats.get('total_exam_schedules', 0)}
+- Schedule Types: {stats.get('lecture_count', 0)} lectures, {stats.get('lab_count', 0)} labs
+- Active Sections: {stats.get('total_sections', 0)}
+- Schedule Completion: {completion_rate:.1f}% of sections scheduled
 
-TOP FACULTY WORKLOAD:
-{self._format_faculty_workload(stats.get('faculty_workloads', [])[:3])}
+=== FACULTY UTILIZATION ===
+- Total Faculty: {total_faculty}
+- Assigned (with schedules): {faculty_with_schedules} ({faculty_utilization}%)
+- Unassigned (no schedules): {unassigned_faculty}
+- Overloaded (exceed max units): {overloaded_count}
+- At Warning Level (>80% load): {stats.get('warning_faculty_count', 0)}
+- Average Utilization: {stats.get('avg_faculty_utilization', 0):.1f}%
+{self._format_unassigned_by_dept(stats.get('unassigned_faculty_by_dept', {}))}
 
-TOP ROOM USAGE:
-{self._format_room_utilization(stats.get('room_utilizations', [])[:3])}
+=== ROOM UTILIZATION ===
+- Total Rooms: {total_rooms}
+- Rooms in Use: {rooms_in_use} ({room_usage_rate}%)
+- Unused Rooms: {unused_rooms}
+- Average Room Utilization: {avg_room_utilization}% (based on weekly capacity)
+- Total Hours Scheduled: {total_hours_used} hrs
+{self._format_unused_by_type(stats.get('unused_rooms_by_type', {}))}
 
-WEEKLY PATTERN:
+=== BUILDING UTILIZATION ===
+{self._format_building_utilization(stats.get('room_utilization_by_building', {}))}
+
+=== TOP FACULTY BY WORKLOAD ===
+{self._format_faculty_workload(stats.get('faculty_workloads', [])[:5])}
+
+=== TOP ROOMS BY USAGE ===
+{self._format_room_utilization_hours(stats.get('room_utilizations', [])[:5])}
+
+=== WEEKLY DISTRIBUTION ===
 {self._format_weekly_distribution(stats.get('schedule_by_day', {}))}
 
-Provide a BRIEF analysis {"for " + department_name if department_name else "across all departments"}:
-- Summary: 2-3 sentences highlighting overall status and utilization rates{"" if not department_name else " for this department"}
-- Key Insights: 3-4 bullet points (one sentence each) about critical patterns{"" if not department_name else " specific to this department"}
-- Recommendations: 3-4 bullet points (one sentence each) with specific actions{"" if not department_name else " for improving this department's scheduling"}
+---
 
-Be direct, specific, and actionable. Use numbers. No fluff.
-{"Focus exclusively on " + department_name + " data." if department_name else "Consider department-level variations if relevant."}
-DO NOT use markdown formatting (no **, *, or #). Use plain text only.
-DO NOT number the sections (no "1.", "2.", "3."). Just use section headers."""
+Respond EXACTLY in this format (plain text only, no markdown):
+
+EXECUTIVE SUMMARY
+Write 2-3 sentences. State the overall scheduling health from completion, faculty load, and room utilization. Mention the single most critical issue and the strongest metric. Be precise with numbers.
+
+KEY FINDINGS
+Write exactly 5 bullet points. Each MUST start with a severity tag in square brackets:
+- [CRITICAL] for issues requiring immediate action (conflicts, overloaded faculty, completion < 50%)
+- [WARNING] for concerning trends needing attention (unused resources > 30%, unassigned faculty, imbalanced days)
+- [INFO] for positive observations or neutral facts (strong metrics, balanced loads, good completion rates)
+Format: [TAG] Finding text with specific numbers.
+
+PRIORITY ACTIONS
+Write exactly 4 bullet points. Each MUST start with a priority tag in square brackets:
+- [HIGH] for actions addressing critical issues
+- [MEDIUM] for optimization opportunities
+- [LOW] for nice-to-have improvements
+Format: [TAG] Action description — expected impact.
+
+RULES:
+- Be specific and cite actual numbers from the data
+- {"Focus exclusively on " + program_name + " data." if program_name else "Consider institution-wide patterns."}
+- DO NOT use any markdown formatting (no **, *, #, or _)
+- DO NOT number the bullet points
+- Each bullet point must start with a dash (-)
+- Keep each bullet point to 1-2 sentences maximum
+"""
             
             # Generate AI response
             response = self.model.generate_content(context)
             summary_text = response.text
             
-            # Parse the response to extract sections
-            insights = self._extract_bullet_points(summary_text, "Key Insights", "Recommendations")
+            # Parse the response into structured sections
+            insights = self._extract_tagged_bullets(summary_text, "Key Findings", "Priority Actions")
             if not insights:
-                insights = self._extract_bullet_points(summary_text, "Insights", "Recommendations")
+                # Fallback to old markers
+                insights = self._extract_tagged_bullets(summary_text, "Key Insights", "Recommendations")
+                if not insights:
+                    insights = self._extract_tagged_bullets(summary_text, "Insights", "Recommendations")
             
-            recommendations = self._extract_bullet_points(summary_text, "Recommendations", None)
+            recommendations = self._extract_tagged_bullets(summary_text, "Priority Actions", None)
+            if not recommendations:
+                recommendations = self._extract_tagged_bullets(summary_text, "Recommendations", None)
             
-            # Extract main summary (everything before bullet points)
-            main_summary = summary_text.split("Key Insights")[0].strip() if "Key Insights" in summary_text else summary_text.split("Insights")[0].strip() if "Insights" in summary_text else summary_text.split("Recommendations")[0].strip() if "Recommendations" in summary_text else summary_text
+            # Extract main summary (everything before Key Findings / Key Insights)
+            for marker in ["Key Findings", "KEY FINDINGS", "Key Insights", "KEY INSIGHTS", "Insights", "Recommendations"]:
+                if marker in summary_text:
+                    main_summary = summary_text.split(marker)[0].strip()
+                    break
+            else:
+                main_summary = summary_text
             
-            # Clean up markdown formatting from summary
-            main_summary = main_summary.replace('**', '').strip()
+            # Clean up markdown formatting and section headers from summary
+            for remove_str in ['**', 'EXECUTIVE SUMMARY', 'Executive Summary:', 'Executive Summary', 'SUMMARY', 'Summary:', 'Summary']:
+                main_summary = main_summary.replace(remove_str, '')
+            main_summary = main_summary.lstrip(':- \n').strip()
             
             return {
                 'ai_enabled': True,
@@ -1137,22 +1244,119 @@ DO NOT number the sections (no "1.", "2.", "3."). Just use section headers."""
                 'recommendations': []
             }
     
+    def _generate_offline_report_summary(self, stats: Dict, academic_year: str = None,
+                                         semester: str = None, program_name: str = None) -> Dict:
+        """
+        Generate a rule-based offline report summary with severity-tagged insights.
+        Works without Gemini API key. Matches the structured format of the AI version.
+        """
+        total_schedules = stats.get('total_schedules', 0)
+        total_exams = stats.get('total_exam_schedules', 0)
+        total_faculty = stats.get('total_faculty', 0)
+        faculty_with_schedules = stats.get('faculty_with_schedules', 0)
+        unassigned_count = stats.get('unassigned_faculty_count', total_faculty - faculty_with_schedules)
+        total_rooms = stats.get('total_rooms', 0)
+        rooms_in_use = stats.get('rooms_in_use', 0)
+        unused_rooms_count = stats.get('unused_rooms_count', total_rooms - rooms_in_use)
+        avg_room_util = stats.get('avg_room_utilization', 0)
+        overloaded = stats.get('overloaded_faculty_count', 0)
+        completion = stats.get('schedule_completion_rate', 0)
+
+        scope = f"for {program_name}" if program_name else "across all programs"
+        period = f"{academic_year}, {semester}" if academic_year else "the current period"
+
+        # Build summary
+        faculty_pct = round((faculty_with_schedules / total_faculty * 100), 1) if total_faculty > 0 else 0
+        room_pct = round((rooms_in_use / total_rooms * 100), 1) if total_rooms > 0 else 0
+
+        summary = (
+            f"During {period} {scope}: {total_schedules} class schedules and {total_exams} exam "
+            f"schedules are active. Faculty utilization is at {faculty_pct}% ({faculty_with_schedules}/{total_faculty}), "
+            f"room usage is at {room_pct}% ({rooms_in_use}/{total_rooms}), "
+            f"and schedule completion stands at {completion:.0f}%."
+        )
+
+        # Build severity-tagged insights
+        insights = []
+        
+        if overloaded > 0:
+            insights.append({'text': f'{overloaded} faculty member(s) exceed their maximum unit load — immediate rebalancing required.', 'severity': 'critical'})
+        
+        if completion < 50:
+            insights.append({'text': f'Only {completion:.0f}% of sections are scheduled — significant scheduling work remains.', 'severity': 'critical'})
+        elif completion < 80:
+            insights.append({'text': f'Schedule completion at {completion:.0f}% — continued progress needed.', 'severity': 'warning'})
+        elif completion >= 90:
+            insights.append({'text': f'Schedule completion is strong at {completion:.0f}%.', 'severity': 'info'})
+        
+        if unassigned_count > 0:
+            severity = 'warning' if unassigned_count <= 3 else 'critical'
+            insights.append({'text': f'{unassigned_count} faculty member(s) have no schedules assigned — review subject assignments.', 'severity': severity})
+        
+        if unused_rooms_count > 0:
+            unused_pct = round((unused_rooms_count / total_rooms * 100)) if total_rooms > 0 else 0
+            by_type = stats.get('unused_rooms_by_type', {})
+            type_info = ", ".join(f"{v} {k}" for k, v in by_type.items()) if by_type else f"{unused_rooms_count} room(s)"
+            severity = 'warning' if unused_pct > 30 else 'info'
+            insights.append({'text': f'{unused_rooms_count} rooms ({unused_pct}%) unused: {type_info}.', 'severity': severity})
+        
+        if avg_room_util < 30 and total_rooms > 0:
+            insights.append({'text': f'Average room utilization is low at {avg_room_util:.1f}% — consider consolidating schedules.', 'severity': 'warning'})
+
+        # Day distribution insight
+        day_dist = stats.get('schedule_by_day', {})
+        if day_dist:
+            active_days = {d: c for d, c in day_dist.items() if c > 0}
+            if len(active_days) >= 2:
+                max_day = max(active_days, key=active_days.get)
+                min_day = min(active_days, key=active_days.get)
+                if active_days[max_day] > active_days[min_day] * 2:
+                    insights.append({'text': f'Schedule imbalance: {max_day} has {active_days[max_day]} classes vs {min_day} with {active_days[min_day]}.', 'severity': 'warning'})
+
+        if not insights:
+            insights.append({'text': 'Scheduling metrics are within normal ranges.', 'severity': 'info'})
+
+        # Build priority-tagged recommendations
+        recommendations = []
+        if overloaded > 0:
+            recommendations.append({'text': 'Redistribute overloaded faculty schedules to maintain quality of instruction.', 'priority': 'high'})
+        if unassigned_count > 0:
+            recommendations.append({'text': 'Review unassigned faculty and ensure subject assignments are current.', 'priority': 'high'})
+        if completion < 80:
+            recommendations.append({'text': 'Use Auto-Generate Schedule to fill remaining unscheduled sections efficiently.', 'priority': 'high' if completion < 50 else 'medium'})
+        if unused_rooms_count > 3:
+            recommendations.append({'text': 'Consolidate class scheduling to reduce unused room overhead.', 'priority': 'medium'})
+        if avg_room_util < 40 and total_rooms > 0:
+            recommendations.append({'text': 'Use the auto-generate feature to optimize room allocation.', 'priority': 'medium'})
+        
+        if not recommendations:
+            recommendations.append({'text': 'Continue monitoring utilization as the semester progresses.', 'priority': 'low'})
+
+        return {
+            'ai_enabled': False,
+            'offline_mode': True,
+            'summary': summary,
+            'insights': insights[:5],
+            'recommendations': recommendations[:4]
+        }
+
     def _format_faculty_workload(self, faculty_list: List[Dict]) -> str:
         """Format faculty workload data for AI context"""
         if not faculty_list:
-            return "None"
+            return "No faculty data available"
         
         lines = []
         for i, faculty in enumerate(faculty_list, 1):
+            dept = faculty.get('program', 'N/A')
             lines.append(
-                f"{i}. {faculty['name']}: {faculty['total_units']} units ({faculty['schedules']} classes)"
+                f"{i}. {faculty['name']} ({dept}): {faculty['total_units']} units, {faculty['schedules']} classes ({faculty.get('lec_units', 0)} lec + {faculty.get('lab_units', 0)} lab)"
             )
         return "\n".join(lines)
     
     def _format_room_utilization(self, room_list: List[Dict]) -> str:
-        """Format room utilization data for AI context"""
+        """Format room utilization data for AI context (legacy)"""
         if not room_list:
-            return "None"
+            return "No room data available"
         
         lines = []
         for i, room in enumerate(room_list, 1):
@@ -1161,15 +1365,78 @@ DO NOT number the sections (no "1.", "2.", "3."). Just use section headers."""
             )
         return "\n".join(lines)
     
-    def _format_weekly_distribution(self, schedule_by_day: Dict) -> str:
-        """Format weekly distribution for AI context"""
-        if not schedule_by_day:
-            return "None"
+    def _format_room_utilization_hours(self, room_list: List[Dict]) -> str:
+        """Format room utilization data with hours-based metrics"""
+        if not room_list:
+            return "No room data available"
         
         lines = []
+        for i, room in enumerate(room_list, 1):
+            building = room.get('building', 'N/A')
+            room_type = room.get('type', 'N/A')
+            total_hours = room.get('total_hours', 0)
+            utilization = room.get('utilization_pct', 0)
+            lines.append(
+                f"{i}. {room['room']} ({building}, {room_type}): {total_hours} hrs/week, {utilization}% utilized"
+            )
+        return "\n".join(lines)
+    
+    def _format_unassigned_by_dept(self, unassigned_by_dept: Dict) -> str:
+        """Format unassigned faculty by program"""
+        if not unassigned_by_dept:
+            return ""
+        
+        lines = ["  Unassigned by Program:"]
+        for dept, count in unassigned_by_dept.items():
+            lines.append(f"    - {dept}: {count} faculty")
+        return "\n".join(lines)
+    
+    def _format_unused_by_type(self, unused_by_type: Dict) -> str:
+        """Format unused rooms by type"""
+        if not unused_by_type:
+            return ""
+        
+        lines = ["  Unused by Room Type:"]
+        for room_type, count in unused_by_type.items():
+            lines.append(f"    - {room_type}: {count} rooms")
+        return "\n".join(lines)
+    
+    def _format_building_utilization(self, building_util: Dict) -> str:
+        """Format building-level utilization data"""
+        if not building_util:
+            return "No building data available"
+        
+        lines = []
+        for building, data in building_util.items():
+            total_rooms = data.get('total', 0)
+            rooms_in_use = data.get('in_use', 0)
+            total_hours = data.get('total_hours', 0)
+            max_hours = data.get('max_hours', 0)
+            utilization = data.get('utilization_pct', 0)
+            lines.append(
+                f"- {building}: {rooms_in_use}/{total_rooms} rooms active, {total_hours}/{max_hours} hrs ({utilization}% utilized)"
+            )
+        return "\n".join(lines) if lines else "No building data available"
+    
+    def _format_weekly_distribution(self, schedule_by_day: Dict) -> str:
+        """Format weekly distribution for AI context with analysis hints"""
+        if not schedule_by_day:
+            return "No weekly data available"
+        
+        total = sum(schedule_by_day.values())
+        if total == 0:
+            return "No schedules recorded"
+        
+        lines = []
+        max_day = max(schedule_by_day.items(), key=lambda x: x[1]) if schedule_by_day else (None, 0)
+        min_day = min(schedule_by_day.items(), key=lambda x: x[1]) if schedule_by_day else (None, 0)
+        
         for day, count in schedule_by_day.items():
-            lines.append(f"{day}: {count}")
-        return ", ".join(lines)
+            pct = round((count / total * 100), 1) if total > 0 else 0
+            marker = " (PEAK)" if day == max_day[0] else " (LOW)" if day == min_day[0] else ""
+            lines.append(f"- {day}: {count} schedules ({pct}%){marker}")
+        
+        return "\n".join(lines)
     
     def _extract_bullet_points(self, text: str, start_marker: str, 
                                end_marker: Optional[str]) -> List[str]:
@@ -1202,7 +1469,81 @@ DO NOT number the sections (no "1.", "2.", "3."). Just use section headers."""
                     if cleaned and len(cleaned) > 10:  # Only include substantial points
                         bullets.append(cleaned)
             
-            return bullets[:4]  # Limit to 4 items for conciseness
+            return bullets[:5]  # Limit to 5 items
+        except Exception:
+            return []
+    
+    def _extract_tagged_bullets(self, text: str, start_marker: str,
+                                end_marker: Optional[str]) -> List[Dict]:
+        """Extract bullet points with severity/priority tags from AI response.
+        
+        Returns list of dicts: [{'text': '...', 'severity': 'critical|warning|info'}]
+        or [{'text': '...', 'priority': 'high|medium|low'}] depending on section.
+        Falls back to plain strings wrapped in dicts if no tags found.
+        """
+        import re
+        try:
+            # Case-insensitive search for the marker
+            text_lower = text.lower()
+            marker_lower = start_marker.lower()
+            
+            if marker_lower not in text_lower:
+                return []
+            
+            start_idx = text_lower.index(marker_lower) + len(start_marker)
+            
+            if end_marker:
+                end_lower = end_marker.lower()
+                if end_lower in text_lower[start_idx:]:
+                    end_idx = text_lower.index(end_lower, start_idx)
+                    section = text[start_idx:end_idx]
+                else:
+                    section = text[start_idx:]
+            else:
+                section = text[start_idx:]
+            
+            lines = section.strip().split('\n')
+            bullets = []
+            for line in lines:
+                line = line.strip()
+                if not line or len(line) < 10:
+                    continue
+                    
+                # Check if line is a bullet point
+                if not (line.startswith(('-', '*', '\u2022', '**')) or 
+                       (len(line) > 2 and line[0].isdigit() and line[1] in '.)'))  :
+                    continue
+                
+                # Clean leading bullet markers
+                cleaned = line.lstrip('-*\u20220123456789.) ').strip()
+                cleaned = cleaned.replace('**', '').replace('__', '').strip()
+                
+                if not cleaned or len(cleaned) < 10:
+                    continue
+                
+                # Extract tag like [CRITICAL], [WARNING], [INFO], [HIGH], [MEDIUM], [LOW]
+                tag_match = re.match(r'\[([A-Za-z]+)\]\s*(.*)', cleaned)
+                if tag_match:
+                    tag = tag_match.group(1).lower()
+                    bullet_text = tag_match.group(2).strip()
+                    # Remove any remaining markdown
+                    bullet_text = bullet_text.replace('*', '').strip()
+                    
+                    if tag in ('critical', 'warning', 'info'):
+                        bullets.append({'text': bullet_text, 'severity': tag})
+                    elif tag in ('high', 'medium', 'low'):
+                        bullets.append({'text': bullet_text, 'priority': tag})
+                    else:
+                        bullets.append({'text': bullet_text, 'severity': 'info'})
+                else:
+                    # No tag found — auto-classify as info/medium
+                    cleaned = cleaned.replace('*', '').strip()
+                    if any(k in start_marker.lower() for k in ('finding', 'insight')):
+                        bullets.append({'text': cleaned, 'severity': 'info'})
+                    else:
+                        bullets.append({'text': cleaned, 'priority': 'medium'})
+            
+            return bullets[:5]
         except Exception:
             return []
 

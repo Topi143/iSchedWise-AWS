@@ -1,0 +1,776 @@
+﻿==============================================================================================================
+  DATA DICTIONARY
+  iSchedWise V4 -- School Scheduling System
+
+  Appendix C.3.4
+  Source of truth : ischedwise_db.sql
+  Database        : ischedwise_db
+  Engine          : MySQL / InnoDB
+  Generated       : 2026-04-03
+==============================================================================================================
+
+
+==============================================================================================================
+    TABLE INDEX
+==============================================================================================================
+
++-----+------------------------------------+---------------------------+---------+--------------------------------------------------------+
+| #   | Table                              | Group                     | Columns | Description                                            |
++-----+------------------------------------+---------------------------+---------+--------------------------------------------------------+
+| 1   | users                              | User & Authentication     | 23      | System user accounts (Admin, Super Admin, Dean)        |
+| 2   | login_history                      | User & Authentication     | 8       | Login/logout session records                           |
+| 3   | trusted_devices                    | User & Authentication     | 9       | Remembered devices used for trusted-login workflows    |
+| 4   | user_activity_logs                 | User & Authentication     | 10      | Granular audit trail of all user actions               |
+| 5   | user_programs                      | User & Authentication     | 4       | Dean-to-program access control mapping                 |
+| 6   | departments                        | Organization              | 7       | Academic departments (colleges)                        |
+| 7   | programs                           | Organization              | 15      | Degree programs offered by departments                 |
+| 8   | curricula                          | Curriculum & Subjects     | 13      | Curriculum versions tied to programs                   |
+| 9   | year_levels                        | Curriculum & Subjects     | 6       | Year levels within a curriculum                        |
+| 10  | semesters                          | Curriculum & Subjects     | 6       | Semesters within each year level                       |
+| 11  | subjects                           | Curriculum & Subjects     | 10      | Individual courses within semesters                    |
+| 12  | sections                           | Curriculum & Subjects     | 6       | Student section groups per program/year                |
+| 13  | faculty                            | Faculty                   | 14      | Faculty members who teach subjects                     |
+| 14  | faculty_availability               | Faculty                   | 11      | Faculty available time slots                           |
+| 15  | faculty_subject_assignments        | Faculty                   | 12      | Faculty-to-subject assignments per term                |
+| 16  | buildings                          | Facilities                | 9       | Campus buildings containing rooms                      |
+| 17  | rooms                              | Facilities                | 7       | Classrooms and laboratories                            |
+| 18  | academic_settings                  | Scheduling                | 27      | Global scheduling configuration                        |
+| 19  | schedules                          | Scheduling                | 17      | Regular class schedule entries                         |
+| 20  | exam_schedules                     | Scheduling                | 18      | Exam schedule entries                                  |
+| 21  | schedule_snapshots                 | Scheduling                | 12      | Stored schedule backup snapshots for restore workflows |
+| 22  | archives                           | Archives                  | 24      | Archived schedule snapshots (denormalized)             |
+| 23  | institution_settings               | System & Settings         | 13      | Institution profile, branding, and export headers      |
+| 24  | system_config                      | System & Settings         | 8       | Application-level key-value configuration              |
++-----+------------------------------------+---------------------------+---------+--------------------------------------------------------+
+
+
+==============================================================================================================
+    1. USER & AUTHENTICATION
+==============================================================================================================
+
+  Table: users
+
+  Stores system user accounts for all roles that can log in to iSchedWise. Supports Admin, Super Admin, and
+  Dean roles. Uses the standard archive pattern (is_archived, is_active flags) for soft deletion.
+
++-----------------------+---------------------------------------------------------+------------+--------+----------------+----------+---------------------+
+| Field Name            | Description                                             | Data Type  | Length | Key            | Required | Default             |
++-----------------------+---------------------------------------------------------+------------+--------+----------------+----------+---------------------+
+| id                    | Auto-incremented primary key                            | int        | 11     | PK             | Yes      | --                  |
+| username              | Unique login username                                   | varchar    | 80     |                | Yes      | --                  |
+| email                 | User email address                                      | varchar    | 120    |                | Yes      | --                  |
+| password_hash         | Werkzeug scrypt password hash                           | varchar    | 256    |                | Yes      | --                  |
+| role                  | User role: admin, super_admin, or dean                  | varchar    | 20     |                | Yes      | --                  |
+| full_name             | Full display name of the user                           | varchar    | 100    |                | Yes      | --                  |
+| is_active             | Whether the account is active (1=active, 0=inactive)    | tinyint(1) | --     |                | Yes      | 1                   |
+| is_archived           | Soft-delete flag; archived accounts cannot log in       | tinyint(1) | --     |                | Yes      | 0                   |
+| archived_by           | ID of the user who archived this account                | int        | 11     | FK -> users.id | No       | NULL                |
+| archived_at           | Timestamp when the account was archived                 | datetime   | --     |                | No       | NULL                |
+| archive_reason        | Reason provided for archiving the account               | varchar    | 255    |                | No       | NULL                |
+| email_verified        | Whether account setup / email verification is completed | tinyint(1) | --     |                | Yes      | 0                   |
+| email_verified_at     | Timestamp when email was verified                       | datetime   | --     |                | No       | NULL                |
+| needs_password_change | Forces a password change on the user's next login       | tinyint(1) | --     |                | Yes      | 0                   |
+| two_factor_enabled    | Whether TOTP two-factor authentication is enabled       | tinyint(1) | --     |                | Yes      | 0                   |
+| two_factor_secret     | Base32 secret used for TOTP verification                | varchar    | 64     |                | No       | NULL                |
+| two_factor_enabled_at | Timestamp when two-factor authentication was enabled    | datetime   | --     |                | No       | NULL                |
+| text_size             | Text size preference as a percentage (range 70-150)     | int        | 11     |                | Yes      | 100                 |
+| dark_mode             | UI preference: 0 = light mode, 1 = dark mode            | tinyint(1) | --     |                | Yes      | 0                   |
+| created_at            | Timestamp when the record was created                   | datetime   | --     |                | Yes      | current_timestamp() |
+| updated_at            | Timestamp of the last update; auto-updated on change    | datetime   | --     |                | No       | NULL                |
+| last_login            | Timestamp of the user's most recent successful login    | datetime   | --     |                | No       | NULL                |
+| force_logout_at       | If set, sessions before this timestamp are invalidated  | datetime   | --     |                | No       | NULL                |
++-----------------------+---------------------------------------------------------+------------+--------+----------------+----------+---------------------+
+
+  Table: login_history
+
+  Records each individual login session for auditing and security monitoring. Each row represents one
+  session from login to logout.
+
++------------+--------------------------------------------------------------+------------+--------+----------------+----------+---------+
+| Field Name | Description                                                  | Data Type  | Length | Key            | Required | Default |
++------------+--------------------------------------------------------------+------------+--------+----------------+----------+---------+
+| id         | Auto-incremented primary key                                 | int        | 11     | PK             | Yes      | --      |
+| user_id    | The user who initiated this session                          | int        | 11     | FK -> users.id | Yes      | --      |
+| login_at   | Timestamp when the user logged in                            | datetime   | --     |                | Yes      | --      |
+| logout_at  | Timestamp when the user logged out; NULL if still active     | datetime   | --     |                | No       | NULL    |
+| ip_address | Client IP address at login (IPv4 and IPv6 supported)         | varchar    | 45     |                | No       | NULL    |
+| user_agent | Full browser/client User-Agent string at login               | text       | --     |                | No       | NULL    |
+| session_id | Flask session identifier token                               | varchar    | 128    |                | No       | NULL    |
+| is_active  | Whether this session is currently active (1=active, 0=ended) | tinyint(1) | --     |                | Yes      | --      |
++------------+--------------------------------------------------------------+------------+--------+----------------+----------+---------+
+
+  Table: trusted_devices
+
+  Stores remembered device tokens used for trusted-login or reduced-friction authentication flows.
+  Each token is scoped to one user and expires automatically based on expires_at.
+
++--------------+---------------------------------------------------------+-----------+--------+----------------+----------+---------------------+
+| Field Name   | Description                                             | Data Type | Length | Key            | Required | Default             |
++--------------+---------------------------------------------------------+-----------+--------+----------------+----------+---------------------+
+| id           | Auto-incremented primary key                            | int       | 11     | PK             | Yes      | --                  |
+| user_id      | User account that owns this trusted device token        | int       | 11     | FK -> users.id | Yes      | --                  |
+| token_hash   | SHA-256 hash of the stored trusted-device token         | varchar   | 64     |                | Yes      | --                  |
+| label        | Optional user-facing device label                       | varchar   | 120    |                | No       | NULL                |
+| ip_address   | IP address captured when the token was issued           | varchar   | 45     |                | No       | NULL                |
+| user_agent   | Browser/client user-agent string for the trusted device | varchar   | 255    |                | No       | NULL                |
+| expires_at   | Expiration timestamp after which the token is invalid   | datetime  | --     |                | Yes      | --                  |
+| last_used_at | Last successful usage timestamp                         | datetime  | --     |                | No       | NULL                |
+| created_at   | Timestamp when this trusted device record was created   | datetime  | --     |                | Yes      | current_timestamp() |
++--------------+---------------------------------------------------------+-----------+--------+----------------+----------+---------------------+
+
+  Table: user_activity_logs
+
+  Granular audit trail recording every significant action performed by users (create, edit, delete, archive,
+  login, logout). Used for accountability.
+
++-------------+-----------------------------------------------------------------+-----------+--------+----------------+----------+---------------------+
+| Field Name  | Description                                                     | Data Type | Length | Key            | Required | Default             |
++-------------+-----------------------------------------------------------------+-----------+--------+----------------+----------+---------------------+
+| id          | Auto-incremented primary key                                    | int       | 11     | PK             | Yes      | --                  |
+| user_id     | The user who performed the action                               | int       | 11     | FK -> users.id | Yes      | --                  |
+| action      | Action verb: created, edited, deleted, archived, login, logout  | varchar   | 100    |                | Yes      | --                  |
+| entity_type | Type of entity: schedule, faculty, building, curriculum, etc.   | varchar   | 50     |                | Yes      | --                  |
+| entity_id   | Primary key of the affected entity record                       | int       | 11     |                | No       | NULL                |
+| entity_name | Human-readable name or label of the affected entity             | varchar   | 255    |                | No       | NULL                |
+| details     | JSON string with additional context (e.g., before/after values) | text      | --     |                | No       | NULL                |
+| ip_address  | Client IP address at the time of the action                     | varchar   | 45     |                | No       | NULL                |
+| user_agent  | Browser/client User-Agent string                                | varchar   | 255    |                | No       | NULL                |
+| created_at  | Timestamp when this log entry was created                       | datetime  | --     |                | Yes      | current_timestamp() |
++-------------+-----------------------------------------------------------------+-----------+--------+----------------+----------+---------------------+
+
+  Table: user_programs
+
+  Junction table that grants Dean users access to specific degree programs. Used by Dean-facing routes for
+  access control enforcement.
+
++------------+-----------------------------------------------+-----------+--------+-------------------+----------+---------------------+
+| Field Name | Description                                   | Data Type | Length | Key               | Required | Default             |
++------------+-----------------------------------------------+-----------+--------+-------------------+----------+---------------------+
+| id         | Auto-incremented primary key                  | int       | 11     | PK                | Yes      | --                  |
+| user_id    | Dean user who has access to this program      | int       | 11     | FK -> users.id    | Yes      | --                  |
+| program_id | Program the Dean user is authorized to manage | int       | 11     | FK -> programs.id | Yes      | --                  |
+| created_at | Timestamp when this access grant was created  | datetime  | --     |                   | Yes      | current_timestamp() |
++------------+-----------------------------------------------+-----------+--------+-------------------+----------+---------------------+
+
+
+==============================================================================================================
+    2. ORGANIZATION
+==============================================================================================================
+
+  Table: departments
+
+  Represents academic departments (referred to as colleges in the UI, e.g., College of Computing Studies).
+  Each department can own multiple programs and faculty.
+
++-----------------+---------------------------------------------------------+------------+--------+-----+----------+---------------------+
+| Field Name      | Description                                             | Data Type  | Length | Key | Required | Default             |
++-----------------+---------------------------------------------------------+------------+--------+-----+----------+---------------------+
+| id              | Auto-incremented primary key                            | int        | 11     | PK  | Yes      | --                  |
+| department_name | Full college name, e.g., 'College of Computing Studies' | varchar    | 255    |     | Yes      | --                  |
+| department_code | Short abbreviation code, e.g., 'CCS'                    | varchar    | 50     |     | No       | NULL                |
+| secretary_name  | Name of the college dean's secretary                    | varchar    | 100    |     | No       | NULL                |
+| is_active       | Whether the department is active in the system          | tinyint(1) | --     |     | Yes      | 1                   |
+| created_at      | Timestamp when the record was created                   | datetime   | --     |     | Yes      | current_timestamp() |
+| updated_at      | Timestamp of the last update; auto-updated on change    | datetime   | --     |     | No       | NULL                |
++-----------------+---------------------------------------------------------+------------+--------+-----+----------+---------------------+
+
+  Table: programs
+
+  Degree programs offered by departments (e.g., BSCS, BSHM, BEED). Supports shared program codes for
+  programs that share section labels across year levels.
+
++---------------------+-----------------------------------------------------------+------------+--------+----------------------+----------+---------------------+
+| Field Name          | Description                                               | Data Type  | Length | Key                  | Required | Default             |
++---------------------+-----------------------------------------------------------+------------+--------+----------------------+----------+---------------------+
+| id                  | Auto-incremented primary key                              | int        | 11     | PK                   | Yes      | --                  |
+| program_code        | Short code for the program, e.g., 'BSCS', 'BSHM'          | varchar    | 20     |                      | Yes      | --                  |
+| program_name        | Full program name, e.g., 'Bachelor of Science in CS'      | varchar    | 200    |                      | Yes      | --                  |
+| department_id       | Department that owns this program                         | int        | 11     | FK -> departments.id | No       | NULL                |
+| program_logo        | File path to the program logo image                       | varchar    | 255    |                      | No       | NULL                |
+| year_levels         | Total number of year levels (e.g., 4 for BSCS, 2 for ACT) | int        | 11     |                      | Yes      | 4                   |
+| shared_program_code | Code of a sibling program that shares section names       | varchar    | 50     |                      | No       | NULL                |
+| shared_until_year   | Last year level at which sections use the shared code     | int        | 11     |                      | No       | NULL                |
+| is_active           | Whether the program is currently active                   | tinyint(1) | --     |                      | Yes      | 1                   |
+| is_archived         | Soft-delete flag following the standard archive pattern   | tinyint(1) | --     |                      | Yes      | 0                   |
+| archived_by         | ID of the user who archived this program                  | int        | 11     | FK -> users.id       | No       | NULL                |
+| archived_at         | Timestamp when the program was archived                   | datetime   | --     |                      | No       | NULL                |
+| archive_reason      | Reason provided for archiving the program                 | varchar    | 255    |                      | No       | NULL                |
+| created_at          | Timestamp when the record was created                     | datetime   | --     |                      | Yes      | current_timestamp() |
+| updated_at          | Timestamp of the last update; auto-updated on change      | datetime   | --     |                      | No       | NULL                |
++---------------------+-----------------------------------------------------------+------------+--------+----------------------+----------+---------------------+
+
+
+==============================================================================================================
+    3. CURRICULUM & SUBJECTS
+==============================================================================================================
+
+  Table: curricula
+
+  Curriculum versions linked to a specific degree program (e.g., 'BSCS 2025-2026'). Each curriculum contains
+  year levels, which contain semesters and subjects.
+
++-----------------+---------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| Field Name      | Description                                             | Data Type  | Length | Key               | Required | Default             |
++-----------------+---------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| id              | Auto-incremented primary key                            | int        | 11     | PK                | Yes      | --                  |
+| curriculum_code | Unique code, e.g., 'BSCS-2025-2026'                     | varchar    | 50     |                   | Yes      | --                  |
+| curriculum_name | Display name for the curriculum                         | varchar    | 200    |                   | Yes      | --                  |
+| program_id      | Program this curriculum belongs to                      | int        | 11     | FK -> programs.id | Yes      | --                  |
+| degree_program  | Full degree program name as stated in this curriculum   | varchar    | 200    |                   | Yes      | --                  |
+| is_active       | Whether the curriculum is currently active              | tinyint(1) | --     |                   | Yes      | 1                   |
+| is_archived     | Soft-delete flag following the standard archive pattern | tinyint(1) | --     |                   | Yes      | 0                   |
+| archived_by     | ID of the user who archived this curriculum             | int        | 11     | FK -> users.id    | No       | NULL                |
+| archived_at     | Timestamp when the curriculum was archived              | datetime   | --     |                   | No       | NULL                |
+| archive_reason  | Reason provided for archiving the curriculum            | varchar    | 255    |                   | No       | NULL                |
+| created_by      | ID of the user who created this curriculum              | int        | 11     | FK -> users.id    | No       | NULL                |
+| created_at      | Timestamp when the record was created                   | datetime   | --     |                   | Yes      | current_timestamp() |
+| updated_at      | Timestamp of the last update; auto-updated on change    | datetime   | --     |                   | No       | NULL                |
++-----------------+---------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+
+  Table: year_levels
+
+  Represents individual year levels within a curriculum (e.g., 1st Year, 2nd Year). Acts as a container
+  linking a curriculum to its semesters.
+
++---------------+------------------------------------------------------+-----------+--------+--------------------+----------+---------------------+
+| Field Name    | Description                                          | Data Type | Length | Key                | Required | Default             |
++---------------+------------------------------------------------------+-----------+--------+--------------------+----------+---------------------+
+| id            | Auto-incremented primary key                         | int       | 11     | PK                 | Yes      | --                  |
+| curriculum_id | Curriculum that contains this year level             | int       | 11     | FK -> curricula.id | Yes      | --                  |
+| year_number   | Numeric year indicator: 1=1st Year, 2=2nd Year, etc. | int       | 11     |                    | Yes      | --                  |
+| year_name     | Display label, e.g., '1st Year', '2nd Year'          | varchar   | 50     |                    | Yes      | --                  |
+| created_at    | Timestamp when the record was created                | datetime  | --     |                    | Yes      | current_timestamp() |
+| updated_at    | Timestamp of the last update; auto-updated on change | datetime  | --     |                    | No       | NULL                |
++---------------+------------------------------------------------------+-----------+--------+--------------------+----------+---------------------+
+
+  Table: semesters
+
+  Defines semesters within each year level (e.g., 1st Semester, 2nd Semester, Summer). Subjects are
+  organized under semesters.
+
++-----------------+------------------------------------------------------+-----------+--------+----------------------+----------+---------------------+
+| Field Name      | Description                                          | Data Type | Length | Key                  | Required | Default             |
++-----------------+------------------------------------------------------+-----------+--------+----------------------+----------+---------------------+
+| id              | Auto-incremented primary key                         | int       | 11     | PK                   | Yes      | --                  |
+| year_level_id   | Year level that contains this semester               | int       | 11     | FK -> year_levels.id | Yes      | --                  |
+| semester_number | Numeric indicator: 1=1st Sem, 2=2nd Sem, 3=Summer    | int       | 11     |                      | Yes      | --                  |
+| semester_name   | Display label, e.g., '1st Semester', 'Summer'        | varchar   | 50     |                      | Yes      | --                  |
+| created_at      | Timestamp when the record was created                | datetime  | --     |                      | Yes      | current_timestamp() |
+| updated_at      | Timestamp of the last update; auto-updated on change | datetime  | --     |                      | No       | NULL                |
++-----------------+------------------------------------------------------+-----------+--------+----------------------+----------+---------------------+
+
+  Table: subjects
+
+  Individual course offerings within a semester. The total_units column is a generated (computed) column
+  automatically derived from lec_units + lab_units.
+
++--------------------+-------------------------------------------------------------------+-----------+--------+--------------------+----------+---------------------+
+| Field Name         | Description                                                       | Data Type | Length | Key                | Required | Default             |
++--------------------+-------------------------------------------------------------------+-----------+--------+--------------------+----------+---------------------+
+| id                 | Auto-incremented primary key                                      | int       | 11     | PK                 | Yes      | --                  |
+| semester_id        | Semester this subject belongs to                                  | int       | 11     | FK -> semesters.id | Yes      | --                  |
+| subject_code       | Subject code, e.g., 'CSC 101', 'GE COM'                           | varchar   | 50     |                    | Yes      | --                  |
+| course_description | Full course title, e.g., 'Purposive Communication'                | varchar   | 255    |                    | Yes      | --                  |
+| lec_units          | Number of lecture units (e.g., 3.0)                               | decimal   | (3,1)  |                    | Yes      | 0.0                 |
+| lab_units          | Number of laboratory units (e.g., 1.0)                            | decimal   | (3,1)  |                    | Yes      | 0.0                 |
+| total_units        | Generated column: automatically computed as lec_units + lab_units | decimal   | (3,1)  | GEN                | Yes      | --                  |
+| prerequisite       | Prerequisite subject code(s) as a free-text string                | varchar   | 255    |                    | No       | NULL                |
+| created_at         | Timestamp when the record was created                             | datetime  | --     |                    | Yes      | current_timestamp() |
+| updated_at         | Timestamp of the last update; auto-updated on change              | datetime  | --     |                    | No       | NULL                |
++--------------------+-------------------------------------------------------------------+-----------+--------+--------------------+----------+---------------------+
+
+  Table: sections
+
+  Student section groups within a program and year level (e.g., 'A', 'B', 'C' sections of BSCS Year 1).
+  Sections are the primary unit for assigning class schedules.
+
++--------------+------------------------------------------------------+-----------+--------+-------------------+----------+---------------------+
+| Field Name   | Description                                          | Data Type | Length | Key               | Required | Default             |
++--------------+------------------------------------------------------+-----------+--------+-------------------+----------+---------------------+
+| id           | Auto-incremented primary key                         | int       | 11     | PK                | Yes      | --                  |
+| program_id   | Program this section belongs to                      | int       | 11     | FK -> programs.id | Yes      | --                  |
+| section_name | Section label, e.g., 'A', 'B', '1A'                  | varchar   | 100    |                   | Yes      | --                  |
+| year_level   | Year level of this section: 1, 2, 3, or 4            | int       | 11     |                   | Yes      | --                  |
+| created_at   | Timestamp when the record was created                | datetime  | --     |                   | Yes      | current_timestamp() |
+| updated_at   | Timestamp of the last update; auto-updated on change | datetime  | --     |                   | No       | NULL                |
++--------------+------------------------------------------------------+-----------+--------+-------------------+----------+---------------------+
+
+
+==============================================================================================================
+    4. FACULTY
+==============================================================================================================
+
+  Table: faculty
+
+  Faculty members who teach subjects. Each faculty belongs to a department and has a configurable maximum
+  teaching unit load. Uses the standard archive pattern.
+
++----------------+---------------------------------------------------------+------------+--------+----------------------+----------+---------------------+
+| Field Name     | Description                                             | Data Type  | Length | Key                  | Required | Default             |
++----------------+---------------------------------------------------------+------------+--------+----------------------+----------+---------------------+
+| id             | Auto-incremented primary key                            | int        | 11     | PK                   | Yes      | --                  |
+| last_name      | Faculty last name                                       | varchar    | 100    |                      | Yes      | --                  |
+| first_name     | Faculty first name                                      | varchar    | 100    |                      | Yes      | --                  |
+| middle_initial | Middle initial or suffix, e.g., 'E.', 'DL'              | varchar    | 5      |                      | No       | NULL                |
+| gender         | Gender used for salutation: Male or Female              | enum       | --     |                      | No       | NULL                |
+| department_id  | Department the faculty member belongs to                | int        | 11     | FK -> departments.id | No       | NULL                |
+| max_units      | Max teaching units; NULL = use system default from      | int        | 11     |                      | No       | NULL                |
+|                | academic_settings                                       |            |        |                      |          |                     |
+| is_active      | Whether the faculty member is currently active          | tinyint(1) | --     |                      | Yes      | 1                   |
+| is_archived    | Soft-delete flag following the standard archive pattern | tinyint(1) | --     |                      | Yes      | 0                   |
+| archived_by    | ID of the user who archived this faculty record         | int        | 11     | FK -> users.id       | No       | NULL                |
+| archived_at    | Timestamp when the record was archived                  | datetime   | --     |                      | No       | NULL                |
+| archive_reason | Reason provided for archiving                           | varchar    | 255    |                      | No       | NULL                |
+| created_at     | Timestamp when the record was created                   | datetime   | --     |                      | Yes      | current_timestamp() |
+| updated_at     | Timestamp of the last update; auto-updated on change    | datetime   | --     |                      | No       | NULL                |
++----------------+---------------------------------------------------------+------------+--------+----------------------+----------+---------------------+
+
+  Table: faculty_availability
+
+  Defines recurring time windows during which a faculty member is available to be scheduled. Used by the
+  conflict detector and scheduling engine.
+
++---------------+---------------------------------------------------------------+------------+--------+------------------+----------+---------------------+
+| Field Name    | Description                                                   | Data Type  | Length | Key              | Required | Default             |
++---------------+---------------------------------------------------------------+------------+--------+------------------+----------+---------------------+
+| id            | Auto-incremented primary key                                  | int        | 11     | PK               | Yes      | --                  |
+| faculty_id    | Faculty member this availability slot belongs to              | int        | 11     | FK -> faculty.id | Yes      | --                  |
+| day_of_week   | Day name for recurring availability, e.g., 'Monday'           | varchar    | 20     |                  | No       | NULL                |
+| start_time    | Start of the available time window                            | time       | --     |                  | Yes      | --                  |
+| end_time      | End of the available time window                              | time       | --     |                  | Yes      | --                  |
+| academic_year | Academic year this availability applies to, e.g., '2025-2026' | varchar    | 20     |                  | No       | NULL                |
+| semester      | Semester this availability applies to, e.g., '1st Semester'   | varchar    | 50     |                  | No       | NULL                |
+| is_active     | Whether this availability slot is currently active            | tinyint(1) | --     |                  | Yes      | 1                   |
+| created_at    | Timestamp when the record was created                         | datetime   | --     |                  | Yes      | current_timestamp() |
+| updated_at    | Timestamp of the last update; auto-updated on change          | datetime   | --     |                  | No       | NULL                |
+| created_by    | ID of the user who created this availability entry            | int        | 11     | FK -> users.id   | No       | NULL                |
++---------------+---------------------------------------------------------------+------------+--------+------------------+----------+---------------------+
+
+  Table: faculty_subject_assignments
+
+  Maps faculty members to specific subjects for a given academic year and semester. Drives subject-load
+  tracking and unit utilization calculations.
+
++----------------+---------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| Field Name     | Description                                             | Data Type  | Length | Key               | Required | Default             |
++----------------+---------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| id             | Auto-incremented primary key                            | int        | 11     | PK                | Yes      | --                  |
+| faculty_id     | Faculty member being assigned                           | int        | 11     | FK -> faculty.id  | Yes      | --                  |
+| subject_id     | Subject the faculty is assigned to teach                | int        | 11     | FK -> subjects.id | Yes      | --                  |
+| academic_year  | Academic year of the assignment, e.g., '2025-2026'      | varchar    | 20     |                   | Yes      | --                  |
+| semester       | Semester of the assignment, e.g., '1st Semester'        | varchar    | 20     |                   | Yes      | --                  |
+| is_active      | Whether the assignment is currently active              | tinyint(1) | --     |                   | Yes      | 1                   |
+| is_archived    | Soft-delete flag following the standard archive pattern | tinyint(1) | --     |                   | Yes      | 0                   |
+| archived_by    | ID of the user who archived this assignment             | int        | 11     | FK -> users.id    | No       | NULL                |
+| archived_at    | Timestamp when the assignment was archived              | datetime   | --     |                   | No       | NULL                |
+| archive_reason | Reason provided for archiving the assignment            | varchar    | 255    |                   | No       | NULL                |
+| created_at     | Timestamp when the record was created                   | datetime   | --     |                   | Yes      | current_timestamp() |
+| updated_at     | Timestamp of the last update; auto-updated on change    | datetime   | --     |                   | No       | NULL                |
++----------------+---------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+
+
+==============================================================================================================
+    5. FACILITIES
+==============================================================================================================
+
+  Table: buildings
+
+  Campus buildings that contain schedulable rooms. Uses the standard archive pattern for soft deletion to
+  retain historical schedule references.
+
++----------------+---------------------------------------------------------+------------+--------+----------------+----------+---------------------+
+| Field Name     | Description                                             | Data Type  | Length | Key            | Required | Default             |
++----------------+---------------------------------------------------------+------------+--------+----------------+----------+---------------------+
+| id             | Auto-incremented primary key                            | int        | 11     | PK             | Yes      | --                  |
+| building_name  | Full name of the building, e.g., 'COMSCIE Building'     | varchar    | 200    |                | Yes      | --                  |
+| is_active      | Whether the building is currently in use                | tinyint(1) | --     |                | Yes      | 1                   |
+| is_archived    | Soft-delete flag following the standard archive pattern | tinyint(1) | --     |                | Yes      | 0                   |
+| archived_by    | ID of the user who archived this building               | int        | 11     | FK -> users.id | No       | NULL                |
+| archived_at    | Timestamp when the building was archived                | datetime   | --     |                | No       | NULL                |
+| archive_reason | Reason provided for archiving the building              | varchar    | 255    |                | No       | NULL                |
+| created_at     | Timestamp when the record was created                   | datetime   | --     |                | Yes      | current_timestamp() |
+| updated_at     | Timestamp of the last update; auto-updated on change    | datetime   | --     |                | No       | NULL                |
++----------------+---------------------------------------------------------+------------+--------+----------------+----------+---------------------+
+
+  Table: rooms
+
+  Individual classrooms and laboratories located within a building. Rooms are assigned to schedule entries
+  and must not be double-booked.
+
++--------------+--------------------------------------------------------+------------+--------+--------------------+----------+---------------------+
+| Field Name   | Description                                            | Data Type  | Length | Key                | Required | Default             |
++--------------+--------------------------------------------------------+------------+--------+--------------------+----------+---------------------+
+| id           | Auto-incremented primary key                           | int        | 11     | PK                 | Yes      | --                  |
+| building_id  | Building this room belongs to                          | int        | 11     | FK -> buildings.id | Yes      | --                  |
+| room_number  | Room identifier, e.g., 'CLB', 'CSB-201', 'HM 101'      | varchar    | 50     |                    | Yes      | --                  |
+| room_type    | Room classification: Lecture, Laboratory, or Court/Gym | varchar    | 50     |                    | Yes      | 'Lecture'           |
+| is_available | Whether the room is available for scheduling           | tinyint(1) | --     |                    | Yes      | 1                   |
+| created_at   | Timestamp when the record was created                  | datetime   | --     |                    | Yes      | current_timestamp() |
+| updated_at   | Timestamp of the last update; auto-updated on change   | datetime   | --     |                    | No       | NULL                |
++--------------+--------------------------------------------------------+------------+--------+--------------------+----------+---------------------+
+
+
+==============================================================================================================
+    6. CLASS & EXAM SCHEDULING
+==============================================================================================================
+
+  Table: academic_settings
+
+  Global scheduling configuration. Only one row should be is_active=1 at a time. Defines the current
+  academic year, semester, exam period, operation days, scheduling windows, and smart scheduler limits.
+
++----------------------------------+-----------------------------------------------------------+------------+--------+-----+----------+-----------------------------+
+| Field Name                       | Description                                               | Data Type  | Length | Key | Required | Default                     |
++----------------------------------+-----------------------------------------------------------+------------+--------+-----+----------+-----------------------------+
+| id                               | Auto-incremented primary key                              | int        | 11     | PK  | Yes      | --                          |
+| academic_year                    | Active academic year, e.g., '2025-2026'                   | varchar    | 20     |     | Yes      | --                          |
+| semester                         | Active semester: '1st Semester', '2nd Semester', 'Summer' | varchar    | 50     |     | Yes      | --                          |
+| exam_period                      | Active exam period label: 'Prelim', 'Midterm', or 'Final' | varchar    | 20     |     | Yes      | --                          |
+| exam_period_start                | Start date of the current exam period                     | date       | --     |     | No       | NULL                        |
+| exam_period_end                  | End date of the current exam period                       | date       | --     |     | No       | NULL                        |
+| available_semesters              | Comma-separated list of semesters selectable in the UI    | varchar    | 100    |     | Yes      | '1st Semester,2nd Semester' |
+| schedule_start_hour              | Earliest allowed start hour for class schedules (0-23)    | int        | 11     |     | Yes      | 7                           |
+| schedule_end_hour                | Latest allowed end hour for class schedules (0-23)        | int        | 11     |     | Yes      | 20                          |
+| exam_start_hour                  | Earliest allowed start hour for exam schedules (0-23)     | int        | 11     |     | Yes      | 7                           |
+| exam_end_hour                    | Latest allowed end hour for exam schedules (0-23)         | int        | 11     |     | Yes      | 17                          |
+| exam_lunch_start                 | Start of the exam lunch break                             | time       | --     |     | Yes      | '12:00:00'                  |
+| exam_lunch_end                   | End of the exam lunch break                               | time       | --     |     | Yes      | '13:00:00'                  |
+| exam_slot_duration               | Duration of each exam time slot in minutes (e.g., 30, 60) | int        | 11     |     | Yes      | 30                          |
+| exam_duration_limit              | Maximum allowed exam duration in minutes (120 = 2 hours)  | int        | 11     |     | Yes      | 120                         |
+| default_faculty_max_units        | Default max teaching unit load applied to all faculty     | int        | 11     |     | Yes      | 24                          |
+| operation_days                   | Comma-separated operation days allowed for scheduling     | varchar    | 255    |     | Yes      | 'Monday,Tuesday,Wednesday,  |
+|                                  |                                                           |            |        |     |          | Thursday,Friday,Saturday'   |
+| is_active                        | Marks this as the currently active configuration row      | tinyint(1) | --     |     | Yes      | 1                           |
+| created_at                       | Timestamp when the record was created                     | datetime   | --     |     | Yes      | current_timestamp()         |
+| updated_at                       | Timestamp of the last update; auto-updated on change      | datetime   | --     |     | No       | NULL                        |
+| schedule_start_time              | Earliest allowed class schedule start time (HH:MM)        | time       | --     |     | Yes      | '07:00:00'                  |
+| schedule_end_time                | Latest allowed class schedule end time (HH:MM)            | time       | --     |     | Yes      | '20:00:00'                  |
+| exam_start_time                  | Earliest allowed exam schedule start time (HH:MM)         | time       | --     |     | Yes      | '07:00:00'                  |
+| exam_end_time                    | Latest allowed exam schedule end time (HH:MM)             | time       | --     |     | Yes      | '17:00:00'                  |
+| smart_max_backtracks_per_subject | Smart scheduler per-subject backtracking limit            | int        | 11     |     | Yes      | 3                           |
+| smart_max_total_backtracks       | Smart scheduler total backtracking limit                  | int        | 11     |     | Yes      | 50                          |
+| smart_timeout_seconds            | Smart scheduler timeout in seconds                        | int        | 11     |     | Yes      | 30                          |
++----------------------------------+-----------------------------------------------------------+------------+--------+-----+----------+-----------------------------+
+
+  Table: schedules
+
+  Regular (weekly-recurring) class schedule entries. Each record assigns a section to a subject, faculty,
+  room, and day/time slot for a given term. Uses optimistic locking.
+
++---------------+----------------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| Field Name    | Description                                                    | Data Type  | Length | Key               | Required | Default             |
++---------------+----------------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| id            | Auto-incremented primary key                                   | int        | 11     | PK                | Yes      | --                  |
+| section_id    | Section that attends this class                                | int        | 11     | FK -> sections.id | Yes      | --                  |
+| subject_id    | Subject being taught                                           | int        | 11     | FK -> subjects.id | Yes      | --                  |
+| faculty_id    | Faculty member assigned to teach; NULL if unassigned           | int        | 11     | FK -> faculty.id  | No       | NULL                |
+| room_id       | Room where the class is held; NULL if unassigned               | int        | 11     | FK -> rooms.id    | No       | NULL                |
+| day_of_week   | Day of week: Monday, Tuesday, Wednesday, Thursday, Friday,     | varchar    | 20     |                   | Yes      | --                  |
+|               | Saturday                                                       |            |        |                   |          |                     |
+| start_time    | Start time of the class period                                 | time       | --     |                   | Yes      | --                  |
+| end_time      | End time of the class period                                   | time       | --     |                   | Yes      | --                  |
+| semester      | Semester this schedule belongs to, e.g., '1st Semester'        | varchar    | 50     |                   | No       | NULL                |
+| academic_year | Academic year, e.g., '2025-2026'                               | varchar    | 20     |                   | No       | NULL                |
+| schedule_type | Type of session: lecture, lab, or both                         | varchar    | 20     |                   | No       | 'lecture'           |
+| is_active     | Whether this schedule entry is active                          | tinyint(1) | --     |                   | Yes      | 1                   |
+| version       | Optimistic locking version counter; incremented on each update | int        | 11     |                   | Yes      | 1                   |
+| locked_by     | ID of the user currently editing this entry (edit lock)        | int        | 11     | FK -> users.id    | No       | NULL                |
+| locked_at     | Timestamp when the edit lock was acquired                      | datetime   | --     |                   | No       | NULL                |
+| created_at    | Timestamp when the record was created                          | datetime   | --     |                   | Yes      | current_timestamp() |
+| updated_at    | Timestamp of the last update; auto-updated on change           | datetime   | --     |                   | No       | NULL                |
++---------------+----------------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+
+  Table: exam_schedules
+
+  Exam schedule entries for a specific exam period (Prelim, Midterm, or Final). Unlike class schedules,
+  exams are tied to a specific calendar date.
+
++---------------+----------------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| Field Name    | Description                                                    | Data Type  | Length | Key               | Required | Default             |
++---------------+----------------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+| id            | Auto-incremented primary key                                   | int        | 11     | PK                | Yes      | --                  |
+| section_id    | Section taking this exam                                       | int        | 11     | FK -> sections.id | Yes      | --                  |
+| subject_id    | Subject being examined                                         | int        | 11     | FK -> subjects.id | Yes      | --                  |
+| faculty_id    | Faculty proctor/administrator; NULL if unassigned              | int        | 11     | FK -> faculty.id  | No       | NULL                |
+| room_id       | Room where the exam is held; NULL if unassigned                | int        | 11     | FK -> rooms.id    | No       | NULL                |
+| exam_date     | Specific calendar date of the exam                             | date       | --     |                   | Yes      | --                  |
+| start_time    | Start time of the exam                                         | time       | --     |                   | Yes      | --                  |
+| end_time      | End time of the exam                                           | time       | --     |                   | Yes      | --                  |
+| semester      | Semester this exam belongs to, e.g., '1st Semester', 'Summer'  | varchar    | 50     |                   | No       | NULL                |
+| academic_year | Academic year, e.g., '2025-2026'                               | varchar    | 20     |                   | No       | NULL                |
+| exam_period   | Exam period label: 'Prelim', 'Midterm', or 'Final'             | varchar    | 20     |                   | No       | NULL                |
+| schedule_type | Type of exam: lecture or lab                                   | varchar    | 20     |                   | No       | 'lecture'           |
+| is_active     | Whether this exam schedule entry is active                     | tinyint(1) | --     |                   | Yes      | 1                   |
+| version       | Optimistic locking version counter; incremented on each update | int        | 11     |                   | Yes      | 1                   |
+| locked_by     | ID of the user currently editing this entry (edit lock)        | int        | 11     | FK -> users.id    | No       | NULL                |
+| locked_at     | Timestamp when the edit lock was acquired                      | datetime   | --     |                   | No       | NULL                |
+| created_at    | Timestamp when the record was created                          | datetime   | --     |                   | Yes      | current_timestamp() |
+| updated_at    | Timestamp of the last update; auto-updated on change           | datetime   | --     |                   | No       | NULL                |
++---------------+----------------------------------------------------------------+------------+--------+-------------------+----------+---------------------+
+
+  Table: schedule_snapshots
+
+  Backup snapshots of generated or manually saved schedules for a term/scope. Used for restore workflows
+  and safety backups before destructive schedule operations.
+
++----------------+--------------------------------------------------------------------+-----------+--------+-------------------+----------+---------+
+| Field Name     | Description                                                        | Data Type | Length | Key               | Required | Default |
++----------------+--------------------------------------------------------------------+-----------+--------+-------------------+----------+---------+
+| id             | Auto-incremented primary key                                       | int       | 11     | PK                | Yes      | --      |
+| snapshot_name  | Human-readable name for this snapshot                              | varchar   | 100    |                   | Yes      | --      |
+| academic_year  | Academic year represented by the snapshot                          | varchar   | 20     |                   | Yes      | --      |
+| semester       | Semester represented by the snapshot                               | varchar   | 50     |                   | Yes      | --      |
+| snapshot_scope | Scope of snapshot, e.g., class/section/term                        | varchar   | 20     |                   | Yes      | --      |
+| section_id     | Related section for scoped backups; NULL for broader snapshots     | int       | 11     | FK -> sections.id | No       | NULL    |
+| schedule_data  | Serialized schedule payload used for restore                       | longtext  | --     |                   | Yes      | --      |
+| schedule_count | Number of schedule records captured in schedule_data               | int       | 11     |                   | Yes      | --      |
+| snapshot_type  | Snapshot category (manual, auto_pre_clear, auto_pre_restore, etc.) | varchar   | 30     |                   | Yes      | --      |
+| created_by     | User who created the snapshot                                      | int       | 11     | FK -> users.id    | No       | NULL    |
+| created_at     | Timestamp when this snapshot was created                           | datetime  | --     |                   | Yes      | --      |
+| notes          | Optional notes or restore context                                  | text      | --     |                   | No       | NULL    |
++----------------+--------------------------------------------------------------------+-----------+--------+-------------------+----------+---------+
+
+
+==============================================================================================================
+    7. ARCHIVES
+==============================================================================================================
+
+  Table: archives
+
+  Snapshot (denormalized) records of class or exam schedules that have been archived. Key entity names are
+  copied as plain text at archival time to preserve history even if originals are later changed or deleted.
+
++----------------------+---------------------------------------------------------------+-----------+--------+-------------------+----------+-----------+
+| Field Name           | Description                                                   | Data Type | Length | Key               | Required | Default   |
++----------------------+---------------------------------------------------------------+-----------+--------+-------------------+----------+-----------+
+| id                   | Auto-incremented primary key                                  | int       | 11     | PK                | Yes      | --        |
+| section_id           | Original section ID (NULL if section was deleted)             | int       | 11     | FK -> sections.id | No       | NULL      |
+| subject_id           | Original subject ID (NULL if subject was deleted)             | int       | 11     | FK -> subjects.id | No       | NULL      |
+| faculty_id           | Original faculty ID (NULL if faculty was deleted)             | int       | 11     | FK -> faculty.id  | No       | NULL      |
+| room_id              | Original room ID (NULL if room was deleted)                   | int       | 11     | FK -> rooms.id    | No       | NULL      |
+| section_name         | Snapshot of the section name at archive time                  | varchar   | 100    |                   | No       | NULL      |
+| subject_code         | Snapshot of the subject code at archive time                  | varchar   | 50     |                   | No       | NULL      |
+| course_description   | Snapshot of the course description at archive time            | varchar   | 255    |                   | No       | NULL      |
+| faculty_name         | Snapshot of the faculty full name at archive time             | varchar   | 100    |                   | No       | NULL      |
+| room_number          | Snapshot of the room number at archive time                   | varchar   | 20     |                   | No       | NULL      |
+| building_name        | Snapshot of the building name at archive time                 | varchar   | 100    |                   | No       | NULL      |
+| program_name         | Snapshot of the program name at archive time                  | varchar   | 100    |                   | No       | NULL      |
+| day_of_week          | Day of week for class schedules; NULL for exam archives       | varchar   | 20     |                   | No       | NULL      |
+| exam_date            | Exam date for exam archives; NULL for class schedule archives | date      | --     |                   | No       | NULL      |
+| start_time           | Start time of the archived schedule                           | time      | --     |                   | Yes      | --        |
+| end_time             | End time of the archived schedule                             | time      | --     |                   | Yes      | --        |
+| semester             | Semester label of the archived schedule                       | varchar   | 50     |                   | No       | NULL      |
+| academic_year        | Academic year of the archived schedule                        | varchar   | 20     |                   | No       | NULL      |
+| schedule_type        | Type of session: lecture, lab, or exam                        | varchar   | 20     |                   | No       | 'lecture' |
+| exam_period          | Exam period for exam archives: Prelim, Midterm, Final         | varchar   | 20     |                   | No       | NULL      |
+| original_schedule_id | PK of the original schedule or exam_schedule record           | int       | 11     |                   | No       | NULL      |
+| archived_by          | ID of the user who triggered the archive action               | int       | 11     | FK -> users.id    | No       | NULL      |
+| archive_reason       | Reason provided for archiving                                 | varchar   | 255    |                   | No       | NULL      |
+| archived_at          | Timestamp when the record was archived                        | datetime  | --     |                   | No       | NULL      |
++----------------------+---------------------------------------------------------------+-----------+--------+-------------------+----------+-----------+
+
+
+==============================================================================================================
+    8. SYSTEM & SETTINGS
+==============================================================================================================
+
+  Table: institution_settings
+
+  Stores institutional branding and export header settings used across the web UI and generated Excel files.
+  Typically contains a single active row.
+
++------------------------+------------------------------------------------------+-----------+--------+----------------+----------+-------------------------------+
+| Field Name             | Description                                          | Data Type | Length | Key            | Required | Default                       |
++------------------------+------------------------------------------------------+-----------+--------+----------------+----------+-------------------------------+
+| id                     | Auto-incremented primary key                         | int       | 11     | PK             | Yes      | --                            |
+| institution_name       | Official name of the institution                     | varchar   | 255    |                | Yes      | 'Norzagaray College'          |
+| system_name            | Display name shown across the application UI         | varchar   | 255    |                | No       | NULL                          |
+| institution_logo       | File path to the primary institution logo            | varchar   | 255    |                | No       | NULL                          |
+| branding_logo          | File path to the global application branding logo    | varchar   | 255    |                | No       | NULL                          |
+| institution_logo_right | File path to a secondary logo (right side)           | varchar   | 255    |                | No       | NULL                          |
+| institution_head       | Name of the institution head or college president    | varchar   | 255    |                | No       | NULL                          |
+| updated_by             | ID of the last user who updated these settings       | int       | 11     | FK -> users.id | No       | NULL                          |
+| created_at             | Timestamp when the record was created                | datetime  | --     |                | Yes      | current_timestamp()           |
+| updated_at             | Timestamp of the last update; auto-updated on change | datetime  | --     |                | No       | NULL                          |
+| excel_header_line1     | First header line used in Excel exports              | varchar   | 255    |                | No       | 'Republic of the Philippines' |
+| excel_header_line2     | Second header line used in Excel exports             | varchar   | 255    |                | No       | 'Municipality of Norzagaray'  |
+| excel_schedule_color   | Default schedule color used in Excel exports         | varchar   | 7      |                | No       | '#4472C4'                     |
++------------------------+------------------------------------------------------+-----------+--------+----------------+----------+-------------------------------+
+
+  Table: system_config
+
+  Key-value configuration store for application-level settings, integrations, and feature toggles. Organized
+  into categories: general, security, email, ai.
+
++--------------+----------------------------------------------------------+-----------+--------+----------------+----------+---------+
+| Field Name   | Description                                              | Data Type | Length | Key            | Required | Default |
++--------------+----------------------------------------------------------+-----------+--------+----------------+----------+---------+
+| id           | Auto-incremented primary key                             | int       | 11     | PK             | Yes      | --      |
+| config_key   | Unique configuration key name, e.g., 'maintenance_mode'  | varchar   | 100    |                | Yes      | --      |
+| config_value | Value stored as a string; interpreted by config_type     | text      | --     |                | No       | NULL    |
+| config_type  | Data type hint: string, integer, boolean, or json        | enum      | --     |                | Yes      | --      |
+| category     | Logical grouping: general, security, email, or ai        | varchar   | 50     |                | Yes      | --      |
+| description  | Human-readable description of what this key controls     | varchar   | 255    |                | No       | NULL    |
+| updated_by   | ID of the last user who updated this configuration entry | int       | 11     | FK -> users.id | No       | NULL    |
+| updated_at   | Timestamp of the last update                             | datetime  | --     |                | No       | NULL    |
++--------------+----------------------------------------------------------+-----------+--------+----------------+----------+---------+
+
+
+==============================================================================================================
+    9. ENTITY RELATIONSHIPS
+==============================================================================================================
+
+  This section documents all foreign key constraints enforced at the database level.
+  Each row shows: the child table FK column, the parent it references, and the
+  ON DELETE behavior MySQL enforces when a parent row is deleted.
+
+
+------------------------------------------------------------------------------------------
+  9.1  Foreign Key Reference Table
+------------------------------------------------------------------------------------------
+
++-----+----------------------------------+----------------------------------+--------------------------+-----------+------------+--------------------------------------------------------------------+
+| #   | Child Table                      | FK Column                        | Parent Table             | Parent Col | On Delete  | Description                                                        |
++-----+----------------------------------+----------------------------------+--------------------------+-----------+------------+--------------------------------------------------------------------+
+| 1   | users                            | archived_by                      | users                    | id        | SET NULL   | Self-referential: ID of the user who performed the archive action  |
+| 2   | login_history                    | user_id                          | users                    | id        | CASCADE    | Deleting a user removes all their login session records            |
+| 3   | trusted_devices                  | user_id                          | users                    | id        | CASCADE    | Deleting a user removes all their trusted-device records           |
+| 4   | user_activity_logs               | user_id                          | users                    | id        | CASCADE    | Deleting a user removes all their audit log entries                |
+| 5   | user_programs                    | user_id                          | users                    | id        | CASCADE    | Deleting a user removes all their program access grants            |
+| 6   | user_programs                    | program_id                       | programs                 | id        | CASCADE    | Deleting a program removes all user access grants for it           |
+| 7   | programs                         | department_id                    | departments              | id        | SET NULL   | Deleting a department detaches its programs (programs are kept)    |
+| 8   | programs                         | archived_by                      | users                    | id        | SET NULL   | Nullifies archive attribution if the archiving user is deleted     |
+| 9   | curricula                        | program_id                       | programs                 | id        | RESTRICT   | Cannot delete a program that has attached curricula                |
+| 10  | curricula                        | created_by                       | users                    | id        | SET NULL   | Nullifies creator attribution if the user is deleted               |
+| 11  | curricula                        | archived_by                      | users                    | id        | SET NULL   | Nullifies archive attribution if the user is deleted               |
+| 12  | year_levels                      | curriculum_id                    | curricula                | id        | CASCADE    | Deleting a curriculum deletes all its year levels                  |
+| 13  | semesters                        | year_level_id                    | year_levels              | id        | CASCADE    | Deleting a year level deletes all its semesters                    |
+| 14  | subjects                         | semester_id                      | semesters                | id        | CASCADE    | Deleting a semester deletes all its subjects                       |
+| 15  | sections                         | program_id                       | programs                 | id        | CASCADE    | Deleting a program deletes all its student sections                |
+| 16  | faculty                          | department_id                    | departments              | id        | SET NULL   | Deleting a department detaches its faculty members                 |
+| 17  | faculty                          | archived_by                      | users                    | id        | SET NULL   | Nullifies archive attribution if the user is deleted               |
+| 18  | faculty_availability             | faculty_id                       | faculty                  | id        | CASCADE    | Deleting a faculty member removes all their availability slots     |
+| 19  | faculty_availability             | created_by                       | users                    | id        | SET NULL   | Nullifies creator attribution if the user is deleted               |
+| 20  | faculty_subject_assignments      | faculty_id                       | faculty                  | id        | CASCADE    | Deleting a faculty member removes all their subject assignments    |
+| 21  | faculty_subject_assignments      | subject_id                       | subjects                 | id        | CASCADE    | Deleting a subject removes all related faculty assignments         |
+| 22  | faculty_subject_assignments      | archived_by                      | users                    | id        | SET NULL   | Nullifies archive attribution if the user is deleted               |
+| 23  | buildings                        | archived_by                      | users                    | id        | SET NULL   | Nullifies archive attribution if the user is deleted               |
+| 24  | rooms                            | building_id                      | buildings                | id        | CASCADE    | Deleting a building deletes all rooms inside it                    |
+| 25  | schedules                        | section_id                       | sections                 | id        | CASCADE    | Deleting a section deletes all its class schedule entries          |
+| 26  | schedules                        | subject_id                       | subjects                 | id        | CASCADE    | Deleting a subject deletes all schedules for that subject          |
+| 27  | schedules                        | faculty_id                       | faculty                  | id        | SET NULL   | Deleting a faculty member clears the assignment; schedule kept     |
+| 28  | schedules                        | room_id                          | rooms                    | id        | SET NULL   | Deleting a room clears the room assignment; schedule is kept       |
+| 29  | schedules                        | locked_by                        | users                    | id        | SET NULL   | Deleting a user releases any edit locks they held                  |
+| 30  | exam_schedules                   | section_id                       | sections                 | id        | CASCADE    | Deleting a section deletes all its exam schedule entries           |
+| 31  | exam_schedules                   | subject_id                       | subjects                 | id        | CASCADE    | Deleting a subject deletes all related exam entries                |
+| 32  | exam_schedules                   | faculty_id                       | faculty                  | id        | SET NULL   | Deleting a faculty member clears the proctor assignment            |
+| 33  | exam_schedules                   | room_id                          | rooms                    | id        | SET NULL   | Deleting a room clears the room assignment on exam entries         |
+| 34  | exam_schedules                   | locked_by                        | users                    | id        | SET NULL   | Deleting a user releases any exam edit locks they held             |
+| 35  | schedule_snapshots               | section_id                       | sections                 | id        | SET NULL   | Deleting a section nulls scope linkage; snapshot payload retained  |
+| 36  | schedule_snapshots               | created_by                       | users                    | id        | SET NULL   | Nullifies creator attribution if the user is deleted               |
+| 37  | archives                         | section_id                       | sections                 | id        | SET NULL   | Deleting a section NULLs the FK; snapshot text is retained         |
+| 38  | archives                         | subject_id                       | subjects                 | id        | SET NULL   | Deleting a subject NULLs the FK; snapshot text is retained         |
+| 39  | archives                         | faculty_id                       | faculty                  | id        | SET NULL   | Deleting a faculty member NULLs the FK; snapshot text retained     |
+| 40  | archives                         | room_id                          | rooms                    | id        | SET NULL   | Deleting a room NULLs the FK; snapshot text is retained            |
+| 41  | archives                         | archived_by                      | users                    | id        | SET NULL   | Nullifies archive attribution if the user is deleted               |
+| 42  | institution_settings             | updated_by                       | users                    | id        | SET NULL   | Nullifies editor attribution if the user is deleted                |
+| 43  | system_config                    | updated_by                       | users                    | id        | SET NULL   | Nullifies editor attribution if the user is deleted                |
++-----+----------------------------------+----------------------------------+--------------------------+-----------+------------+--------------------------------------------------------------------+
+
+
+------------------------------------------------------------------------------------------
+  9.2  Table Cardinality Summary
+------------------------------------------------------------------------------------------
+
++------------------------------------------------------------+------------------------+------------------------------------------------------+
+| Relationship                                               | Data Type              | Notes                                                |
++------------------------------------------------------------+------------------------+------------------------------------------------------+
+| departments  ->  programs                                  | One-to-Many (1:M)      | One department owns many degree programs             |
+| departments  ->  faculty                                   | One-to-Many (1:M)      | One department employs many faculty members          |
+| programs  ->  curricula                                    | One-to-Many (1:M)      | One program can have multiple curriculum versions    |
+| programs  ->  sections                                     | One-to-Many (1:M)      | One program contains many student sections           |
+| curricula  ->  year_levels                                 | One-to-Many (1:M)      | One curriculum spans multiple year levels            |
+| year_levels  ->  semesters                                 | One-to-Many (1:M)      | One year level contains multiple semesters           |
+| semesters  ->  subjects                                    | One-to-Many (1:M)      | One semester carries multiple subjects               |
+| buildings  ->  rooms                                       | One-to-Many (1:M)      | One building contains many rooms                     |
+| faculty  ->  faculty_availability                          | One-to-Many (1:M)      | One faculty member can have many availability time   |
+|                                                            |                        | slots                                                |
+| users  ->  trusted_devices                                 | One-to-Many (1:M)      | One user can register multiple trusted devices       |
+| sections  ->  schedule_snapshots                           | One-to-Many (1:M)      | One section can have many scoped schedule snapshots  |
+| users  <->  programs  (via user_programs)                  | Many-to-Many (M:M)     | Dean users can access many programs; programs        |
+|                                                            |                        | accessible to many Deans                             |
+| faculty  <->  subjects  (via fac_subj_assign.)             | Many-to-Many (M:M)     | A faculty can be assigned many subjects; a subject   |
+|                                                            |                        | to many faculty                                      |
+| sections+subjects+faculty+rooms -> schedules               | Composite              | Ties one section, one subject, optional faculty,     |
+|                                                            |                        | optional room into a weekly slot                     |
+| sections+subjects+faculty+rooms -> exam_sched.             | Composite              | Same as schedules but tied to a specific exam date   |
++------------------------------------------------------------+------------------------+------------------------------------------------------+
+
+
+------------------------------------------------------------------------------------------
+  9.3  Cascade Chain: Curriculum Deletion
+------------------------------------------------------------------------------------------
+
+  Deleting a single curricula row triggers an automatic cascade that removes the
+  entire hierarchy beneath it:
+
+    curricula              (deleted)
+    +-- year_levels        (CASCADE)
+        +-- semesters      (CASCADE)
+            +-- subjects   (CASCADE)
+                +-- schedules                    (CASCADE -- via subjects)
+                +-- exam_schedules               (CASCADE -- via subjects)
+                +-- faculty_subject_assignments  (CASCADE -- via subjects)
+
+  NOTE: sections and schedules are also cascaded via programs -> sections ->
+  schedules, independently of the curriculum hierarchy.
+
+
+------------------------------------------------------------------------------------------
+  9.4  Cascade Chain: Program Deletion
+------------------------------------------------------------------------------------------
+
+  Deleting a programs row cascades across two separate branches:
+
+    programs
+    +-- sections           (CASCADE)
+    |   +-- schedules      (CASCADE)
+    |   +-- exam_schedules (CASCADE)
+    |   +-- schedule_snapshots (SET NULL on section_id; snapshots retained)
+    +-- user_programs      (CASCADE -- removes Dean access grants)
+    +-- curricula          (RESTRICT -- deletion is blocked if curricula exist)
+
+  WARNING: curricula uses RESTRICT (no explicit ON DELETE), meaning a program
+  CANNOT be deleted while it has attached curricula. Delete the curricula first.
+
+
+==============================================================================================================
+    KEY CONVENTIONS
+==============================================================================================================
+
++------------------------+------------------------------------------------------------------------------------+
+| Term                   | Meaning                                                                            |
++------------------------+------------------------------------------------------------------------------------+
+| PK                     | Primary Key -- auto-incremented int(11)                                            |
+| FK                     | Foreign Key -- references another table's primary key                              |
+| GEN                    | Generated Column -- value automatically derived from an expression                 |
+| tinyint(1)             | Used as a boolean flag: 0 = false/inactive, 1 = true/active                        |
+| Archive Pattern        | Tables with is_archived, is_active, archived_by, archived_at, archive_reason use   |
+|                        | soft deletion                                                                      |
+| Optimistic Locking     | schedules and exam_schedules use version, locked_by, locked_at to prevent          |
+|                        | concurrent edit conflicts                                                          |
+| Denorm. Snapshot       | archives table stores copied text values at archival time, independent of future   |
+|                        | changes to source tables                                                           |
+| ON UPDATE              | updated_at columns are set to current_timestamp() automatically on every UPDATE    |
+|                        | statement                                                                          |
+| ON DELETE CASCADE      | When the parent row is deleted, all referencing child rows are automatically       |
+|                        | deleted                                                                            |
+| ON DELETE SET NULL     | When the parent row is deleted, the FK column in the child row is set to NULL      |
+|                        | (child row kept)                                                                   |
+| ON DELETE RESTRICT     | The parent row CANNOT be deleted while any child rows reference it (results in an  |
+|                        | error)                                                                             |
++------------------------+------------------------------------------------------------------------------------+
+
+==============================================================================================================
+  END OF DATA DICTIONARY
+==============================================================================================================

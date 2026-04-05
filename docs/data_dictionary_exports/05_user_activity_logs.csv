@@ -1,0 +1,11 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+user_id,The user who performed the action,int,11,FK -> users.id,Yes,--
+action,"Action verb: created, edited, deleted, archived, login, logout",varchar,100,,Yes,--
+entity_type,"Type of entity: schedule, faculty, building, curriculum, etc.",varchar,50,,Yes,--
+entity_id,Primary key of the affected entity record,int,11,,No,NULL
+entity_name,Human-readable name or label of the affected entity,varchar,255,,No,NULL
+details,"JSON string with additional context (e.g., before/after values)",text,--,,No,NULL
+ip_address,Client IP address at the time of the action,varchar,45,,No,NULL
+user_agent,Browser/client User-Agent string,varchar,255,,No,NULL
+created_at,Timestamp when this log entry was created,datetime,--,,Yes,current_timestamp()

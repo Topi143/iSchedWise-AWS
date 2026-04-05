@@ -1,0 +1,101 @@
+<!-- Unassigned Faculty Modal -->
+<div id="unassigned-faculty-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-orange-500 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-sm sm:text-base font-semibold text-white">Unassigned Faculty</h2>
+                    <p class="text-orange-100 text-xs">Faculty without class schedules</p>
+                </div>
+            </div>
+            <button onclick="closeUnassignedFacultyModal()" class="text-white hover:bg-orange-400 rounded-lg p-1.5 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)] dark:bg-gray-900">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center border border-orange-100 dark:border-orange-800">
+                    <p class="text-xl font-bold text-orange-600 dark:text-orange-400">{{ stats.unassigned_faculty_count }}</p>
+                    <p class="text-xs text-orange-700 dark:text-orange-300">Total Unassigned</p>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center border border-blue-100 dark:border-blue-800">
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_faculty }}</p>
+                    <p class="text-xs text-blue-700 dark:text-blue-300">Total Faculty</p>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center col-span-2 sm:col-span-1">
+                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.faculty_with_schedules }}</p>
+                    <p class="text-xs text-green-700 dark:text-green-300">Assigned Faculty</p>
+                </div>
+            </div>
+            {% if stats.unassigned_faculty_by_dept %}
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">By Program</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for dept, count in stats.unassigned_faculty_by_dept.items() %}
+                    <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ dept }}</span>
+                        <span class="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Faculty List</h3>
+                {% if stats.unassigned_faculty and stats.unassigned_faculty|length > 0 %}
+                <div class="reports-table-wrap bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
+                    <table class="reports-table-mobile w-full text-sm">
+                        <thead class="bg-gray-100 dark:bg-gray-700/50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Name</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Program</th>
+                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Max Units</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for f in stats.unassigned_faculty %}
+                            <tr class="reports-table-data-row hover:bg-white dark:hover:bg-gray-700/50 transition-colors">
+                                <td data-label="Name" class="px-4 py-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                                            <span class="text-orange-600 dark:text-orange-400 font-medium text-xs">{{ f.name[:2]|upper }}</span>
+                                        </div>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ f.name }}</span>
+                                    </div>
+                                </td>
+                                <td data-label="Program" class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{{ f.program }}</span>
+                                </td>
+                                <td data-label="Max Units" class="px-4 py-3 text-center">
+                                    <span class="text-gray-600 dark:text-gray-400">{{ f.max_units }} units</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if stats.unassigned_faculty_count > 10 %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Showing 10 of {{ stats.unassigned_faculty_count }} unassigned faculty</p>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-8 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <svg class="w-12 h-12 text-green-400 dark:text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-green-700 dark:text-green-300 font-medium">All faculty have been assigned schedules!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 px-4 sm:px-6 py-3 flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-2 border-t border-gray-100 dark:border-gray-700">
+            <button onclick="closeUnassignedFacultyModal()" class="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-all">Close</button>
+        </div>
+    </div>
+</div>

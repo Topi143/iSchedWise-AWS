@@ -4,12 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{% block title %}iSchedWise - Norzagaray College{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}">
+    <meta name="user-text-size" content="{{ user_text_size }}">
+    <meta name="user-dark-mode" content="{{ 'true' if user_dark_mode else 'false' }}">
+    <title>{% block title %}{{ app_brand_name }} - {{ institution_display_name }}{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% if institution_logo %}{{ url_for('static', filename=institution_logo) }}{% else %}{{ url_for('static', filename='images/norzagaray-college-logo.png') }}{% endif %}">
+    <script>
+    // Apply text size immediately to prevent FOUC
+    (function() {
+        var stored = localStorage.getItem('ischedwise_text_size');
+        var serverVal = {{ user_text_size }};
+        var size = stored ? parseInt(stored, 10) : serverVal;
+        if (size < 70 || size > 150 || isNaN(size)) size = 100;
+        if (size !== 100) {
+            document.documentElement.style.fontSize = size + '%';
+        }
+        // Sync server value to localStorage on page load (server wins if no local val)
+        if (!stored && serverVal !== 100) {
+            localStorage.setItem('ischedwise_text_size', serverVal);
+        }
+    })();
+    // Apply dark mode immediately to prevent FOUC
+    (function() {
+        var stored = localStorage.getItem('ischedwise_dark_mode');
+        var serverVal = {{ 'true' if user_dark_mode else 'false' }};
+        var dark = stored !== null ? stored === 'true' : serverVal;
+        if (dark) {
+            document.documentElement.classList.add('dark');
+        }
+        // Sync server value to localStorage on page load
+        if (stored === null && serverVal) {
+            localStorage.setItem('ischedwise_dark_mode', 'true');
+        }
+    })();
+    // Apply sidebar collapsed state immediately on desktop to avoid first-paint flicker.
+    (function() {
+        if (!window.matchMedia || !window.matchMedia('(min-width: 1024px)').matches) return;
+        var collapsed = false;
+        try {
+            collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        } catch (e) {
+            collapsed = false;
+        }
+        if (collapsed) {
+            document.documentElement.classList.add('sidebar-collapsed-preload');
+        }
+    })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        darkMode: 'class'
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/toast-manager.css') }}">
+    <script defer src="{{ url_for('static', filename='js/toast-manager.js') }}"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -20,107 +71,64 @@
             overflow-y: scroll;
         }
         
-        /* Custom Scrollbar (Compact) */
+        /* Page Loading Indicator Spinner */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        .border-3 {
+            border-width: 3px;
+        }
+        
+        /* Custom Scrollbar (Minimal) */
         .custom-scrollbar::-webkit-scrollbar {
-            width: 3px;
+            width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #d1d5db;
-            border-radius: 3px;
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
+            background: rgba(148, 163, 184, 0.6);
+        }
+
+        /* Sidebar scrollbar is intentionally ID-scoped to prevent page-level
+           `.overflow-y-auto` rules from changing sidebar appearance. */
+        #sidebar nav::-webkit-scrollbar {
+            width: 4px;
+        }
+        #sidebar nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #sidebar nav::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 4px;
+        }
+        #sidebar nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.6);
         }
         
-        /* Sidebar Navigation - Consistent with Dashboard Design */
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            margin: 0.25rem 0.75rem;
-            color: #64748b;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 0.75rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            text-decoration: none;
-            line-height: 1.5;
-            border: 1px solid transparent;
-        }
+        /* ========================================
+           FIXED PERSISTENT SIDEBAR
+           - Never scrolls with page
+           - Always accessible for navigation
+           - Only nav items scroll internally
+           ======================================== */
         
-        .nav-link:hover {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
-            color: #2563eb;
-            transform: translateX(2px);
-            border: 1px solid rgba(37, 99, 235, 0.1);
-        }
-        
-        .nav-link.active {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            color: #ffffff;
-            font-weight: 600;
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-        }
-        
-        .nav-link svg {
-            width: 1.25rem;
-            height: 1.25rem;
-            margin-right: 0.75rem;
-            flex-shrink: 0;
-        }
-        
-        /* Section Title - Consistent Typography */
-        .section-title {
-            color: #94a3b8;
-            font-size: 0.6875rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 1rem 1rem 0.5rem 1rem;
-            margin-top: 0.5rem;
-        }
-        
-        /* User Badge - Gradient Background */
-        .badge {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            color: #2563eb;
-            font-weight: 600;
-            border: 1px solid #93c5fd;
-        }
-        
-        /* Logout Button - Gradient Design */
-        .logout-btn {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            transition: all 0.2s ease;
-        }
-        
-        .logout-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
-        }
-        
-        .logout-btn:active {
-            transform: translateY(0);
-        }
-        
-        /* Mobile Menu Overlay */
-        #mobileMenuOverlay {
-            backdrop-filter: blur(4px);
-            background-color: rgba(0, 0, 0, 0.4);
-            transition: all 0.3s ease;
-        }
-        
-        /* Fix sidebar layout - prevent collapse */
+        /* Sidebar Container */
         #sidebar {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            width: 15rem; /* 240px - comfortable width */
-            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-            border-right: 1px solid #e2e8f0;
+            width: 256px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            font-size: 16px; /* Lock sidebar font-size so text scaling doesn't break layout */
         }
         
         #sidebar > .flex.flex-col.h-full {
@@ -130,146 +138,864 @@
             min-height: 0;
         }
         
+        /* Logo Section */
         #sidebar .logo-section {
             flex-shrink: 0;
-            border-bottom: 1px solid #e2e8f0;
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.03) 0%, transparent 100%);
+            padding: 0.875rem;
+            border-bottom: 1px solid #f3f4f6;
         }
         
+        /* Navigation Container */
         #sidebar nav {
             flex: 1 1 auto;
             min-height: 0;
             overflow-y: auto;
+            padding: 0.5rem 0;
         }
         
+        /* Section Divider */
+        .nav-section {
+            padding: 0 0.5rem;
+        }
+        
+        .nav-section + .nav-section {
+            margin-top: 0.25rem;
+            padding-top: 0.25rem;
+        }
+        
+        .nav-section.has-divider {
+            margin-top: 0.375rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        /* Section Label */
+        .section-label {
+            color: #94a3b8;
+            font-size: 0.5625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.125rem 0.75rem 0.25rem;
+        }
+        
+        /* Navigation Links */
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.375rem 0.625rem;
+            margin: 1px 0.25rem;
+            color: #64748b;
+            transition: all 0.15s ease;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.8125rem;
+            text-decoration: none;
+            position: relative;
+            gap: 0.5rem;
+        }
+        
+        .nav-link svg {
+            width: 1.05rem;
+            height: 1.05rem;
+            flex-shrink: 0;
+            opacity: 0.55;
+            transition: all 0.15s ease;
+        }
+        
+        .nav-link:hover {
+            background: #f8fafc;
+            color: #334155;
+        }
+        
+        .nav-link:hover svg {
+            opacity: 0.85;
+        }
+        
+        .nav-link.active {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: -0.25rem;
+            top: 0.25rem;
+            bottom: 0.25rem;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: #2563eb;
+        }
+        
+        .nav-link.active svg {
+            opacity: 1;
+            color: #2563eb;
+        }
+        
+        /* Sub-menu Styles */
+        .nav-submenu {
+            margin: 0.125rem 0;
+        }
+        
+        .nav-link-parent {
+            cursor: pointer;
+            border: none;
+            background: none;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .nav-link-parent:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: -2px;
+            border-radius: 0.375rem;
+        }
+        
+        .nav-link-parent .nav-chevron {
+            opacity: 0.4;
+        }
+        
+        .nav-link-parent:hover .nav-chevron,
+        .nav-link-parent.active .nav-chevron {
+            opacity: 0.7;
+        }
+        
+        .nav-chevron.rotated {
+            transform: rotate(180deg);
+            opacity: 0.8;
+        }
+        
+        .nav-submenu-items {
+            overflow: hidden;
+            position: relative;
+            margin-left: 1.25rem;
+            padding-left: 0.75rem;
+            border-left: 1.5px solid #e2e8f0;
+        }
+        
+        /* Active group accent: highlight the connector line when group has active child */
+        .nav-link-parent.active + .nav-submenu-items {
+            border-left-color: #93bbfd;
+        }
+
+        /* Flyout menus: hidden by default, only shown in collapsed hover state */
+        .nav-submenu-flyout {
+            display: none;
+        }
+
+        /* Removed smooth transitions for sidebar content to make it instant */
+        .nav-label,
+        .sidebar-brand-text,
+        .section-label,
+        .nav-chevron,
+        .user-meta,
+        .logout-icon-btn {
+        }
+
+        /* Animations for tooltips and flyouts */
+        @keyframes flyoutIn {
+            from { opacity: 0; transform: translateX(-6px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes tooltipIn {
+            from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
+            to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+        }
+        @keyframes tooltipArrowIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .nav-link-child {
+            padding-left: 0.375rem !important;
+            font-size: 0.7875rem;
+            margin: 0 !important;
+            border-radius: 0.375rem;
+            color: #64748b;
+        }
+        
+        .nav-link-child:hover {
+            color: #334155;
+            padding-left: 0.5rem !important;
+        }
+        
+        .nav-link-child svg {
+            width: 0.875rem;
+            height: 0.875rem;
+            opacity: 0.45;
+        }
+        
+        .nav-link-child:hover svg {
+            opacity: 0.7;
+        }
+        
+        .nav-link-child.active {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        
+        .nav-link-child.active svg {
+            opacity: 1;
+            color: #2563eb;
+        }
+        
+        /* Child active indicator: dot instead of bar */
+        .nav-link-child.active::before {
+            content: '';
+            position: absolute;
+            left: -0.8125rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #3b82f6;
+        }
+
+        /* User Section */
         #sidebar .user-section {
             flex-shrink: 0;
-            margin-top: auto;
-            border-top: 1px solid #e2e8f0;
-            background: linear-gradient(180deg, transparent 0%, rgba(37, 99, 235, 0.02) 100%);
+            padding: 0.5rem 0.5rem 0.625rem;
+            border-top: 1px solid #e5e7eb;
         }
         
-        /* 🔴 RESPONSIVE BREAKPOINTS - Mobile First Design (Compact) */
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.375rem;
+            border-radius: 0.5rem;
+            transition: background 0.15s ease;
+        }
         
-        /* Mobile (320px - 639px) - Base styles above */
+        .user-card:hover {
+            background: #f8fafc;
+        }
+        
+        .user-avatar {
+            width: 1.875rem;
+            height: 1.875rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .user-avatar span {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.6875rem;
+        }
+        
+        .user-meta {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .user-meta .user-name {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e293b;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-meta .user-role {
+            font-size: 0.5625rem;
+            font-weight: 600;
+            color: #3b82f6;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+        }
+        
+        /* Role Badge */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.0625rem 0.3125rem;
+            border-radius: 0.25rem;
+            font-size: 0.5625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        
+        /* Logout Button - Icon only, inline */
+        .logout-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 0.375rem;
+            color: #94a3b8;
+            background: transparent;
+            border: none;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        
+        .logout-icon-btn:hover {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+        
+        .logout-icon-btn svg {
+            width: 0.9375rem;
+            height: 0.9375rem;
+        }
+        
+        /* Mobile Menu Overlay */
+        #mobileMenuOverlay {
+            backdrop-filter: blur(4px);
+            background-color: rgba(15, 23, 42, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        /* ========================================
+           RESPONSIVE BREAKPOINTS
+           ======================================== */
+        
+        /* Mobile (up to 639px) */
         @media (max-width: 639px) {
-            /* Larger touch targets for mobile */
             .nav-link {
-                padding: 0.75rem 0.875rem;
-                font-size: 0.875rem;
-                margin: 0.125rem 0.5rem;
-            }
-            
-            .nav-link svg {
-                width: 1.25rem;
-                height: 1.25rem;
-                margin-right: 0.75rem;
-            }
-            
-            .section-title {
-                font-size: 0.6875rem;
-                padding: 0.625rem 0.75rem 0.25rem 0.75rem;
-            }
-            
-            /* Mobile header adjustments */
-            #openSidebar {
-                padding: 0.5rem;
-            }
-        }
-        
-        /* Small Tablets (640px - 767px) */
-        @media (min-width: 640px) and (max-width: 767px) {
-            .nav-link {
-                padding: 0.625rem 0.875rem;
+                padding: 0.5rem 0.625rem;
                 font-size: 0.8125rem;
             }
             
             .nav-link svg {
-                width: 1.125rem;
-                height: 1.125rem;
+                width: 1.05rem;
+                height: 1.05rem;
             }
             
-            .section-title {
-                font-size: 0.625rem;
+            .section-label {
+                font-size: 0.5625rem;
             }
         }
         
         /* Tablets (768px - 1023px) */
         @media (min-width: 768px) and (max-width: 1023px) {
-            .nav-link {
-                padding: 0.6875rem 0.9375rem;
-                font-size: 0.875rem;
-            }
-            
-            .nav-link svg {
-                width: 1.1875rem;
-                height: 1.1875rem;
-            }
-            
             #sidebar {
-                width: 13rem; /* Compact on tablets */
+                width: 224px;
             }
         }
         
-        /* Desktop (1024px - 1279px) */
-        @media (min-width: 1024px) and (max-width: 1279px) {
+        /* Desktop (1024px+) */
+        @media (min-width: 1024px) {
             #sidebar {
-                width: 15rem; /* 240px */
+                width: 240px;
             }
         }
         
         /* Large Desktop (1280px+) */
         @media (min-width: 1280px) {
             #sidebar {
-                width: 16rem; /* 256px */
-            }
-            
-            .nav-link {
-                padding: 0.8125rem 1.125rem;
-                font-size: 0.9375rem;
-            }
-            
-            .section-title {
-                padding: 1.125rem 1.125rem 0.5625rem 1.125rem;
+                width: 256px;
             }
         }
         
-        /* Ultra-wide screens (1536px+) */
+        /* Ultra-wide (1536px+) */
         @media (min-width: 1536px) {
             #sidebar {
-                width: 18rem; /* 288px - generous width for ultra-wide */
+                width: 256px;
             }
             
             .nav-link {
-                padding: 0.875rem 1.25rem;
-                font-size: 1rem;
-            }
-            
-            .nav-link svg {
-                width: 1.375rem;
-                height: 1.375rem;
-                margin-right: 0.875rem;
+                padding: 0.4375rem 0.75rem;
+                font-size: 0.8125rem;
             }
         }
         
-        /* Landscape orientation adjustments for mobile/tablet */
+        /* ========================================
+           COLLAPSED SIDEBAR (Desktop only)
+           Icon-only rail at 64px width
+           ======================================== */
+        @media (min-width: 1024px) {
+            #sidebar.collapsed {
+                width: 64px !important;
+            }
+
+            /* Logo section: center icon, hide text */
+            #sidebar.collapsed .logo-section {
+                padding: 0.75rem 0.5rem;
+                display: flex;
+                justify-content: center;
+            }
+            #sidebar.collapsed .logo-section .flex.items-center.justify-between {
+                justify-content: center;
+            }
+            #sidebar.collapsed .logo-section .flex.items-center.gap-2 {
+                gap: 0;
+            }
+            #sidebar.collapsed .sidebar-brand-text {
+                display: none;
+            }
+
+            /* Nav links: center icons, fade out text */
+            #sidebar.collapsed .nav-link {
+                justify-content: center;
+                padding: 0;
+                margin: 2px 0.375rem;
+                position: relative;
+                height: 2.5rem;
+                font-size: 0;
+            }
+            #sidebar.collapsed .nav-link .nav-label {
+                opacity: 0;
+                width: 0;
+                overflow: hidden;
+                pointer-events: none;
+                position: absolute;
+            }
+            #sidebar.collapsed .nav-link svg {
+                width: 1.375rem;
+                height: 1.375rem;
+                margin: 0;
+            }
+
+            /* Hide section labels with fade */
+            #sidebar.collapsed .section-label {
+                opacity: 0;
+                height: 0;
+                padding: 0;
+                margin: 0;
+                overflow: hidden;
+            }
+            #sidebar.collapsed .nav-section.has-divider {
+                margin-top: 0.25rem;
+                padding-top: 0.25rem;
+            }
+            /* Collapsed divider: subtle centered line */
+            #sidebar.collapsed .nav-section.has-divider::before {
+                content: '';
+                display: block;
+                width: 1.75rem;
+                height: 1px;
+                background: #cbd5e1;
+                margin: 0 auto 0.25rem;
+                border-radius: 1px;
+            }
+
+            /* Submenu parent: hide chevron and label, center icon */
+            #sidebar.collapsed .nav-link-parent {
+                width: auto !important;
+                justify-content: center;
+                border-radius: 0.5rem;
+                font-size: 0;
+            }
+            #sidebar.collapsed .nav-link-parent .nav-label {
+                opacity: 0;
+                width: 0;
+                overflow: hidden;
+                pointer-events: none;
+                position: absolute;
+            }
+            #sidebar.collapsed .nav-link-parent .nav-chevron {
+                opacity: 0;
+                width: 0;
+                overflow: hidden;
+                position: absolute;
+            }
+
+            /* Collapsed active state: blue background + left accent bar */
+            #sidebar.collapsed .nav-link.active {
+                background: #dbeafe;
+            }
+            #sidebar.collapsed .nav-link.active::before {
+                display: block;
+                left: -0.375rem;
+                top: 0.375rem;
+                bottom: 0.375rem;
+                width: 3px;
+                border-radius: 0 3px 3px 0;
+                background: #2563eb;
+            }
+            #sidebar.collapsed .nav-link.active svg {
+                opacity: 1;
+                color: #2563eb;
+            }
+
+            /* Collapsed hover: clean background highlight (no scale) */
+            #sidebar.collapsed .nav-link:not(.active):hover {
+                background: #f1f5f9;
+                transform: none;
+            }
+            #sidebar.collapsed .nav-link:not(.active):hover svg {
+                opacity: 0.9;
+                color: #475569;
+            }
+            #sidebar.collapsed .nav-link.active:hover {
+                background: #bfdbfe;
+            }
+
+            /* Dropdown parents hover: consistent with regular nav links */
+            #sidebar.collapsed .nav-link-parent:not(.active):hover {
+                background: #f1f5f9;
+                transform: none;
+            }
+            #sidebar.collapsed .nav-link-parent:not(.active):hover svg {
+                opacity: 0.85;
+                color: #475569;
+            }
+            #sidebar.collapsed .nav-link-parent.active:hover {
+                background: #bfdbfe;
+            }
+
+            /* Nav container: allow flyouts to overflow */
+            #sidebar.collapsed nav {
+                overflow: visible;
+            }
+
+            /* Submenu container: center the parent button */
+            #sidebar.collapsed .nav-submenu {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            #sidebar.collapsed .nav-submenu-items {
+                display: none !important;
+            }
+            #sidebar.collapsed .nav-submenu:hover .nav-submenu-flyout {
+                display: block;
+            }
+            #sidebar.collapsed .nav-submenu-flyout {
+                display: none;
+                position: absolute;
+                left: calc(100% + 10px);
+                top: -4px;
+                min-width: 196px;
+                background: rgba(255,255,255,0.98);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid #e2e8f0;
+                border-radius: 0.75rem;
+                box-shadow: 0 20px 40px -8px rgba(0,0,0,0.14), 0 8px 16px -4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+                padding: 0.375rem;
+                margin-left: 0;
+                z-index: 100;
+            }
+            /* Invisible bridge to prevent hover gap between icon and flyout */
+            #sidebar.collapsed .nav-submenu-flyout::before {
+                content: '';
+                position: absolute;
+                left: -18px;
+                top: 0;
+                width: 18px;
+                height: 100%;
+            }
+            /* Arrow connector pointing from flyout back toward the icon */
+            #sidebar.collapsed .nav-submenu-flyout::after {
+                content: '';
+                position: absolute;
+                left: -5px;
+                top: 14px;
+                border: 5px solid transparent;
+                border-right-color: #e2e8f0;
+                filter: drop-shadow(-1px 0 0 rgba(0,0,0,0.03));
+            }
+            /* Flyout title header */
+            #sidebar.collapsed .nav-submenu-flyout .flyout-title {
+                padding: 0.375rem 0.5rem 0.3125rem;
+                font-size: 0.625rem;
+                font-weight: 700;
+                color: #94a3b8;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                margin-bottom: 0.125rem;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child {
+                justify-content: flex-start;
+                padding: 0.375rem 0.5rem !important;
+                font-size: 0.8125rem;
+                border-radius: 0.5rem;
+                margin: 1px 0;
+                color: #475569;
+                transition: all 0.12s ease;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child:hover {
+                background: #f1f5f9;
+                color: #1e293b;
+                padding-left: 0.625rem !important;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child.active {
+                background: #eff6ff;
+                color: #1d4ed8;
+                font-weight: 600;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child.active::before {
+                left: 0.125rem;
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background: #3b82f6;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child .nav-label {
+                display: inline;
+                opacity: 1;
+                width: auto;
+                position: static;
+                pointer-events: auto;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child svg {
+                width: 0.9375rem;
+                height: 0.9375rem;
+                opacity: 0.5;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child:hover svg {
+                opacity: 0.8;
+            }
+            #sidebar.collapsed .nav-submenu-flyout .nav-link-child.active svg {
+                opacity: 1;
+                color: #2563eb;
+            }
+            /* Hide the inline submenu items section in collapsed mode */
+            #sidebar.collapsed .nav-submenu .inline-submenu-content {
+                display: none !important;
+            }
+
+            /* User section: compact vertical stack when collapsed */
+            #sidebar.collapsed .user-section {
+                padding: 0.5rem 0.375rem 0.625rem;
+                overflow: visible;
+            }
+            #sidebar.collapsed .user-card {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 0.1875rem;
+                padding: 0.25rem 0;
+                overflow: visible;
+            }
+            #sidebar.collapsed .user-meta {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                overflow: hidden;
+                pointer-events: none;
+                position: absolute;
+            }
+            /* Show avatar — gives user identity even when collapsed */
+            #sidebar.collapsed .user-avatar {
+                opacity: 1;
+                width: 2rem;
+                height: 2rem;
+                position: relative;
+                pointer-events: auto;
+                overflow: visible;
+                border-radius: 50%;
+                cursor: default;
+                flex-shrink: 0;
+            }
+            #sidebar.collapsed .user-avatar span {
+                font-size: 0.625rem;
+            }
+            #sidebar.collapsed .logout-icon-btn {
+                opacity: 1;
+                width: 2rem;
+                height: 2rem;
+                position: static;
+                pointer-events: auto;
+                overflow: visible;
+                border-radius: 0.5rem;
+            }
+            #sidebar.collapsed .logout-icon-btn svg {
+                width: 1.125rem;
+                height: 1.125rem;
+            }
+            /* Tooltip for user avatar */
+            #sidebar.collapsed .user-avatar[data-tooltip] {
+                position: relative;
+            }
+            #sidebar.collapsed .user-avatar[data-tooltip]:hover::after {
+                content: attr(data-tooltip);
+                position: absolute;
+                left: calc(100% + 12px);
+                top: 50%;
+                transform: translateY(-50%);
+                background: #1e293b;
+                color: #ffffff;
+                padding: 0.3125rem 0.75rem;
+                border-radius: 0.5rem;
+                font-size: 0.75rem;
+                font-weight: 500;
+                white-space: nowrap;
+                z-index: 200;
+                pointer-events: none;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+                animation: tooltipIn 0.12s ease-out forwards;
+            }
+            #sidebar.collapsed .user-avatar[data-tooltip]:hover::before {
+                content: '';
+                position: absolute;
+                left: calc(100% + 6px);
+                top: 50%;
+                transform: translateY(-50%);
+                border: 5px solid transparent;
+                border-right-color: #1e293b;
+                z-index: 200;
+                pointer-events: none;
+                animation: tooltipArrowIn 0.12s ease-out forwards;
+            }
+
+
+            /* Collapse toggle button (in logo header) */
+            #sidebar .collapse-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.75rem;
+                height: 1.75rem;
+                border-radius: 0.375rem;
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                flex-shrink: 0;
+                padding: 0;
+            }
+            #sidebar .collapse-toggle:hover {
+                background: #f1f5f9;
+                color: #64748b;
+            }
+            #sidebar .collapse-toggle svg {
+                width: 0.9375rem;
+                height: 0.9375rem;
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                will-change: transform;
+            }
+            #sidebar.collapsed .collapse-toggle svg {
+                transform: rotate(180deg);
+            }
+            #sidebar.collapsed .logo-section {
+                position: relative;
+            }
+            #sidebar.collapsed .collapse-toggle {
+                position: absolute;
+                right: -16px;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 60;
+                width: 2rem;
+                height: 2rem;
+                border-radius: 50%;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            }
+            #sidebar.collapsed .collapse-toggle:hover {
+                background: #eff6ff;
+                border-color: #93c5fd;
+                color: #3b82f6;
+                box-shadow: 0 3px 10px rgba(59,130,246,0.2);
+                transform: translateY(-50%) scale(1.08);
+            }
+
+            /* Tooltip on hover (collapsed mode only) */
+            #sidebar.collapsed .nav-link[data-tooltip]:hover::after {
+                content: attr(data-tooltip);
+                position: absolute;
+                left: calc(100% + 12px);
+                top: 50%;
+                transform: translateY(-50%);
+                background: #1e293b;
+                color: #ffffff;
+                padding: 0.3125rem 0.75rem;
+                border-radius: 0.5rem;
+                font-size: 0.75rem;
+                font-weight: 500;
+                white-space: nowrap;
+                z-index: 200;
+                pointer-events: none;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+                animation: tooltipIn 0.12s ease-out forwards;
+            }
+            #sidebar.collapsed .nav-link[data-tooltip]:hover::before {
+                content: '';
+                position: absolute;
+                left: calc(100% + 6px);
+                top: 50%;
+                transform: translateY(-50%);
+                border: 5px solid transparent;
+                border-right-color: #1e293b;
+                z-index: 200;
+                pointer-events: none;
+                animation: tooltipArrowIn 0.12s ease-out forwards;
+            }
+
+            /* Suppress tooltips on submenu parents (flyout already shows title) */
+            #sidebar.collapsed .nav-link-parent[data-tooltip]:hover::after,
+            #sidebar.collapsed .nav-link-parent[data-tooltip]:hover::before {
+                display: none;
+            }
+
+            /* User card: remove old generic tooltip (avatar+bell[data-tooltip] handle it) */
+            #sidebar.collapsed .user-card[data-tooltip]:hover::after,
+            #sidebar.collapsed .user-card[data-tooltip]:hover::before {
+                display: none;
+            }
+            #sidebar.collapsed .user-card {
+                position: relative;
+            }
+
+            /* Main content offset when collapsed */
+            body.sidebar-collapsed .main-content-area {
+                margin-left: 64px !important;
+            }
+
+            /* Pre-paint collapsed layout to prevent one-frame expand flash on navigation. */
+            html.sidebar-collapsed-preload #sidebar {
+                width: 64px !important;
+                transition: none !important;
+            }
+
+            html.sidebar-collapsed-preload #mainContentArea {
+                margin-left: 64px !important;
+                transition: none !important;
+            }
+
+            html.sidebar-collapsed-preload .sidebar-brand-text,
+            html.sidebar-collapsed-preload .nav-label,
+            html.sidebar-collapsed-preload .section-label,
+            html.sidebar-collapsed-preload .user-meta {
+                opacity: 0 !important;
+                width: 0 !important;
+                overflow: hidden !important;
+                pointer-events: none !important;
+            }
+
+            /* Hide inline/bare nav text nodes pre-paint before initNavLabels wraps them. */
+            html.sidebar-collapsed-preload #sidebar .nav-link,
+            html.sidebar-collapsed-preload #sidebar .nav-link-parent {
+                font-size: 0 !important;
+            }
+        }
+
+        /* Landscape mobile/tablet */
         @media (max-width: 1023px) and (orientation: landscape) {
-            #sidebar {
-                max-height: 100vh;
-            }
-            
             #sidebar nav {
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+                -webkit-overflow-scrolling: touch;
             }
             
-            /* Very compact padding in landscape mode */
             .nav-link {
-                padding: 0.5rem 0.75rem;
+                padding: 0.375rem 0.625rem;
             }
             
-            .section-title {
-                padding: 0.5rem 0.75rem 0.25rem 0.75rem;
+            .section-label {
+                padding: 0.125rem 0.625rem 0.1875rem;
             }
         }
         
@@ -281,36 +1007,945 @@
                 display: none !important;
             }
             
-            .lg\:ml-64 {
+            .lg\:ml-64,
+            .main-content-area {
                 margin-left: 0 !important;
             }
         }
+
+        /* Hide collapse toggle on mobile (mobile uses slide drawer) */
+        @media (max-width: 1023px) {
+            .collapse-toggle {
+                display: none !important;
+            }
+        }
+        
+        /* Disable hover on touch devices */
+        @media (hover: none) {
+            .nav-link:hover {
+                background: transparent;
+                color: #64748b;
+            }
+            
+            .nav-link.active:hover {
+                background: #eff6ff;
+                color: #1d4ed8;
+            }
+            
+            .logout-icon-btn:hover {
+                background: transparent;
+                color: #94a3b8;
+            }
+        }
+
+        /* ========================================
+         * 🎬 VIEW TRANSITIONS API (MPA mode)
+         * Sidebar stays put, only <main> cross-fades
+         * ======================================== */
+        @view-transition {
+            navigation: auto;
+        }
+
+        #sidebar {
+            view-transition-name: sidebar;
+        }
+
+        main {
+            view-transition-name: main-content;
+        }
+
+        /* Keep sidebar perfectly still during transition */
+        ::view-transition-old(sidebar),
+        ::view-transition-new(sidebar) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+
+        /* Fast swap for main content - no overlap */
+        ::view-transition-old(main-content) {
+            animation: none;
+        }
+        ::view-transition-new(main-content) {
+            animation: vt-fade-in 100ms ease-out;
+        }
+
+        /* Prevent old/new snapshots blending together */
+        ::view-transition-image-pair(main-content) {
+            isolation: auto;
+        }
+
+        @keyframes vt-fade-in {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        /* Disable all view transition animations if user prefers reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            ::view-transition-old(*),
+            ::view-transition-new(*) {
+                animation: none !important;
+            }
+        }
+
+        /* ========================================
+           DARK MODE OVERRIDES
+           Sidebar uses hardcoded CSS, so we need
+           explicit .dark overrides here
+           ======================================== */
+        .dark #sidebar {
+            background: #1e293b;
+            border-right-color: #334155;
+        }
+
+        .dark #sidebar .logo-section {
+            border-bottom-color: #334155;
+        }
+
+        .dark #sidebar nav::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+        }
+
+        .dark #sidebar nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+
+        .dark .nav-link {
+            color: #94a3b8;
+        }
+
+        .dark .nav-link svg {
+            opacity: 0.5;
+        }
+
+        .dark .nav-link:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .dark .nav-link.active {
+            background: #1e3a5f;
+            color: #60a5fa;
+        }
+
+        .dark .nav-link.active::before {
+            background: #3b82f6;
+        }
+
+        .dark .nav-link.active svg {
+            color: #60a5fa;
+        }
+
+        .dark .section-label {
+            color: #64748b;
+        }
+
+        .dark .nav-section.has-divider {
+            border-top-color: #334155;
+        }
+
+        .dark .nav-submenu-items {
+            border-left-color: #334155;
+        }
+        
+        .dark .nav-link-parent.active + .nav-submenu-items {
+            border-left-color: #3b82f6;
+        }
+        
+        .dark .nav-link-child {
+            color: #94a3b8;
+        }
+        
+        .dark .nav-link-child:hover {
+            color: #e2e8f0;
+        }
+        
+        .dark .nav-link-child.active {
+            background: #1e3a5f;
+            color: #60a5fa;
+        }
+        
+        .dark .nav-link-child.active::before {
+            background: #60a5fa;
+        }
+
+        .dark #sidebar .user-section {
+            border-top-color: #334155;
+        }
+
+        .dark .user-card:hover {
+            background: #334155;
+        }
+
+        .dark .user-meta .user-name {
+            color: #f1f5f9;
+        }
+
+        .dark .user-meta .user-role {
+            color: #60a5fa;
+        }
+
+        .dark .role-badge {
+            background: #1e3a5f;
+            color: #60a5fa;
+        }
+
+        .dark .logout-icon-btn {
+            color: #64748b;
+        }
+
+        .dark .logout-icon-btn:hover {
+            background: #3b1111;
+            color: #f87171;
+        }
+
+        .dark #mobileMenuOverlay {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        /* Touch device dark mode overrides */
+        @media (hover: none) {
+            .dark .nav-link:hover {
+                background: transparent;
+                color: #94a3b8;
+            }
+            .dark .nav-link.active:hover {
+                background: #1e3a5f;
+                color: #60a5fa;
+            }
+            .dark .logout-icon-btn:hover {
+                background: transparent;
+                color: #64748b;
+            }
+        }
+
+        /* ========================================
+           GLOBAL DARK MODE - PAGE CONTENT
+           Covers common patterns across all pages
+           (dashboard, faculty, building, etc.)
+           ======================================== */
+
+        /* Dark mode: Collapsed sidebar overrides */
+        @media (min-width: 1024px) {
+            .dark #sidebar.collapsed .nav-submenu-flyout {
+                background: rgba(30,41,59,0.98);
+                border-color: #334155;
+                box-shadow: 0 20px 40px -8px rgba(0,0,0,0.4), 0 8px 16px -4px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.12);
+            }
+            /* Dark mode flyout arrow */
+            .dark #sidebar.collapsed .nav-submenu-flyout::after {
+                border-right-color: #334155;
+            }
+            .dark #sidebar.collapsed .nav-submenu-flyout .flyout-title {
+                color: #64748b;
+            }
+            .dark #sidebar.collapsed .nav-submenu-flyout .nav-link-child {
+                color: #94a3b8;
+            }
+            .dark #sidebar.collapsed .nav-submenu-flyout .nav-link-child:hover {
+                background: #334155;
+                color: #e2e8f0;
+            }
+            .dark #sidebar.collapsed .nav-submenu-flyout .nav-link-child.active {
+                background: #1e3a5f;
+                color: #60a5fa;
+            }
+            .dark #sidebar.collapsed .nav-submenu-flyout .nav-link-child.active svg {
+                color: #60a5fa;
+            }
+            .dark #sidebar.collapsed .nav-submenu-flyout .nav-link-child.active::before {
+                background: #60a5fa;
+            }
+            .dark #sidebar.collapsed .nav-link.active {
+                background: #1e3a5f;
+            }
+            .dark #sidebar.collapsed .nav-link.active::before {
+                background: #60a5fa;
+            }
+            .dark #sidebar.collapsed .nav-link:not(.active):hover {
+                background: #334155;
+            }
+            .dark #sidebar.collapsed .nav-link:not(.active):hover svg {
+                color: #e2e8f0;
+            }
+            .dark #sidebar.collapsed .nav-link.active:hover {
+                background: #1e4f8f;
+            }
+            .dark #sidebar.collapsed .nav-link-parent:not(.active):hover {
+                background: #334155;
+            }
+            .dark #sidebar.collapsed .nav-link-parent:not(.active):hover svg {
+                color: #e2e8f0;
+            }
+            .dark #sidebar.collapsed .nav-section.has-divider::before {
+                background: #475569;
+            }
+            .dark #sidebar .collapse-toggle {
+                color: #64748b;
+            }
+            .dark #sidebar .collapse-toggle:hover {
+                background: #334155;
+                color: #94a3b8;
+            }
+            .dark #sidebar.collapsed .collapse-toggle {
+                background: #1e293b;
+                border-color: #334155;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            }
+            .dark #sidebar.collapsed .collapse-toggle:hover {
+                background: #1e3a5f;
+                border-color: #3b82f6;
+                color: #60a5fa;
+                box-shadow: 0 3px 10px rgba(59,130,246,0.3);
+            }
+            /* Nav link tooltips */
+            .dark #sidebar.collapsed .nav-link[data-tooltip]:hover::after {
+                background: #0f172a;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+            }
+            .dark #sidebar.collapsed .nav-link[data-tooltip]:hover::before {
+                border-right-color: #0f172a;
+            }
+            /* User avatar tooltip */
+            .dark #sidebar.collapsed .user-avatar[data-tooltip]:hover::after {
+                background: #0f172a;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+            }
+            .dark #sidebar.collapsed .user-avatar[data-tooltip]:hover::before {
+                border-right-color: #0f172a;
+            }
+        }
+
+        /* ---- Cards & Containers (hardcoded CSS) ---- */
+        .dark .dashboard-card,
+        .dark .stat-card,
+        .dark .faculty-card,
+        .dark .building-card,
+        .dark .curriculum-card,
+        .dark .program-card,
+        .dark .settings-card,
+        .dark .users-card {
+            background: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        .dark .stat-card:hover,
+        .dark .dashboard-card:hover {
+            border-color: #475569;
+        }
+
+        /* ---- Program, schedule, quick-action cards ---- */
+        .dark .dept-card {
+            background: #334155 !important;
+            border-color: #475569 !important;
+            color: #e2e8f0;
+        }
+
+        .dark .dept-card:hover {
+            background: #3b4a63 !important;
+            border-color: #64748b !important;
+        }
+
+        .dark .schedule-item {
+            background: #334155 !important;
+            color: #e2e8f0;
+        }
+
+        .dark .schedule-item:hover {
+            background: #3b4a63 !important;
+        }
+
+        .dark .quick-action {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .dark .quick-action:hover {
+            border-color: #3b82f6;
+            background: #1e293b;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ---- Hover states for list items ---- */
+        .dark .faculty-list-item:hover,
+        .dark .building-list-item:hover,
+        .dark .curriculum-list-item:hover,
+        .dark .program-list-item:hover,
+        .dark .room-list-item:hover,
+        .dark .activity-item:hover,
+        .dark .subject-row:hover {
+            background: #334155 !important;
+        }
+
+        /* ---- Selected states ---- */
+        .dark .faculty-list-item.selected,
+        .dark .building-list-item.selected,
+        .dark .curriculum-list-item.selected,
+        .dark .program-list-item.selected {
+            background: #1e3a5f !important;
+            border-left-color: #3b82f6 !important;
+        }
+
+        .dark .faculty-list-item.selected:hover,
+        .dark .building-list-item.selected:hover,
+        .dark .curriculum-list-item.selected:hover,
+        .dark .program-list-item.selected:hover {
+            background: #1e3a5f !important;
+        }
+
+        /* ---- Form inputs & selects ---- */
+        .dark .form-input,
+        .dark .form-select,
+        .dark input[type="text"],
+        .dark input[type="email"],
+        .dark input[type="password"],
+        .dark input[type="number"],
+        .dark input[type="search"],
+        .dark input[type="tel"],
+        .dark input[type="url"],
+        .dark input[type="date"],
+        .dark input[type="time"],
+        .dark textarea,
+        .dark select {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        .dark .form-input:focus,
+        .dark .form-select:focus,
+        .dark input:focus,
+        .dark textarea:focus,
+        .dark select:focus {
+            border-color: #3b82f6 !important;
+            ring-color: #3b82f6 !important;
+        }
+
+        .dark .form-input:disabled,
+        .dark input:disabled,
+        .dark select:disabled,
+        .dark textarea:disabled {
+            background-color: #0f172a !important;
+            color: #64748b !important;
+        }
+
+        .dark .form-input::placeholder,
+        .dark input::placeholder,
+        .dark textarea::placeholder {
+            color: #64748b !important;
+        }
+
+        /* ---- Tables ---- */
+        .dark table {
+            color: #e2e8f0;
+        }
+
+        .dark thead {
+            background: #1e293b;
+        }
+
+        .dark th {
+            color: #94a3b8 !important;
+            border-color: #334155 !important;
+        }
+
+        .dark td {
+            border-color: #334155 !important;
+            color: #e2e8f0;
+        }
+
+        .dark tbody tr:hover {
+            background: #334155 !important;
+        }
+
+        .dark tbody tr {
+            border-color: #334155;
+        }
+
+        /* ---- Modals & Dialogs ---- */
+
+        /*
+         * FIX: backdrop-filter:blur() on modal overlays blurs the fixed sidebar.
+         * Covers both structural patterns used across the app:
+         *   1. blur on the modal container itself  (.fixed.inset-0 ... backdrop-blur-sm)
+         *   2. blur on a child backdrop div        (.absolute.inset-0 inside a fixed modal)
+         * The dark semi-transparent overlay alone is sufficient visual separation.
+         */
+        .fixed.inset-0,
+        .fixed.inset-0 > .absolute.inset-0 {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        .dark .modal-content,
+        .dark [class*="modal"] > div > div,
+        .dark .confirm-modal-content {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0;
+        }
+
+        /* ---- Toasts ---- */
+        .dark .toast {
+            background: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        /* ---- History items in settings ---- */
+        .dark .history-item {
+            background: #1e293b;
+        }
+
+        .dark .history-item.active {
+            background: #1e3a5f;
+        }
+
+        /* ---- Tab buttons ---- */
+        .dark .tab-button {
+            color: #94a3b8;
+        }
+
+        .dark .tab-button:hover {
+            color: #e2e8f0;
+            background: #334155;
+        }
+
+        .dark .tab-button.active {
+            color: #60a5fa !important;
+            background: #1e3a5f !important;
+        }
+
+        /* ---- Tab content panels ---- */
+        .dark .tab-content {
+            background: #1e293b;
+        }
+
+        /* ---- Badges & Pills ---- */
+        .dark .badge,
+        .dark [class*="badge"] {
+            border-color: #334155;
+        }
+
+        /* ---- Tooltips & Popovers ---- */
+        .dark [role="tooltip"] {
+            background: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* ---- Dropdown menus ---- */
+        .dark .dropdown-menu,
+        .dark [class*="dropdown"] {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        /* ---- Range slider dark ---- */
+        .dark input[type="range"] {
+            background: #334155 !important;
+        }
+
+        /* ---- Links inside dark mode ---- */
+        .dark a.text-blue-600 {
+            color: #60a5fa !important;
+        }
+
+        .dark a.text-blue-600:hover {
+            color: #93bbfd !important;
+        }
+
+        /* ---- Panel headers (used in master-detail pages) ---- */
+        .dark .panel-header,
+        .dark [class*="panel"] > .bg-white,
+        .dark .master-panel > div:first-child {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+        }
+
+        /* ---- Settings-specific overrides ---- */
+        .dark .settings-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        /* ---- Active settings card (gradient) stays as is ---- */
+
+        /* ---- Icon backgrounds in dark mode ---- */
+        .dark .bg-blue-100 { background: rgba(59, 130, 246, 0.15) !important; }
+        .dark .bg-emerald-100 { background: rgba(16, 185, 129, 0.15) !important; }
+        .dark .bg-green-100 { background: rgba(34, 197, 94, 0.15) !important; }
+        .dark .bg-purple-100 { background: rgba(147, 51, 234, 0.15) !important; }
+        .dark .bg-amber-100 { background: rgba(245, 158, 11, 0.15) !important; }
+        .dark .bg-red-100 { background: rgba(239, 68, 68, 0.15) !important; }
+        .dark .bg-cyan-100 { background: rgba(6, 182, 212, 0.15) !important; }
+        .dark .bg-pink-100 { background: rgba(236, 72, 153, 0.15) !important; }
+        .dark .bg-indigo-100 { background: rgba(99, 102, 241, 0.15) !important; }
+        .dark .bg-yellow-100 { background: rgba(234, 179, 8, 0.15) !important; }
+        .dark .bg-orange-100 { background: rgba(249, 115, 22, 0.15) !important; }
+        .dark .bg-gray-100 { background: rgba(148, 163, 184, 0.15) !important; }
+
+        /* ---- Badge backgrounds ---- */
+        .dark .bg-blue-50 { background: rgba(59, 130, 246, 0.1) !important; }
+        .dark .bg-green-50 { background: rgba(34, 197, 94, 0.1) !important; }
+        .dark .bg-red-50 { background: rgba(239, 68, 68, 0.1) !important; }
+        .dark .bg-amber-50 { background: rgba(245, 158, 11, 0.1) !important; }
+        .dark .bg-purple-50 { background: rgba(147, 51, 234, 0.1) !important; }
+        .dark .bg-emerald-50 { background: rgba(16, 185, 129, 0.1) !important; }
+
+        /* ---- Text colors override (global) ---- */
+        .dark .text-gray-900 { color: #f1f5f9 !important; }
+        .dark .text-gray-800 { color: #e2e8f0 !important; }
+        .dark .text-gray-700 { color: #cbd5e1 !important; }
+        .dark .text-gray-600 { color: #94a3b8 !important; }
+        .dark .text-gray-500 { color: #94a3b8 !important; }
+        .dark .text-gray-400 { color: #64748b !important; }
+
+        /* ---- Background colors override (global) ---- */
+        .dark .bg-white { background: #1e293b !important; }
+        .dark .bg-gray-50 { background: #0f172a !important; }
+        .dark .bg-gray-100 { background: rgba(148, 163, 184, 0.15) !important; }
+        .dark .bg-gray-200 { background: #334155 !important; }
+
+        /* ---- Border colors override (global) ---- */
+        .dark .border-gray-100 { border-color: #1e293b !important; }
+        .dark .border-gray-200 { border-color: #334155 !important; }
+        .dark .border-gray-300 { border-color: #475569 !important; }
+
+        /* ---- Dividers ---- */
+        .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #334155 !important;
+        }
+
+        .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #1e293b !important;
+        }
+
+        /* ---- Shadows in dark mode ---- */
+        .dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important; }
+        .dark .shadow { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important; }
+        .dark .shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4) !important; }
+        .dark .shadow-lg { box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4) !important; }
+
+        /* ---- Placeholder text for search inputs ---- */
+        .dark ::placeholder {
+            color: #64748b !important;
+        }
+
+        /* ---- Scrollbar dark mode ---- */
+        .dark ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.6);
+        }
+
+        /* ---- Red/50 border for exams ---- */
+        .dark .border-red-100 { border-color: rgba(239, 68, 68, 0.2) !important; }
+        .dark .border-blue-100 { border-color: rgba(59, 130, 246, 0.2) !important; }
+        .dark .border-green-100 { border-color: rgba(34, 197, 94, 0.2) !important; }
+
+        /* ---- Hover background overrides ---- */
+        .dark .hover\:bg-gray-50:hover { background: #334155 !important; }
+        .dark .hover\:bg-gray-100:hover { background: #334155 !important; }
+        .dark .hover\:bg-blue-50:hover { background: rgba(59, 130, 246, 0.15) !important; }
+        .dark .hover\:bg-green-50:hover { background: rgba(34, 197, 94, 0.15) !important; }
+        .dark .hover\:bg-purple-50:hover { background: rgba(147, 51, 234, 0.15) !important; }
+        .dark .hover\:bg-amber-50:hover { background: rgba(245, 158, 11, 0.15) !important; }
+        .dark .hover\:bg-red-50:hover { background: rgba(239, 68, 68, 0.15) !important; }
+
+        /* ---- Secondary buttons ---- */
+        .dark .btn-secondary {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        .dark .btn-secondary:hover {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
+        /* ---- Section icons ---- */
+        .dark .section-icon {
+            background: rgba(59, 130, 246, 0.15) !important;
+        }
+
+        /* ---- Info items (profile page) ---- */
+        .dark .info-item {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        .dark .info-item:hover {
+            border-color: #475569;
+        }
+
+        /* ---- Logo preview ---- */
+        .dark .logo-preview {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+        }
+
+        /* ---- User list styles ---- */
+        .dark .user-list-header {
+            background: #0f172a;
+        }
+
+        .dark .user-list-header th {
+            color: #94a3b8;
+            border-bottom-color: #334155;
+        }
+
+        .dark .user-row {
+            background: #1e293b;
+        }
+
+        .dark .user-row:hover {
+            background: #334155;
+        }
+
+        .dark .user-row td {
+            border-bottom-color: #1e293b;
+        }
+
+        .dark .user-row-mobile {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .dark .user-row-mobile:hover {
+            background: #334155;
+        }
+
+        .dark .user-row-mobile .actions-row {
+            border-top-color: #1e293b;
+        }
+
+        .dark .user-name { color: #f1f5f9; }
+        .dark .user-email { color: #94a3b8; }
+        .dark .user-username { color: #64748b; }
+        .dark .last-login { color: #94a3b8; }
+
+        .dark .dept-tag {
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        /* ---- User avatar badges ---- */
+        .dark .user-list-avatar.admin { background: rgba(147, 51, 234, 0.2); }
+        .dark .user-list-avatar.super_admin { background: rgba(245, 158, 11, 0.2); }
+        .dark .user-list-avatar.dean { background: rgba(59, 130, 246, 0.2); }
+
+        .dark .role-badge-list.admin { background: rgba(147, 51, 234, 0.2); }
+        .dark .role-badge-list.super_admin { background: rgba(245, 158, 11, 0.2); }
+        .dark .role-badge-list.dean { background: rgba(59, 130, 246, 0.2); }
+
+        /* ---- Status badges ---- */
+        .dark .status-badge { background: rgba(59, 130, 246, 0.2); }
+        .dark .status-badge.active { background: rgba(34, 197, 94, 0.2); }
+        .dark .status-badge.inactive { background: rgba(239, 68, 68, 0.2); }
+
+        .dark .pending-badge {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+
+        /* ---- Action buttons (users) ---- */
+        .dark .action-btn.activate { background: rgba(34, 197, 94, 0.15); }
+        .dark .action-btn.deactivate { background: #334155; color: #64748b; }
+        .dark .action-btn.archive { background: rgba(245, 158, 11, 0.15); }
+        .dark .action-btn.restore { background: rgba(59, 130, 246, 0.15); }
+        .dark .action-btn.activity { background: rgba(147, 51, 234, 0.15); }
+
+        /* ---- Year level option (programs) ---- */
+        .dark .year-level-option:has(input:checked) {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        /* ---- Text slider (settings) ---- */
+        .dark #textSizeSlider {
+            background: linear-gradient(to right, #334155 0%, #1e3a5f 100%) !important;
+        }
+
+        .dark #textSizeSlider::-webkit-slider-thumb {
+            border-color: #1e293b !important;
+        }
+
+        .dark #textSizeSlider::-moz-range-thumb {
+            border-color: #1e293b !important;
+        }
+
+        /* ---- Ring/progress track color ---- */
+        .dark .text-gray-200 { color: #334155 !important; }
+
+        /* ---- Focus ring colors ---- */
+        .dark .focus\:ring-blue-500:focus,
+        .dark .focus\:border-blue-500:focus {
+            --tw-ring-color: rgba(59, 130, 246, 0.5);
+        }
+
+        /* ---- Placeholder images / empty states ---- */
+        .dark .empty-state {
+            color: #64748b;
+        }
+
+        /* ---- Print: always light ---- */
+        @media print {
+            .dark .bg-white { background: white !important; }
+            .dark .text-gray-900 { color: #111827 !important; }
+        }
+
+        /* ---- Disable hover on touch devices for dark mode ---- */
+        @media (hover: none) {
+            .dark .stat-card:hover,
+            .dark .quick-action:hover,
+            .dark .dept-card:hover,
+            .dark .schedule-item:hover,
+            .dark .activity-item:hover {
+                background: inherit;
+                transform: none;
+                box-shadow: none;
+                border-color: inherit;
+            }
+        }
     </style>
+
+    <!-- Custom Time Picker Base Styles (available on all pages) -->
+    <style>
+        .custom-time-picker { position: relative; display: inline-block; width: 100%; }
+
+        .time-picker-trigger {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem; line-height: 1.25rem;
+            border: 1px solid #d1d5db; border-radius: 0.625rem;
+            background-color: #fff; color: #111827;
+            cursor: pointer; transition: all 0.15s ease;
+            text-align: left; gap: 0.375rem;
+        }
+        .time-picker-trigger:hover { border-color: #9ca3af; }
+        .time-picker-trigger:focus, .time-picker-trigger.tp-active {
+            outline: none; border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+        .time-picker-trigger .tp-display-text {
+            font-weight: 500; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; flex: 1; min-width: 0;
+        }
+        .time-picker-trigger .tp-clock-icon { width: 1rem; height: 1rem; flex-shrink: 0; color: #9ca3af; }
+        .time-picker-trigger.tp-active .tp-clock-icon { color: #6366f1; }
+
+        .time-picker-dropdown {
+            position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+            z-index: 60; display: flex; background: #fff;
+            border: 1px solid #e5e7eb; border-radius: 0.75rem;
+            box-shadow: 0 10px 25px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+            overflow: hidden; animation: tpFadeIn 0.15s ease-out;
+        }
+        .time-picker-dropdown.hidden { display: none !important; }
+        @keyframes tpFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .tp-column { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+        .tp-column + .tp-column { border-left: 1px solid #f1f5f9; }
+        .tp-column-period { flex: 0 0 auto; width: 3rem; }
+        .tp-column-label {
+            font-size: 0.625rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: #94a3b8; padding: 0.375rem 0;
+            text-align: center; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
+        }
+        .tp-column-options { overflow-y: auto; max-height: 11rem; scroll-behavior: smooth; }
+        .tp-column-options::-webkit-scrollbar { width: 3px; }
+        .tp-column-options::-webkit-scrollbar-track { background: transparent; }
+        .tp-column-options::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
+
+        .tp-option {
+            display: block; width: 100%; padding: 0.4rem 0.5rem;
+            font-size: 0.8125rem; font-weight: 500; text-align: center;
+            color: #374151; background: transparent; border: none;
+            cursor: pointer; transition: all 0.1s ease;
+        }
+        .tp-option:hover { background: #f1f5f9; color: #1e293b; }
+        .tp-option.selected { background: #3b82f6; color: #fff; font-weight: 600; }
+        .tp-option.selected:hover { background: #2563eb; color: #fff; }
+        .tp-option-period { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.02em; }
+
+        /* Dark mode */
+        .dark .time-picker-trigger { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        .dark .time-picker-trigger:hover { border-color: #475569; }
+        .dark .time-picker-trigger:focus, .dark .time-picker-trigger.tp-active { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .dark .time-picker-trigger .tp-clock-icon { color: #64748b; }
+        .dark .time-picker-trigger.tp-active .tp-clock-icon { color: #3b82f6; }
+        .dark .time-picker-dropdown { background: #1e293b; border-color: #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .dark .tp-column + .tp-column { border-left-color: #334155; }
+        .dark .tp-column-label { color: #64748b; border-bottom-color: #334155; }
+        .dark .tp-option { color: #cbd5e1; }
+        .dark .tp-option:hover { background: #334155; color: #f1f5f9; }
+        .dark .tp-option.selected { background: #3b82f6; color: #fff; }
+        .dark .tp-option.selected:hover { background: #2563eb; }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .tp-column-options { max-height: 9rem; }
+            .tp-option { padding: 0.35rem 0.375rem; font-size: 0.75rem; }
+            .tp-column-period { width: 2.5rem; }
+        }
+    </style>
+
     {% block extra_css %}{% endblock %}
 </head>
-<body class="antialiased bg-gray-50">
+<body class="antialiased bg-gray-50 dark:bg-gray-900 dark:text-gray-200">
+    <!-- Top Progress Bar - slim loading indicator for navigation -->
+    <div id="navProgressBar" class="fixed top-0 left-0 right-0 z-[10000] h-[3px] pointer-events-none" style="display: none;">
+        <div id="navProgressFill" class="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-400 rounded-r-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+    </div>
+
+    <!-- Page Loading Indicator - fullscreen fallback for non-VT browsers -->
+    <div id="pageLoadingIndicator" class="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-[9999] flex items-center justify-center transition-opacity duration-200" style="display: none;">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+        </div>1
+    </div>
+    
     <!-- Mobile Menu Overlay -->
     <div id="mobileMenuOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"></div>
     
-    <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="fixed top-0 left-0 z-50 h-screen w-60 sm:w-60 md:w-60 lg:w-60 xl:w-64 2xl:w-72 border-r border-gray-200 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl lg:shadow-sm">
+    <!-- 🏆 Fixed Persistent Sidebar - NEVER scrolls with page -->
+    <aside id="sidebar" class="fixed top-0 left-0 z-50 h-screen border-r border-gray-200 transform -translate-x-full lg:translate-x-0 shadow-lg lg:shadow-none">
+        <script>
+            // Hydrate the collapsed state synchronously to prevent browser double-painting and layout shifts
+            if (window.innerWidth >= 1024 && localStorage.getItem('sidebarCollapsed') === 'true') {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+        </script>
+        {% set dashboard_endpoint = 'admin_tools.superadmin_dashboard' if current_user.is_authenticated and current_user.is_super_admin else 'main.dashboard' %}
+        {% set dashboard_active = request.endpoint in ['main.dashboard', 'admin_tools.superadmin_dashboard'] %}
         <div class="flex flex-col h-full">
-            <!-- Logo/Brand - Consistent with Dashboard Cards -->
-            <div class="logo-section py-5 px-4 flex-shrink-0">
-                <div class="flex items-center justify-center lg:justify-between">
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                                <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" alt="Logo" class="h-7 w-7 object-contain">
-                            </div>
+            <!-- Logo/Brand -->
+            <div class="logo-section">
+                <div class="flex items-center justify-between">
+                    <a href="{{ url_for(dashboard_endpoint) }}" class="flex items-center gap-2 text-decoration-none" style="text-decoration: none;">
+                        <img src="{% if institution_logo %}{{ url_for('static', filename=institution_logo) }}{% else %}{{ url_for('static', filename='images/norzagaray-college-logo.png') }}{% endif %}" alt="Logo" class="h-9 w-9 rounded-full object-cover flex-shrink-0">
+                        <div class="flex flex-col sidebar-brand-text">
+                            <span class="text-xs font-semibold text-gray-900 leading-tight truncate max-w-[8rem] dark:text-gray-100">{{ app_brand_name }}</span>
+                            <span class="text-[0.625rem] text-gray-500 leading-tight truncate max-w-[8rem] dark:text-gray-400">{{ institution_display_name }}</span>
                         </div>
-                        <div class="min-w-0 flex flex-col">
-                            <span class="text-base font-bold text-gray-900 leading-tight">iSchedWise</span>
-                            <span class="text-xs text-gray-600 font-medium leading-tight">Norzagaray College</span>
-                        </div>
-                    </div>
-                    <button id="closeSidebar" class="lg:hidden text-gray-400 hover:text-gray-600 transition-colors ml-3 flex-shrink-0 p-1.5 rounded-xl hover:bg-gray-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    </a>
+                    <!-- Desktop collapse toggle -->
+                    <button id="collapseToggle" class="collapse-toggle" title="Collapse sidebar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <button id="closeSidebar" class="lg:hidden text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
@@ -318,152 +1953,287 @@
             </div>
 
             <!-- Navigation Links -->
-            <nav class="flex-1 overflow-y-auto py-3 custom-scrollbar">
-                <!-- Main Menu Section -->
-                <div class="section-title">Main Menu</div>
-                
-                <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                    </svg>
-                    Dashboard
-                </a>
-
-                <!-- Academic Section -->
-                <div class="section-title">Academic</div>
-
-                <a href="{{ url_for('curriculum.index') }}" class="nav-link {% if request.endpoint == 'curriculum.index' %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
-                    Curriculum
-                </a>
-
-                <a href="{{ url_for('department.index') }}" class="nav-link {% if request.endpoint == 'department.index' %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                    Programs
-                </a>
-
-                <a href="{{ url_for('faculty.index') }}" class="nav-link {% if request.endpoint == 'faculty.index' %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    Faculties
-                </a>
-
-                <!-- Resources Section -->
-                <div class="section-title">Resources</div>
-
-                <a href="{{ url_for('building.index') }}" class="nav-link {% if request.endpoint == 'building.index' %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                    Buildings
-                </a>
-
-                <a href="{{ url_for('schedule.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('schedule.') %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    Schedules
-                </a>
-
-                <a href="{{ url_for('reports.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Reports
-                </a>
-
-                <!-- System Section -->
-                <div class="section-title">System</div>
-
-                <a href="{{ url_for('archive.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('archive.') %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                    </svg>
-                    Archives
-                </a>
-
-                {% if user and user.role == 'admin' %}
-                <a href="{{ url_for('user.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('user.') %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    Users
-                </a>
-                {% endif %}
-
-                <a href="{{ url_for('profile.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('profile.') %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                    Account
-                </a>
-
-                <a href="{{ url_for('settings.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('settings.') %}active{% endif %}">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    Settings
-                </a>
-            </nav>
-
-            <!-- User Info & Logout - Dashboard Card Style -->
-            <div class="user-section p-3 flex-shrink-0">
-                <div class="rounded-xl border border-gray-200 p-3" style="background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);">
-                    <div class="flex items-center mb-2.5">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center mr-2.5 flex-shrink-0" style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);">
-                            <span class="text-sm font-bold text-white">{{ user.full_name[0] if user else 'U' }}</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold truncate text-gray-900">{{ user.full_name if user else 'User' }}</p>
-                            <span class="badge inline-flex items-center px-1.5 py-0.5 rounded-md text-[0.65rem] uppercase mt-0.5">
-                                {{ user.role if user else 'ADMIN' }}
-                            </span>
-                        </div>
-                    </div>
-                    {% if user and user.role == 'dean' and user.departments %}
-                    <div class="flex items-center mb-2.5 px-0.5">
-                        <svg class="w-3.5 h-3.5 text-gray-400 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <nav class="flex-1 overflow-y-auto custom-scrollbar">
+                <div class="nav-section">
+                    <a href="{{ url_for(dashboard_endpoint) }}" class="nav-link {% if dashboard_active %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('program.index') }}" class="nav-link {% if request.endpoint == 'program.index' %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        <p class="text-xs text-gray-600 font-medium truncate" title="{{ user.departments|map(attribute='department_name')|join(', ') }}">
-                            {{ user.departments|map(attribute='department_code')|join(', ') }}
-                        </p>
+                        Programs
+                    </a>
+                    <a href="{{ url_for('curriculum.index') }}" class="nav-link {% if request.endpoint == 'curriculum.index' %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        Curriculum
+                    </a>
+                    <a href="{{ url_for('faculty.index') }}" class="nav-link {% if request.endpoint == 'faculty.index' %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Faculty
+                    </a>
+                    <a href="{{ url_for('building.index') }}" class="nav-link {% if request.endpoint == 'building.index' %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                        </svg>
+                        Buildings
+                    </a>
+                    
+                    <!-- Schedules Sub-menu -->
+                    {% set is_schedule_page = request.endpoint and (request.endpoint.startswith('schedule.') or request.endpoint.startswith('exam_schedule.')) %}
+                    <div class="nav-submenu">
+                        <button onclick="toggleSubmenu('schedule')" class="nav-link nav-link-parent w-full text-left {% if is_schedule_page %}active{% endif %}" id="scheduleMenuToggle">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="flex-1 nav-label">Schedules</span>
+                            <svg class="nav-chevron w-3.5 h-3.5 ml-auto" id="scheduleChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="nav-submenu-items" id="scheduleSubmenuItems" style="display: none;">
+                            <a href="{{ url_for('schedule.create_page') }}" class="nav-link nav-link-child {% if request.endpoint == 'schedule.create_page' or request.endpoint == 'schedule.class_edit_page' or request.endpoint == 'schedule.exam_edit_page' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Create New
+                            </a>
+                            <a href="{{ url_for('schedule.class_view') }}" class="nav-link nav-link-child {% if request.endpoint == 'schedule.class_view' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                                Class
+                            </a>
+                            <a href="{{ url_for('schedule.faculty_view') }}" class="nav-link nav-link-child {% if request.endpoint == 'schedule.faculty_view' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Faculty
+                            </a>
+                            <a href="{{ url_for('schedule.room_view') }}" class="nav-link nav-link-child {% if request.endpoint == 'schedule.room_view' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Room
+                            </a>
+                            <a href="{{ url_for('schedule.exam_view') }}" class="nav-link nav-link-child {% if request.endpoint == 'schedule.exam_view' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Exam
+                            </a>
+                        </div>
                     </div>
+
+                    <!-- Reports Sub-menu -->
+                    {% set is_reports_page = request.endpoint and request.endpoint.startswith('reports.') %}
+                    <div class="nav-submenu">
+                        <button onclick="toggleSubmenu('reports')" class="nav-link nav-link-parent w-full text-left {% if is_reports_page %}active{% endif %}" id="reportsMenuToggle">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span class="flex-1 nav-label">Reports</span>
+                            <svg class="nav-chevron w-3.5 h-3.5 ml-auto" id="reportsChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="nav-submenu-items" id="reportsSubmenuItems" style="display: none;">
+                            <a href="{{ url_for('reports.index') }}" class="nav-link nav-link-child {% if request.endpoint == 'reports.index' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                                Overview
+                            </a>
+                            <a href="{{ url_for('reports.faculty_report') }}" class="nav-link nav-link-child {% if request.endpoint == 'reports.faculty_report' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Faculty
+                            </a>
+                            <a href="{{ url_for('reports.rooms_report') }}" class="nav-link nav-link-child {% if request.endpoint == 'reports.rooms_report' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Rooms
+                            </a>
+                            <a href="{{ url_for('reports.weekly_report') }}" class="nav-link nav-link-child {% if request.endpoint == 'reports.weekly_report' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Weekly
+                            </a>
+                            <a href="{{ url_for('reports.compare_report') }}" class="nav-link nav-link-child {% if request.endpoint == 'reports.compare_report' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                Compare
+                            </a>
+                            {% if user and user.is_admin %}
+                            <a href="{{ url_for('reports.activity_report') }}" class="nav-link nav-link-child {% if request.endpoint == 'reports.activity_report' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Activity
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System -->
+                <div class="nav-section has-divider">
+                    <div class="section-label">System</div>
+                    
+                    <!-- Archives Sub-menu -->
+                    {% set is_archive_page = request.endpoint and request.endpoint.startswith('archive.') %}
+                    <div class="nav-submenu">
+                        <button onclick="toggleSubmenu('archive')" class="nav-link nav-link-parent w-full text-left {% if is_archive_page %}active{% endif %}" id="archiveMenuToggle">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                            </svg>
+                            <span class="flex-1 nav-label">Archives</span>
+                            <svg class="nav-chevron w-3.5 h-3.5 ml-auto" id="archiveChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="nav-submenu-items" id="archiveSubmenuItems" style="display: none;">
+                            <a href="{{ url_for('archive.index') }}" class="nav-link nav-link-child {% if request.endpoint == 'archive.index' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                                Overview
+                            </a>
+                            <a href="{{ url_for('archive.schedules_page') }}" class="nav-link nav-link-child {% if request.endpoint == 'archive.schedules_page' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Schedules
+                            </a>
+                            <a href="{{ url_for('archive.curriculum_page') }}" class="nav-link nav-link-child {% if request.endpoint == 'archive.curriculum_page' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                                Curriculum
+                            </a>
+                            <a href="{{ url_for('archive.programs_page') }}" class="nav-link nav-link-child {% if request.endpoint == 'archive.programs_page' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Programs
+                            </a>
+                            <a href="{{ url_for('archive.faculty_page') }}" class="nav-link nav-link-child {% if request.endpoint == 'archive.faculty_page' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Faculty
+                            </a>
+                            <a href="{{ url_for('archive.buildings_page') }}" class="nav-link nav-link-child {% if request.endpoint == 'archive.buildings_page' %}active{% endif %}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Buildings
+                            </a>
+                        </div>
+                    </div>
+                    
+                    {% if user and user.is_admin %}
+                    <a href="{{ url_for('user.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('user.') %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        Users
+                    </a>
                     {% endif %}
-                    <a href="{{ url_for('auth.logout') }}" class="logout-btn flex items-center justify-center w-full px-3 py-2 rounded-lg font-semibold text-sm text-white">
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ url_for('profile.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('profile.') %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        Account
+                    </a>
+                    <a href="{{ url_for('settings.index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('settings.') %}active{% endif %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Settings
+                    </a>
+                </div>
+            </nav>
+
+            <!-- User Section -->
+            <div class="user-section">
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <span>{{ user.full_name[0] if user else 'U' }}</span>
+                    </div>
+                    <div class="user-meta">
+                        <div class="user-name">{{ user.full_name if user else 'User' }}</div>
+                        <div class="user-role">
+                            {% if user and user.role == 'super_admin' %}Super Admin{% elif user %}{{ user.role|capitalize }}{% else %}ADMIN{% endif %}
+                            {% if user and user.role == 'dean' and user.programs %}
+                            <span style="color: #94a3b8; font-weight: 400;"> · {{ user.programs|map(attribute='program_code')|join(', ') }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <a href="{{ url_for('auth.logout') }}" class="logout-icon-btn no-loading" title="Sign out" aria-label="Sign out" data-logout-trigger>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                         </svg>
-                        Logout
                     </a>
                 </div>
             </div>
+
         </div>
+        <script>
+            // Synchronously open active/remembered submenus before browser layout and paint phase
+            // This prevents a jarring "flicker" layout shift where submenus pop open after page load.
+            (function initAllSubmenusSync() {
+                const submenus = [
+                    { prefix: 'schedule', itemsId: 'scheduleSubmenuItems', chevronId: 'scheduleChevron',
+                      isActive: () => document.querySelector('#scheduleSubmenuItems .nav-link-child.active') !== null },
+                    { prefix: 'reports', itemsId: 'reportsSubmenuItems', chevronId: 'reportsChevron',
+                      isActive: () => document.querySelector('#reportsSubmenuItems .nav-link-child.active') !== null },
+                    { prefix: 'archive', itemsId: 'archiveSubmenuItems', chevronId: 'archiveChevron',
+                                            isActive: () => document.querySelector('#archiveSubmenuItems .nav-link-child.active') !== null }
+                ];
+                submenus.forEach(({ prefix, itemsId, chevronId, isActive }) => {
+                    const items = document.getElementById(itemsId);
+                    const chevron = document.getElementById(chevronId);
+                    if (!items) return;
+                    const wasOpen = localStorage.getItem(prefix + 'SubmenuOpen') === 'true';
+                    if (isActive() || wasOpen) {
+                        items.style.display = 'block';
+                        if (chevron) chevron.classList.add('rotated');
+                    }
+                });
+            })();
+        </script>
     </aside>
 
-    <!-- Main Content Area -->
-    <div class="lg:ml-60 xl:ml-64 2xl:ml-72 transition-all duration-300">
+    <!-- Main Content Area - Offset by sidebar width -->
+    <div id="mainContentArea" class="main-content-area lg:ml-[240px] xl:ml-[256px] bg-gray-50 dark:bg-gray-900">
         <!-- Top Navigation Bar (Mobile) -->
-        <header class="lg:hidden bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
-            <div class="flex items-center justify-between p-3">
-                <button id="openSidebar" class="text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-xl hover:bg-gray-100">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <header class="lg:hidden bg-white dark:bg-gray-800 sticky top-0 z-30 border-b border-gray-200 dark:border-gray-700" style="font-size: 16px;">
+            <div class="flex items-center justify-between px-3 py-2.5">
+                <button id="openSidebar" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 p-1.5 -ml-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
                 <div class="flex items-center gap-2">
-                    <div class="h-8 w-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                        <img src="{{ url_for('static', filename='images/norzagaray-college-logo.png') }}" alt="Logo" class="h-6 w-6 object-contain">
+                    <div class="h-6 w-6 rounded bg-blue-600 flex items-center justify-center">
+                        <img src="{% if institution_logo %}{{ url_for('static', filename=institution_logo) }}{% else %}{{ url_for('static', filename='images/norzagaray-college-logo.png') }}{% endif %}" alt="Logo" class="h-4 w-4 object-contain">
                     </div>
-                    <span class="text-base font-bold text-gray-900">iSchedWise</span>
+                    <span class="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[10rem]">{{ app_brand_name }}</span>
                 </div>
-                <div class="w-10"></div> <!-- Spacer for alignment -->
+                <div class="w-5 h-5"></div>
             </div>
         </header>
 
@@ -473,8 +2243,195 @@
         </main>
     </div>
 
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutConfirmModal" class="fixed inset-0 z-[70] hidden" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
+        <div id="logoutConfirmBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg w-full max-w-sm p-5 shadow-lg">
+                <div class="w-10 h-10 mx-auto mb-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </div>
+
+                <h3 id="logoutConfirmTitle" class="text-base font-semibold text-gray-900 dark:text-white text-center mb-2">Sign out?</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-5">You will be logged out of your account.</p>
+
+                <div class="flex flex-col-reverse sm:flex-row gap-2">
+                    <button id="logoutConfirmCancel" type="button" class="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors">
+                        Cancel
+                    </button>
+                    <a id="logoutConfirmAction" href="{{ url_for('auth.logout') }}" class="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors text-center">
+                        Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.__ISW_SYSTEM_TIMEZONE = {{ system_timezone|tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/activity-utils.js') }}"></script>
+
+    <script>
+        (function initLogoutConfirmationModal() {
+            const modal = document.getElementById('logoutConfirmModal');
+            const backdrop = document.getElementById('logoutConfirmBackdrop');
+            const cancelBtn = document.getElementById('logoutConfirmCancel');
+            const actionBtn = document.getElementById('logoutConfirmAction');
+            const triggers = document.querySelectorAll('[data-logout-trigger]');
+
+            if (!modal || !actionBtn || !triggers.length) return;
+
+            const defaultLogoutHref = actionBtn.getAttribute('href') || '';
+            let previousBodyOverflow = '';
+
+            function openLogoutModal(href) {
+                actionBtn.setAttribute('href', href || defaultLogoutHref);
+                previousBodyOverflow = document.body.style.overflow;
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+                if (typeof window.toggleSidebarBlur === 'function') {
+                    window.toggleSidebarBlur(true);
+                }
+            }
+
+            function closeLogoutModal() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = previousBodyOverflow || '';
+
+                if (typeof window.toggleSidebarBlur === 'function') {
+                    window.toggleSidebarBlur(false);
+                }
+            }
+
+            triggers.forEach(function(trigger) {
+                trigger.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    openLogoutModal(trigger.getAttribute('href'));
+                });
+            });
+
+            if (backdrop) {
+                backdrop.addEventListener('click', closeLogoutModal);
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeLogoutModal);
+            }
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    event.preventDefault();
+                    closeLogoutModal();
+                }
+            });
+        })();
+    </script>
+
     <!-- JavaScript for Mobile Menu Toggle -->
     <script>
+        // ========================================
+        // �🔄 PAGE LOADING INDICATOR
+        // Prevents white screen during navigation
+        // ========================================
+        const pageLoadingIndicator = document.getElementById('pageLoadingIndicator');
+        const navProgressBar = document.getElementById('navProgressBar');
+        const navProgressFill = document.getElementById('navProgressFill');
+        let navigationTimeout = null;
+        let progressAnimation = null;
+
+        // Show slim top progress bar (works with View Transitions)
+        function showNavProgress() {
+            if (!navProgressBar || !navProgressFill) return;
+            // Reset
+            if (progressAnimation) progressAnimation.cancel();
+            navProgressFill.style.width = '0%';
+            navProgressBar.style.display = 'block';
+            navProgressBar.style.opacity = '1';
+            // Animate: fast to 30%, then slow crawl to 85%
+            progressAnimation = navProgressFill.animate([
+                { width: '0%', offset: 0 },
+                { width: '30%', offset: 0.15 },
+                { width: '60%', offset: 0.4 },
+                { width: '80%', offset: 0.7 },
+                { width: '85%', offset: 1 }
+            ], { duration: 8000, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' });
+        }
+
+        // Complete and hide the progress bar
+        function hideNavProgress() {
+            if (!navProgressBar || !navProgressFill) return;
+            if (progressAnimation) progressAnimation.cancel();
+            // Quick fill to 100% then fade out
+            navProgressFill.style.width = '100%';
+            navProgressBar.style.opacity = '0';
+            navProgressBar.style.transition = 'opacity 200ms ease';
+            setTimeout(() => {
+                navProgressBar.style.display = 'none';
+                navProgressBar.style.transition = '';
+                navProgressFill.style.width = '0%';
+            }, 250);
+        }
+        
+        // Show fullscreen loading indicator (fallback for non-VT browsers)
+        function showPageLoading() {
+            if (navigationTimeout) clearTimeout(navigationTimeout);
+            showNavProgress();
+            // Only show fullscreen overlay if navigation takes longer than 150ms
+            navigationTimeout = setTimeout(() => {
+                if (pageLoadingIndicator) {
+                    pageLoadingIndicator.style.display = 'flex';
+                }
+            }, 150);
+        }
+        
+        // Hide all loading indicators
+        function hidePageLoading() {
+            if (navigationTimeout) {
+                clearTimeout(navigationTimeout);
+                navigationTimeout = null;
+            }
+            if (pageLoadingIndicator) {
+                pageLoadingIndicator.style.display = 'none';
+            }
+            hideNavProgress();
+        }
+        
+        // Hide loading indicator when page is fully loaded
+        // Pages that load data via AJAX can set window._holdPageLoading = true
+        // to keep the indicator visible until their data is ready
+        window.addEventListener('load', function() {
+            if (!window._holdPageLoading) hidePageLoading();
+        });
+        
+        // Also hide on DOMContentLoaded as a fallback
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!window._holdPageLoading) hidePageLoading();
+        });
+        
+        // Safety net: always hide after 8 seconds even if _holdPageLoading is set
+        setTimeout(function() { window._holdPageLoading = false; hidePageLoading(); }, 8000);
+        
+        // Handle page show (back/forward cache)
+        window.addEventListener('pageshow', function(event) {
+            hidePageLoading();
+            // If page is from cache, ensure content is visible
+            if (event.persisted) {
+                document.body.style.visibility = 'visible';
+            }
+        });
+        
+        // Handle visibility change (tab switching)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                hidePageLoading();
+            }
+        });
+        
         const sidebar = document.getElementById('sidebar');
         const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
         const openSidebarBtn = document.getElementById('openSidebar');
@@ -504,14 +2461,290 @@
             mobileMenuOverlay.addEventListener('click', closeSidebar);
         }
 
-        // Close sidebar when clicking on a link (mobile)
+        // ========================================
+        // 🔀 COLLAPSIBLE SIDEBAR (Desktop)
+        // Icon-only rail with tooltips & flyouts
+        // ========================================
+        const collapseToggle = document.getElementById('collapseToggle');
+        const mainContentArea = document.getElementById('mainContentArea');
+        const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
+
+        function isSidebarCollapsed() {
+            return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+        }
+
+        function applySidebarCollapse(collapsed, animate) {
+            if (!sidebar) return;
+            // Transitions are removed, so we apply state instantly always.
+            if (collapsed) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+                if (collapseToggle) collapseToggle.title = 'Expand sidebar';
+            } else {
+                sidebar.classList.remove('collapsed');
+                document.body.classList.remove('sidebar-collapsed');
+                if (collapseToggle) collapseToggle.title = 'Collapse sidebar';
+            }
+            // Remove preload class only after final sidebar state is applied.
+            document.documentElement.classList.remove('sidebar-collapsed-preload');
+        }
+
+        // Wrap bare text nodes in nav-links with <span class="nav-label">
+        // and add data-tooltip attributes for collapsed mode tooltips
+        function initNavLabels() {
+            document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+                // Skip submenu parents (they already have .nav-label spans)
+                if (link.classList.contains('nav-link-parent')) return;
+                // Skip child links that already have nav-label
+                if (link.querySelector('.nav-label')) return;
+
+                // Find the bare text node (after the SVG icon)
+                const childNodes = Array.from(link.childNodes);
+                childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                        const span = document.createElement('span');
+                        span.className = 'nav-label';
+                        span.textContent = node.textContent.trim();
+                        node.replaceWith(span);
+                        // Set tooltip from the text
+                        link.setAttribute('data-tooltip', span.textContent);
+                    }
+                });
+            });
+
+            // Set tooltips for submenu parent buttons
+            document.querySelectorAll('#sidebar .nav-link-parent').forEach(btn => {
+                const labelSpan = btn.querySelector('.nav-label');
+                if (labelSpan) {
+                    btn.setAttribute('data-tooltip', labelSpan.textContent.trim());
+                }
+            });
+
+            // Set tooltip on user avatar (shows username)
+            const userAvatar = document.querySelector('#sidebar .user-avatar');
+            const userName = document.querySelector('#sidebar .user-name');
+            if (userAvatar && userName) {
+                userAvatar.setAttribute('data-tooltip', userName.textContent.trim());
+            }
+
+        }
+
+        // Build flyout menus for submenus in collapsed mode
+        function initSubmenuFlyouts() {
+            document.querySelectorAll('#sidebar .nav-submenu').forEach(submenu => {
+                // Skip if flyout already exists
+                if (submenu.querySelector('.nav-submenu-flyout')) return;
+
+                const submenuItems = submenu.querySelector('.nav-submenu-items');
+                if (!submenuItems) return;
+
+                // Mark inline content for hiding in collapsed mode
+                submenuItems.classList.add('inline-submenu-content');
+
+                // Create flyout container
+                const flyout = document.createElement('div');
+                flyout.className = 'nav-submenu-flyout';
+
+                // Get submenu title from parent button
+                const parentBtn = submenu.querySelector('.nav-link-parent');
+                const title = parentBtn ? (parentBtn.getAttribute('data-tooltip') || '') : '';
+                if (title) {
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'flyout-title';
+                    titleDiv.textContent = title;
+                    flyout.appendChild(titleDiv);
+                }
+
+                // Clone child links into flyout
+                submenuItems.querySelectorAll('.nav-link-child').forEach(child => {
+                    const clone = child.cloneNode(true);
+                    clone.classList.add('nav-link', 'nav-link-child');
+                    flyout.appendChild(clone);
+                });
+
+                submenu.appendChild(flyout);
+            });
+        }
+
+        // Initialize on page load (deferred to reduce DOM mutation burst during parsing)
+        function initSidebarUI() {
+            initNavLabels();
+            initSubmenuFlyouts();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSidebarUI);
+        } else {
+            initSidebarUI();
+        }
+
+        // Apply saved collapse state (without animation on page load)
+        if (window.innerWidth >= 1024 && isSidebarCollapsed()) {
+            applySidebarCollapse(true, false);
+        }
+
+        // Toggle collapse on button click
+        if (collapseToggle) {
+            collapseToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (window.innerWidth < 1024) return; // No collapse on mobile
+                const shouldCollapse = !sidebar.classList.contains('collapsed');
+                localStorage.setItem(SIDEBAR_COLLAPSED_KEY, shouldCollapse ? 'true' : 'false');
+                applySidebarCollapse(shouldCollapse, true);
+            });
+        }
+
+        // Generic sub-menu toggle (replaces 3 duplicated functions)
+        function toggleSubmenu(prefix) {
+            if (sidebar && sidebar.classList.contains('collapsed')) return;
+            const items = document.getElementById(prefix + 'SubmenuItems');
+            const chevron = document.getElementById(prefix + 'Chevron');
+            if (!items) return;
+            
+            const isOpen = items.style.display !== 'none';
+            items.style.display = isOpen ? 'none' : 'block';
+            if (chevron) {
+                chevron.classList.toggle('rotated', !isOpen);
+            }
+            localStorage.setItem(prefix + 'SubmenuOpen', !isOpen ? 'true' : 'false');
+        }
+
+
+        // ========================================
+        // 🔗 SPECULATIVE LINK PREFETCHING
+        // Prefetch pages on hover for instant feel
+        // ========================================
+        const _prefetchedUrls = new Set();
+        let _prefetchTimer = null;
+
+        function prefetchUrl(href) {
+            if (!href || _prefetchedUrls.has(href)) return;
+            if (href.startsWith('#') || href === window.location.href) return;
+            _prefetchedUrls.add(href);
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = href;
+            link.as = 'document';
+            document.head.appendChild(link);
+        }
+
+        // Are MPA cross-document View Transitions supported? (Chrome 126+)
+        // pageswap event is the reliable signal for MPA view transition support
+        const _vtSupported = ('onpageswap' in window);
+
+        // Also prefetch the "Create New" button (not a .nav-link)
+        const createNewBtn = document.querySelector('#scheduleSubmenuItems a[href]');
+        if (createNewBtn && !createNewBtn.classList.contains('nav-link')) {
+            createNewBtn.addEventListener('pointerenter', () => {
+                _prefetchTimer = setTimeout(() => prefetchUrl(createNewBtn.getAttribute('href')), 75);
+            });
+            createNewBtn.addEventListener('pointerleave', () => {
+                if (_prefetchTimer) { clearTimeout(_prefetchTimer); _prefetchTimer = null; }
+            });
+            createNewBtn.addEventListener('touchstart', () => prefetchUrl(createNewBtn.getAttribute('href')), { passive: true });
+            createNewBtn.addEventListener('click', () => {
+                if (_vtSupported) { showNavProgress(); } else { showPageLoading(); }
+                if (window.innerWidth < 1024) closeSidebar();
+            });
+        }
+
+        // Close sidebar when clicking on a link (mobile) and show loading indicator
         const navLinks = document.querySelectorAll('.nav-link');
         navLinks.forEach(link => {
-            link.addEventListener('click', () => {
+            // Prefetch on pointer hover (75ms debounce to skip quick mouse-throughs)
+            link.addEventListener('pointerenter', () => {
+                if (link.classList.contains('nav-link-parent')) return;
+                const href = link.getAttribute('href');
+                _prefetchTimer = setTimeout(() => prefetchUrl(href), 75);
+            });
+            link.addEventListener('pointerleave', () => {
+                if (_prefetchTimer) { clearTimeout(_prefetchTimer); _prefetchTimer = null; }
+            });
+            // Also prefetch on touchstart for mobile
+            link.addEventListener('touchstart', () => {
+                if (link.classList.contains('nav-link-parent')) return;
+                prefetchUrl(link.getAttribute('href'));
+            }, { passive: true });
+
+            link.addEventListener('click', (e) => {
+                // Skip sub-menu parent buttons (they toggle, not navigate)
+                if (link.classList.contains('nav-link-parent')) return;
+                
+                // Don't show loading for same-page links or # links
+                const href = link.getAttribute('href');
+                const isCurrentPage = link.classList.contains('active');
+                const isHashLink = href && href.startsWith('#');
+                
+                if (!isCurrentPage && !isHashLink && href) {
+                    // VT browsers: show slim progress bar only
+                    // Non-VT browsers: show fullscreen loading indicator
+                    if (_vtSupported) {
+                        showNavProgress();
+                    } else {
+                        showPageLoading();
+                    }
+                }
+                
                 if (window.innerWidth < 1024) {
                     closeSidebar();
                 }
             });
+        });
+
+        // ========================================
+        // 🚀 PROACTIVE SIBLING PREFETCHING
+        // When on a submenu page, prefetch all
+        // sibling pages for instant navigation
+        // ========================================
+        (function proactivePrefetch() {
+            const activeChild = document.querySelector('.nav-submenu-items .nav-link-child.active');
+            if (!activeChild) return;
+            const submenuContainer = activeChild.closest('.nav-submenu-items');
+            if (!submenuContainer) return;
+            
+            const siblingLinks = submenuContainer.querySelectorAll('.nav-link-child:not(.active)');
+            const scheduleIdle = window.requestIdleCallback || (cb => setTimeout(cb, 100));
+            scheduleIdle(() => {
+                siblingLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href && !href.startsWith('#')) prefetchUrl(href);
+                });
+            });
+            // Also prefetch the "Create New" button if in schedule submenu
+            if (createNewBtn) {
+                scheduleIdle(() => prefetchUrl(createNewBtn.getAttribute('href')));
+            }
+        })();
+
+        // ========================================
+        // 🌐 GLOBAL PAGE NAVIGATION LOADING
+        // Show loading indicator for ALL internal
+        // page navigations (not just sidebar links)
+        // ========================================
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('a[href]');
+            if (!link) return;
+
+            const href = link.getAttribute('href');
+            // Skip non-navigating links
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
+            if (link.target === '_blank' || link.hasAttribute('download')) return;
+            // Skip links already handled by the .nav-link handler above
+            if (link.classList.contains('nav-link')) return;
+            // Allow opting out with a class
+            if (link.classList.contains('no-loading')) return;
+
+            // Only handle same-origin links
+            try {
+                const url = new URL(href, window.location.origin);
+                if (url.origin !== window.location.origin) return;
+                if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+            } catch (_) { return; }
+
+            if (_vtSupported) {
+                showNavProgress();
+            } else {
+                showPageLoading();
+            }
         });
 
         // Handle window resize - close sidebar if resizing to desktop
@@ -523,8 +2756,14 @@
                     // Desktop size - ensure body overflow is not hidden
                     document.body.classList.remove('overflow-hidden');
                     mobileMenuOverlay.classList.add('hidden');
+                    // Re-apply collapse state when entering desktop
+                    if (isSidebarCollapsed()) {
+                        applySidebarCollapse(true, false);
+                    }
                 } else {
-                    // Mobile size - ensure sidebar is closed
+                    // Mobile size - remove collapsed state, use mobile slide drawer
+                    sidebar.classList.remove('collapsed');
+                    document.body.classList.remove('sidebar-collapsed');
                     if (!sidebar.classList.contains('-translate-x-full')) {
                         // Sidebar is open on mobile - keep overlay visible
                         mobileMenuOverlay.classList.remove('hidden');
@@ -568,13 +2807,26 @@
         const sidebarNav = document.querySelector('nav.overflow-y-auto');
         const SCROLL_POSITION_KEY = 'sidebarScrollPosition';
 
-        // Restore scroll position on page load
-        if (sidebarNav) {
-            const savedScrollPosition = sessionStorage.getItem(SCROLL_POSITION_KEY);
-            if (savedScrollPosition) {
-                sidebarNav.scrollTop = parseInt(savedScrollPosition, 10);
-            }
+        function restoreSidebarScroll() {
+            if (!sidebarNav) return;
+            const saved = sessionStorage.getItem(SCROLL_POSITION_KEY);
+            if (saved) sidebarNav.scrollTop = parseInt(saved, 10);
+        }
 
+        // Restore scroll position on page load
+        restoreSidebarScroll();
+
+        // Also restore during View Transitions (pagereveal fires before first paint)
+        // Sidebar collapsed state is already established by preload + initial page init.
+        // Re-applying collapse here can cause a brief width jump during transition snapshots.
+        if ('onpagereveal' in window || _vtSupported) {
+            window.addEventListener('pagereveal', () => {
+                restoreSidebarScroll();
+                hideNavProgress();
+            });
+        }
+
+        if (sidebarNav) {
             // Save scroll position when scrolling
             let scrollTimeout;
             sidebarNav.addEventListener('scroll', function() {
@@ -604,7 +2856,37 @@
             if (e.key === 'Escape' && window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
                 closeSidebar();
             }
+            // Ctrl+B to toggle sidebar collapse on desktop
+            if (e.key === 'b' && (e.ctrlKey || e.metaKey) && window.innerWidth >= 1024) {
+                e.preventDefault();
+                const shouldCollapse = !sidebar.classList.contains('collapsed');
+                localStorage.setItem(SIDEBAR_COLLAPSED_KEY, shouldCollapse ? 'true' : 'false');
+                applySidebarCollapse(shouldCollapse, true);
+            }
         });
+        
+        // ========================================
+        // 🛡️ GLOBAL ERROR HANDLING
+        // Prevents white screen from JS errors
+        // ========================================
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            hidePageLoading();
+            // Ensure page content is visible even if there's an error
+            document.body.style.visibility = 'visible';
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            hidePageLoading();
+            document.body.style.visibility = 'visible';
+        });
+        
+        // Fallback: Always hide loading indicator after 5 seconds max
+        setTimeout(function() {
+            hidePageLoading();
+            document.body.style.visibility = 'visible';
+        }, 5000);
 
         // Focus trap for sidebar when open on mobile (accessibility)
         const focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -883,6 +3165,411 @@
         // }, 60000); // Refresh every 60 seconds
         
         console.log('✅ Dynamic refresh system initialized');
+    </script>
+
+    <!-- Global Toast Notification Container -->
+    <div id="globalToastContainer" class="toast-container"></div>
+
+    <!-- Block invalid keys (e, E, +, -) from all number inputs globally -->
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('input[type="number"]') && ['e', 'E', '+', '-'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+    </script>
+
+    <!-- Global Custom Confirm Modal (replaces native confirm()) -->
+    <div id="globalConfirmModal" class="fixed inset-0 z-[10001] hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="window._confirmReject && window._confirmReject()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden" onclick="event.stopPropagation()">
+                <div class="flex items-center gap-3 px-5 pt-5 pb-3">
+                    <div id="globalConfirmIcon" class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-red-100 dark:bg-red-900/30">
+                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 id="globalConfirmTitle" class="text-base font-semibold text-gray-900 dark:text-white">Confirm</h4>
+                        <p id="globalConfirmMessage" class="text-sm text-gray-600 dark:text-gray-300 mt-0.5"></p>
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end px-5 pb-5 pt-3">
+                    <button id="globalConfirmCancelBtn" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+                    <button id="globalConfirmOkBtn" class="px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors bg-red-600 hover:bg-red-700">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    /**
+     * Global custom confirm dialog. Returns a Promise<boolean>.
+     * Usage: const ok = await showConfirm({ title, message, confirmText, confirmColor });
+     */
+    window.showConfirm = function(opts) {
+        opts = opts || {};
+        var modal = document.getElementById('globalConfirmModal');
+        var title = document.getElementById('globalConfirmTitle');
+        var message = document.getElementById('globalConfirmMessage');
+        var okBtn = document.getElementById('globalConfirmOkBtn');
+        var cancelBtn = document.getElementById('globalConfirmCancelBtn');
+
+        title.textContent = opts.title || 'Confirm';
+        message.textContent = opts.message || 'Are you sure?';
+        okBtn.textContent = opts.confirmText || 'Confirm';
+        cancelBtn.textContent = opts.cancelText || 'Cancel';
+
+        // Apply confirm button color (default: red)
+        var color = opts.confirmColor || 'red';
+        okBtn.className = 'px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors bg-' + color + '-600 hover:bg-' + color + '-700';
+
+        // Apply icon color
+        var iconContainer = document.getElementById('globalConfirmIcon');
+        iconContainer.className = 'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-' + color + '-100 dark:bg-' + color + '-900/30';
+        iconContainer.querySelector('svg').className = 'w-5 h-5 text-' + color + '-600 dark:text-' + color + '-400';
+
+        modal.classList.remove('hidden');
+
+        return new Promise(function(resolve) {
+            function cleanup(result) {
+                modal.classList.add('hidden');
+                okBtn.removeEventListener('click', onOk);
+                cancelBtn.removeEventListener('click', onCancel);
+                document.removeEventListener('keydown', onKey);
+                window._confirmReject = null;
+                resolve(result);
+            }
+            function onOk() { cleanup(true); }
+            function onCancel() { cleanup(false); }
+            function onKey(e) { if (e.key === 'Escape') cleanup(false); }
+
+            okBtn.addEventListener('click', onOk);
+            cancelBtn.addEventListener('click', onCancel);
+            document.addEventListener('keydown', onKey);
+            window._confirmReject = onCancel;
+
+            okBtn.focus();
+        });
+    };
+    </script>
+
+    <!-- Global Modal ↔ Sidebar Dim System (lightweight, targeted) -->
+    <script>
+    (function() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        // CSS for sidebar modal state: keep sidebar dim intensity aligned with modal backdrops.
+        const style = document.createElement('style');
+        style.textContent = `
+            #sidebar::after {
+                content: '';
+                position: absolute;
+                /* Extend 1px to the right so the sidebar edge seam is covered while dimmed. */
+                inset: 0 -1px 0 0;
+                background: rgba(0, 0, 0, var(--sidebar-dim-alpha, 0.5));
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0s linear;
+                z-index: 999;
+            }
+
+            #sidebar.modal-blur {
+                pointer-events: none;
+                border-right-color: transparent;
+            }
+
+            #sidebar.modal-blur::after {
+                opacity: 1;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // IDs of fixed-inset-0 elements that are NOT modals
+        const SKIP_IDS = new Set([
+            'mobileMenuOverlay', 'pageLoadingIndicator',
+            'navProgressBar', 'aiDrawerOverlay', 'aiDrawer'
+        ]);
+
+        let trackedModals = [];
+        const trackedModalSet = new Set();
+
+        function applySidebarDim(alpha) {
+            sidebar.style.setProperty('--sidebar-dim-alpha', String(alpha));
+            sidebar.classList.add('modal-blur');
+        }
+
+        function clearSidebarDimNow() {
+            sidebar.classList.remove('modal-blur');
+            sidebar.style.removeProperty('--sidebar-dim-alpha');
+        }
+
+        // Keep dim-in instant, but defer undim to align with modal/page fade-out.
+        function scheduleSidebarUndim() {
+            if (!sidebar.classList.contains('modal-blur')) {
+                sidebar.style.removeProperty('--sidebar-dim-alpha');
+                return;
+            }
+
+            // Check immediately instead of next-tick to avoid 1-frame visual mismatches.
+            const stillActiveModal = getTopVisibleModal();
+            if (stillActiveModal) {
+                applySidebarDim(getSidebarDimAlphaForModal(stillActiveModal));
+                return;
+            }
+            clearSidebarDimNow();
+        }
+
+        // Cheap visibility check — no getComputedStyle, no offsetParent
+        function isModalVisible(el) {
+            // Walk up to check if this element or any ancestor is hidden
+            var node = el;
+            while (node && node !== document.body) {
+                if (node.classList.contains('hidden')) return false;
+                if (node.style.display === 'none') return false;
+                // Detect opacity-based hiding (e.g. dept-hidden uses opacity:0 + pointer-events:none)
+                if (node.classList.contains('dept-hidden')) return false;
+                if (node.style.opacity === '0' && node.style.pointerEvents === 'none') return false;
+                node = node.parentElement;
+            }
+            return true;
+        }
+
+        function hasAnyVisibleModal() {
+            for (const el of trackedModals) {
+                if (isModalVisible(el)) return true;
+            }
+            return false;
+        }
+
+        function getTopVisibleModal() {
+            let active = null;
+            let bestScore = Number.NEGATIVE_INFINITY;
+
+            function computeModalScore(el, index) {
+                let score = 0;
+                const role = (el.getAttribute('role') || '').toLowerCase();
+
+                // Prefer explicit dialog roots over structural backdrop layers.
+                if (el.getAttribute('aria-modal') === 'true') score += 4000;
+                if (role === 'dialog' || role === 'alertdialog') score += 3000;
+
+                // Prefer overlays that explicitly control sidebar dimming.
+                if (el.getAttribute('data-sidebar-dim') === 'force' || el.getAttribute('data-force-sidebar-dim') === 'true') {
+                    score += 2000;
+                }
+
+                const z = parseInt(getComputedStyle(el).zIndex || '', 10);
+                if (!Number.isNaN(z)) {
+                    score += z;
+                }
+
+                // Keep deterministic tie-breaking using discovery order.
+                score += index / 1000;
+                return score;
+            }
+
+            for (let index = 0; index < trackedModals.length; index++) {
+                const el = trackedModals[index];
+                if (!isModalVisible(el)) continue;
+
+                const score = computeModalScore(el, index);
+                if (score >= bestScore) {
+                    bestScore = score;
+                    active = el;
+                }
+            }
+
+            return active;
+        }
+
+        function readOverlayAlpha(el) {
+            if (!el) return 0.5;
+            const bg = getComputedStyle(el).backgroundColor || '';
+            const rgba = bg.match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([0-9.]+)\s*\)/i);
+            if (rgba && rgba[1] != null) {
+                const alpha = parseFloat(rgba[1]);
+                if (!Number.isNaN(alpha)) return Math.max(0, Math.min(1, alpha));
+            }
+            if (/rgb\(/i.test(bg)) return 1;
+            return 0.5;
+        }
+
+        function isModalFullscreenOverlay(el) {
+            if (!el) return false;
+            const cs = getComputedStyle(el);
+            if (cs.position !== 'fixed') return false;
+            const rect = el.getBoundingClientRect();
+            return rect.left <= 1 && rect.top <= 1 && rect.right >= (window.innerWidth - 1) && rect.bottom >= (window.innerHeight - 1);
+        }
+
+        function modalCoversSidebar(el) {
+            if (!el || !isModalFullscreenOverlay(el)) return false;
+            const modalZ = parseInt(getComputedStyle(el).zIndex || '', 10);
+            const sidebarZ = parseInt(getComputedStyle(sidebar).zIndex || '', 10);
+            if (!Number.isNaN(modalZ) && !Number.isNaN(sidebarZ)) {
+                return modalZ > sidebarZ;
+            }
+            return true;
+        }
+
+        function getSidebarDimAlphaForModal(el) {
+            if (!el) return 0.5;
+
+            // Modal-level opt-in: force sidebar dim even when modal backdrop
+            // fully covers the sidebar. This is used by specific pages that
+            // require explicit sidebar dim parity.
+            const forceSidebarDim =
+                el.getAttribute('data-sidebar-dim') === 'force' ||
+                el.getAttribute('data-force-sidebar-dim') === 'true';
+
+            if (forceSidebarDim) {
+                const explicitAlpha = parseFloat(el.getAttribute('data-sidebar-dim-alpha') || '');
+                if (!Number.isNaN(explicitAlpha)) {
+                    return Math.max(0, Math.min(1, explicitAlpha));
+                }
+                return readOverlayAlpha(el);
+            }
+
+            // If modal already overlays sidebar, avoid adding a second dim layer.
+            if (modalCoversSidebar(el)) return 0;
+            return readOverlayAlpha(el);
+        }
+
+        // Apply immediately so dim state appears without perceptible delay.
+        function updateSidebarBlur() {
+            const activeModal = getTopVisibleModal();
+            if (activeModal) {
+                applySidebarDim(getSidebarDimAlphaForModal(activeModal));
+            } else {
+                scheduleSidebarUndim();
+            }
+        }
+
+        // Explicit toggle — pages can call window.toggleSidebarBlur(true/false) directly
+        window.toggleSidebarBlur = function(show) {
+            if (show) {
+                const activeModal = getTopVisibleModal();
+                const alpha = activeModal ? getSidebarDimAlphaForModal(activeModal) : 0.5;
+                applySidebarDim(alpha);
+            } else {
+                const activeModal = getTopVisibleModal();
+                if (activeModal) {
+                    applySidebarDim(getSidebarDimAlphaForModal(activeModal));
+                } else {
+                    scheduleSidebarUndim();
+                }
+            }
+        };
+
+        // Track modal overlays and observe only class/style changes.
+        function syncModalTracking(observer) {
+            const fixedInsetCandidates = Array.from(document.querySelectorAll('[class*="fixed"][class*="inset-0"]'));
+            const explicitOverlayCandidates = Array.from(document.querySelectorAll('.modal-overlay, .confirm-overlay, .detail-modal-overlay'));
+
+            const explicitSet = new Set(explicitOverlayCandidates);
+            const modalRoots = fixedInsetCandidates.filter(function(el) {
+                if (explicitSet.has(el)) return true;
+                for (const other of fixedInsetCandidates) {
+                    if (other !== el && other.contains(el)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            const candidateSet = new Set(modalRoots);
+            explicitOverlayCandidates.forEach(function(el) { candidateSet.add(el); });
+
+            candidateSet.forEach(function(el) {
+                if (SKIP_IDS.has(el.id)) return;
+                if (trackedModalSet.has(el)) return;
+                trackedModalSet.add(el);
+                trackedModals.push(el);
+                // Observe ONLY this element's class/style — no subtree, no childList
+                observer.observe(el, {
+                    attributes: true,
+                    attributeFilter: ['class', 'style']
+                });
+            });
+        }
+
+        // Find all modal overlays and observe ONLY their class/style changes
+        // (not document.body — avoids re-entrant cascade with Tailwind CDN observer)
+        function initModalTracking() {
+            // Reset cross-page stale Users modal state on every page init.
+            window.__usersModalActive = false;
+
+            const observer = new MutationObserver(updateSidebarBlur);
+            syncModalTracking(observer);
+
+            const USERS_MODAL_IDS = [
+                'userModal',
+                'archiveModal',
+                'unarchiveModal',
+                'activityModal',
+                'bulkArchiveModal',
+                'deactivateModal',
+                'activateModal',
+                'quickGenerateModal',
+                'credentialsModal'
+            ];
+
+            function usersModalActuallyOpen() {
+                return USERS_MODAL_IDS.some(function(id) {
+                    const el = document.getElementById(id);
+                    return !!(el && el.classList.contains('show'));
+                });
+            }
+
+            function shouldSkipGlobalModalSync() {
+                if (window.__usersModalActive !== true) return false;
+                const isOpen = usersModalActuallyOpen();
+                if (!isOpen) {
+                    window.__usersModalActive = false;
+                }
+                return isOpen;
+            }
+
+            // Proactive sync for open/close flows driven by click/keyboard handlers.
+            document.addEventListener('click', function() {
+                if (shouldSkipGlobalModalSync()) return;
+                syncModalTracking(observer);
+                updateSidebarBlur();
+            }, true);
+
+            // Keep sidebar dim synchronized for modal form submits.
+            document.addEventListener('submit', function(event) {
+                const form = event.target;
+                if (!form || !(form instanceof HTMLFormElement)) return;
+
+                const activeModal = getTopVisibleModal();
+                if (!activeModal) return;
+                if (!activeModal.contains(form)) return;
+
+                applySidebarDim(getSidebarDimAlphaForModal(activeModal));
+            }, true);
+
+            document.addEventListener('keyup', function(event) {
+                if (event.key === 'Escape') {
+                    if (shouldSkipGlobalModalSync()) return;
+                    syncModalTracking(observer);
+                    updateSidebarBlur();
+                }
+            }, true);
+
+            // Ensure initial state is correct after first tracking pass.
+            updateSidebarBlur();
+        }
+
+        // Initialize after DOM is ready so all modal elements exist
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initModalTracking);
+        } else {
+            initModalTracking();
+        }
+    })();
     </script>
 
     {% block extra_js %}{% endblock %}

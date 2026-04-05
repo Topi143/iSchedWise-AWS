@@ -1,130 +1,359 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Dashboard - iSchedWise{% endblock %}
 
 {% block extra_css %}
 <style>
-    .dashboard-card {
-        transition: all 0.2s ease;
-        border: 1px solid #e5e7eb;
-        background: white;
-    }
-    .dashboard-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        border-color: #d1d5db;
-    }
-    .stat-card {
-        transition: all 0.2s ease;
-        border: 1px solid #e5e7eb;
-        background: white;
-    }
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        border-color: #d1d5db;
-    }
+    /* ========================================
+       DASHBOARD DESIGN SYSTEM
+       Fixed-Viewport Application Layout
+    - App fits 100vw x 100vh
+       - No body scrolling
+       - Content area scrolls independently
+       ======================================== */
     
     /* Custom Scrollbar */
-    .overflow-y-auto::-webkit-scrollbar {
-        width: 5px;
+    .overflow-y-auto::-webkit-scrollbar,
+    .dashboard-scroll::-webkit-scrollbar {
+        width: 4px;
     }
-    .overflow-y-auto::-webkit-scrollbar-track {
+    .overflow-y-auto::-webkit-scrollbar-track,
+    .dashboard-scroll::-webkit-scrollbar-track {
         background: transparent;
     }
-    .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 3px;
+    .overflow-y-auto::-webkit-scrollbar-thumb,
+    .dashboard-scroll::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
     }
-    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+    .dashboard-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.6);
     }
-    
-    /* Slide-in animation - Consistent with building.html */
-    @keyframes slide-in {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb,
+    .dark .dashboard-scroll::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.5);
     }
-    .animate-slide-in {
-        animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+    .dark .dashboard-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.7);
     }
     
-    .stat-icon {
-        width: 3rem;
-        height: 3rem;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
-        border-radius: 0.75rem;
+    /* Dashboard Card Base */
+    .dashboard-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: all 0.15s ease;
+    }
+    .dark .dashboard-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    /* Stat Card Styles */
+    .stat-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: all 0.15s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .dark .stat-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    .stat-card:hover {
+        border-color: #d1d5db;
+    }
+    .dark .stat-card:hover {
+        border-color: #4b5563;
+    }
+    
+
+    
+    /* Progress Ring */
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    
+    .progress-ring-circle {
+        transition: stroke-dashoffset 0.5s ease;
+    }
+    
+    /* Activity Item */
+    .activity-item {
+        transition: all 0.15s ease;
+        border-left: 2px solid transparent;
+    }
+    
+    .activity-item:hover {
+        background: #f9fafb;
+        border-left-color: #2563eb;
+    }
+    .dark .activity-item:hover {
+        background: #374151;
+        border-left-color: #3b82f6;
+    }
+    
+    /* Quick Action Card */
+    .quick-action {
+        transition: all 0.2s ease;
+        border: 1px solid #e5e7eb;
+    }
+    .dark .quick-action {
+        border-color: #374151;
+    }
+    
+    .quick-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border-color: #2563eb;
+    }
+    .dark .quick-action:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .quick-action:hover .action-icon {
+        transform: scale(1.1);
+    }
+    
+    .action-icon {
+        transition: transform 0.2s ease;
+    }
+    
+    /* Program Card */
+    .dept-card {
+        transition: all 0.15s ease;
+        border: 1px solid #e5e7eb;
+    }
+    .dark .dept-card {
+        border-color: #374151;
+    }
+    
+    .dept-card:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+    .dark .dept-card:hover {
+        background: #374151;
+        border-color: #4b5563;
+    }
+    
+    /* Schedule Card */
+    .schedule-item {
+        transition: all 0.15s ease;
+        border-left: 3px solid transparent;
+    }
+    
+    .schedule-item:hover {
+        background: #f9fafb;
+        border-left-color: #2563eb;
+    }
+    .dark .schedule-item:hover {
+        background: #374151;
+        border-left-color: #3b82f6;
+    }
+    
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 90vw;
+        pointer-events: none;
+    }
+    
+    .toast {
         display: flex;
         align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
+        padding: 0.75rem 1rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        animation: slideIn 0.4s ease both;
+        min-width: 250px;
+        max-width: 400px;
+        pointer-events: auto;
+    }
+    .dark .toast {
+        background: #1f2937;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     }
     
-    /* Button Primary - Consistent gradient */
-    .btn-primary {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        transition: all 0.2s ease;
+    .toast.removing {
+        animation: slideOut 0.3s ease both;
     }
     
-    .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    @keyframes slideIn {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
     
-    /* Mobile Responsive Adjustments */
-    @media (max-width: 640px) {
-        .stat-icon {
-            width: 2.5rem;
-            height: 2.5rem;
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(120%); opacity: 0; }
+    }
+    
+    .toast-success { border-left: 4px solid #10b981; }
+    .toast-error { border-left: 4px solid #ef4444; }
+    .toast-info { border-left: 4px solid #3b82f6; }
+    
+    /* Toast text in dark mode */
+    .dark .toast p {
+        color: #e5e7eb;
+    }
+    
+    /* Counter Animation */
+    @keyframes countUp {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    
+    .count-animate {
+        animation: countUp 0.3s ease forwards;
+    }
+    
+    /* Panel Scrollable Areas */
+    .panel-scroll {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Tablet layout: keep fixed-viewport, tighten spacing */
+    @media (max-width: 1023px) {
+        .dashboard-container {
+            padding: 0.5rem;
         }
-        .stat-icon svg {
-            width: 1.25rem !important;
-            height: 1.25rem !important;
+
+        .dashboard-scroll {
+            padding-bottom: 0.75rem;
+        }
+    }
+
+    /* Fixed-Viewport Layout - Small Phone Override */
+    @media (max-width: 639px) {
+        .dashboard-container {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+        }
+
+        .dashboard-scroll {
+            overflow: visible !important;
+            height: auto !important;
+        }
+    }
+    
+    @media (max-width: 640px) {
+        .stat-card {
+            padding: 0.75rem !important;
+        }
+        
+        .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        
+        /* Ultra-compact mobile layout */
+        .dashboard-container {
+            padding: 0.5rem !important;
+        }
+
+        .toast {
+            min-width: 0;
+            width: 100%;
+            max-width: 100%;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .toast-container {
+            left: 0.5rem;
+            right: 0.5rem;
+            max-width: calc(100vw - 1rem);
         }
     }
     
     /* Disable hover effects on touch devices */
     @media (hover: none) {
-        .dashboard-card:hover,
-        .stat-card:hover {
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        .stat-card:hover,
+        .quick-action:hover,
+        .dept-card:hover,
+        .schedule-item:hover,
+        .activity-item:hover {
+            background: inherit;
+            transform: none;
+            box-shadow: none;
+            border-color: inherit;
+        }
+        .dark .stat-card:hover,
+        .dark .quick-action:hover,
+        .dark .dept-card:hover,
+        .dark .schedule-item:hover,
+        .dark .activity-item:hover {
+            background: inherit;
+            transform: none;
+            box-shadow: none;
+            border-color: inherit;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen lg:h-screen overflow-hidden flex flex-col p-2 sm:p-4">
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3 dashboard-container">
     <div class="w-full flex flex-col h-full overflow-hidden">
-        <!-- Page Header -->
+        
+        <!-- Page Header - Fixed -->
         <div class="mb-2 sm:mb-3 flex-shrink-0">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <div class="flex items-center gap-2 sm:gap-3 flex-1">
-                        <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                             </svg>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h1 class="text-lg sm:text-xl font-bold text-gray-900">Dashboard</h1>
-                            <p class="text-xs sm:text-sm text-gray-600">Overview of your academic management system</p>
+                            <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                                <span id="greeting">Good morning</span>, {{ user.full_name.split()[0] if user else 'User' }}!
+                            </h1>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {% if current_settings %}
+                                {{ current_settings.academic_year }} - {{ current_settings.semester }}
+                                {% else %}
+                                Welcome to your scheduling dashboard
+                                {% endif %}
+                                <span class="text-gray-400 dark:text-gray-500"> | Scope: {{ dashboard_scope_label }}</span>
+                            </p>
                         </div>
                     </div>
-                    <!-- Program Filter (only show if multiple departments) -->
-                    {% if available_departments|length > 1 %}
-                    <div class="w-full sm:w-auto min-w-[200px]">
-                        <select id="departmentFilter" onchange="filterByDepartment(this.value)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    
+                    <!-- Program Filter (for users with multiple programs) -->
+                    {% if available_departments and available_departments|length > 1 %}
+                    <div class="w-full sm:w-auto sm:ml-auto">
+                        <label for="departmentFilter" class="sr-only">Filter Program</label>
+                        <select id="departmentFilter" onchange="filterByDepartment(this.value)" 
+                                class="w-full sm:w-auto px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                             <option value="">All Programs</option>
-                            {% for department in available_departments %}
-                            <option value="{{ department.id }}" {% if selected_department_id == department.id %}selected{% endif %}>
-                                {{ department.department_code }}
+                            {% for dept in available_departments %}
+                            <option value="{{ dept.id }}" {% if selected_department_id == dept.id %}selected{% endif %}>
+                                {{ dept.program_code }} - {{ dept.program_name }}
                             </option>
                             {% endfor %}
                         </select>
@@ -133,377 +362,492 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto dashboard-scroll space-y-3 sm:space-y-3 pb-4">
 
-        <!-- Main Content Area -->
-        <div class="flex-1 overflow-y-auto pr-1 md:pr-2">
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 animate-slide-in">
-                <!-- Stat 1: Curriculum -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="flex items-start justify-between">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Curriculum</p>
-                            <p class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{{ curriculum_count }}</p>
+            <!-- ============================================================
+                 TIER 2: Primary Row (Always Visible)
+                 ============================================================ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                
+                <!-- Column 1: Schedule Progress Ring -->
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col items-center justify-center">
+                    <div class="relative">
+                        <svg class="progress-ring w-28 h-28" viewBox="0 0 120 120">
+                            <circle class="text-gray-200 dark:text-gray-700" stroke="currentColor" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                <circle class="progress-ring-circle {% if schedule_completion_rate >= 80 %}text-emerald-500{% elif schedule_completion_rate >= 60 %}text-amber-500{% else %}text-red-500{% endif %}" 
+                                    stroke="currentColor" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"
+                                    stroke-dasharray="314.159"
+                                    stroke-dashoffset="{{ 314.159 - (314.159 * schedule_completion_rate / 100) }}"
+                                    stroke-linecap="round"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ schedule_completion_rate }}%</span>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Complete</p>
+                            </div>
                         </div>
-                        <div class="stat-icon ml-2 p-3 rounded-xl flex-shrink-0">
-                            <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </div>
+                    <p class="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">Sections with schedules assigned</p>
+                </div>
+                
+                <!-- Column 2: Today's Snapshot -->
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Today's Classes</h3>
+                    <div class="flex items-baseline gap-2">
+                        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ todays_schedules }}</div>
+                        {% if todays_remaining > 0 and todays_remaining < todays_schedules %}
+                        <span class="text-xs text-gray-400 dark:text-gray-500">- {{ todays_remaining }} remaining</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">classes scheduled on {{ current_day_name }}</p>
+                    {% if next_class %}
+                    <div class="text-xs bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2.5 border border-blue-100 dark:border-blue-800">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
+                            <span class="text-blue-700 dark:text-blue-300 font-medium">Next: {{ next_class.subject }} at {{ next_class.start_time }}</span>
+                        </div>
+                        <p class="text-blue-600/70 dark:text-blue-400/70 mt-0.5 ml-5">Room {{ next_class.room }}</p>
+                    </div>
+                    {% elif todays_schedules > 0 %}
+                    <div class="text-xs bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2.5 text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        All {{ todays_schedules }} classes completed for today
+                    </div>
+                    {% else %}
+                    <div class="text-xs bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5 text-gray-400 dark:text-gray-500 italic">
+                        No classes scheduled on {{ current_day_name }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Mini stats row -->
+                    <div class="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                            <span class="text-xs text-gray-600 dark:text-gray-400">{{ exam_schedule_count }} exams</span>
                         </div>
                     </div>
                 </div>
-
-                <!-- Stat 2: Programs -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="flex items-start justify-between">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Programs</p>
-                            <p class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{{ department_count }}</p>
-                        </div>
-                        <div class="stat-icon ml-2 p-3 rounded-xl flex-shrink-0">
-                            <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stat 3: Faculties -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="flex items-start justify-between">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Faculties</p>
-                            <p class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{{ faculty_count }}</p>
-                        </div>
-                        <div class="stat-icon ml-2 p-3 rounded-xl flex-shrink-0">
-                            <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stat 4: Buildings -->
-                <div class="stat-card bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="flex items-start justify-between">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide mb-2">Buildings</p>
-                            <p class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{{ building_count }}</p>
-                        </div>
-                        <div class="stat-icon ml-2 p-3 rounded-xl flex-shrink-0">
-                            <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
+                
+                <!-- Column 3: Smart Quick Actions -->
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        {% if smart_actions|selectattr('priority', 'lt', 10)|list %}Priority Actions{% else %}Quick Actions{% endif %}
+                    </h3>
+                    <div class="space-y-2">
+                        {% for action in smart_actions %}
+                        <a href="{{ action.url }}" class="flex items-center gap-2 px-3 py-2.5 text-xs font-medium rounded-lg transition-colors {{ action.color_class }}">
+                            {% if action.icon == 'alert-triangle' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            {% elif action.icon == 'clipboard-list' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                            {% elif action.icon == 'users' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            {% elif action.icon == 'play-circle' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            {% elif action.icon == 'file-text' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            {% elif action.icon == 'plus-circle' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            {% elif action.icon == 'bar-chart' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            {% elif action.icon == 'download' %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            {% else %}
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            {% endif %}
+                            <span class="truncate">{{ action.label }}</span>
+                        </a>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
 
-            <!-- Schedule Stats Row -->
-            {% if current_settings %}
-            <div class="bg-white rounded-xl shadow-sm p-2 sm:p-4 mb-4 border border-gray-200 animate-slide-in">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-3">
-                    <div class="flex items-center gap-2 sm:gap-3">
-                        <div class="stat-icon flex-shrink-0 p-3 rounded-xl">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Current Academic Period</h3>
-                            <p class="text-xs text-gray-600">{{ current_settings.academic_year }} • {{ current_settings.semester }} • {{ current_settings.exam_period }}</p>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('settings.index') }}" class="btn-primary px-3 sm:px-4 py-2 text-white rounded-lg text-xs sm:text-sm font-medium text-center whitespace-nowrap inline-flex items-center justify-center shadow-sm transition-all">
-                        Manage Settings
-                    </a>
-                </div>
-                <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                    <div class="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
-                        <p class="text-xs text-gray-600 mb-1">Class Schedules</p>
-                        <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ schedule_count }}</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
-                        <p class="text-xs text-gray-600 mb-1">Exam Schedules</p>
-                        <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ exam_schedule_count }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Management Cards Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 animate-slide-in">
-                <!-- Card 1: Schedules -->
-                <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="stat-icon p-3 rounded-xl">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- ============================================================
+                 TIER 2.5: Key Statistics (Always Visible)
+                 ============================================================ -->
+            
+            <!-- Stat Cards Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <!-- Schedules -->
+                    <div class="stat-card rounded-lg p-3 sm:p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Class Schedules</p>
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white count-animate">{{ schedule_count }}</p>
+                            </div>
+                            <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Schedules</h3>
                         </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mb-4">View and manage class schedules</p>
-                        <a href="{{ url_for('schedule.index') }}" class="btn-primary inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all">
-                            Manage
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </a>
                     </div>
-                </div>
-
-                <!-- Card 2: Curriculum -->
-                <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="stat-icon p-3 rounded-xl">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    
+                    <!-- Faculty -->
+                    <div class="stat-card rounded-lg p-3 sm:p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Faculty Members</p>
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white count-animate">{{ faculty_count }}</p>
+                            </div>
+                            <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Curriculum</h3>
                         </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage academic programs and courses</p>
-                        <a href="{{ url_for('curriculum.index') }}" class="btn-primary inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all">
-                            Manage
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </a>
                     </div>
-                </div>
-
-                <!-- Card 3: Programs -->
-                <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="stat-icon p-3 rounded-xl">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    
+                    <!-- Sections -->
+                    <div class="stat-card rounded-lg p-3 sm:p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Sections</p>
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white count-animate">{{ section_count }}</p>
+                            </div>
+                            <div class="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rooms -->
+                    <div class="stat-card rounded-lg p-3 sm:p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">Rooms Used</p>
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white count-animate">{{ room_count }}</p>
+                            </div>
+                            <div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Programs</h3>
                         </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage academic programs</p>
-                        <a href="{{ url_for('department.index') }}" class="btn-primary inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all">
-                            Manage
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </a>
                     </div>
-                </div>
-
-                <!-- Card 4: Faculties -->
-                <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="stat-icon p-3 rounded-xl">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Faculties</h3>
-                        </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage faculties information</p>
-                        <a href="{{ url_for('faculty.index') }}" class="btn-primary inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all">
-                            Manage
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Card 5: Buildings -->
-                <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="stat-icon p-3 rounded-xl">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Buildings</h3>
-                        </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mb-4">Manage campus buildings and rooms</p>
-                        <a href="{{ url_for('building.index') }}" class="btn-primary inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all">
-                            Manage
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Card 6: Archives -->
-                <div class="dashboard-card bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="stat-icon p-3 rounded-xl">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Archives</h3>
-                        </div>
-                        <p class="text-xs sm:text-sm text-gray-600 mb-4">View archived schedules and records</p>
-                        <a href="{{ url_for('archive.index') }}" class="btn-primary inline-flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all">
-                            Manage
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow-sm p-2 sm:p-4 border border-gray-200 mb-4 animate-slide-in">
-                <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    <div class="stat-icon p-3 rounded-xl">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Recent Schedules</h3>
-                </div>
-                {% if recent_schedules %}
-                <div class="space-y-2 sm:space-y-3">
-                    {% for schedule in recent_schedules %}
-                    <div class="flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
+            <!-- ============================================================
+                 TIER 3: Main Content Grid
+                 ============================================================ -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                
+                <!-- Left Column (2/3) -->
+                <div class="lg:col-span-2 space-y-3">
+                    
+                    <!-- Program Overview -->
+                    {% if user and user.is_admin and departments_overview %}
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Program Overview</h2>
+                            <a href="{{ url_for('program.index') }}" class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">View All</a>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs sm:text-sm font-semibold text-gray-800 truncate">
-                                {{ schedule.subject.subject_code if schedule.subject else 'N/A' }} - {{ schedule.section.section_name if schedule.section else 'N/A' }}
-                            </p>
-                            <p class="text-xs text-gray-500 truncate">
-                                {{ schedule.faculty.full_name if schedule.faculty else 'TBA' }} • 
-                                {{ schedule.day_of_week }} {{ schedule.start_time.strftime('%I:%M %p') if schedule.start_time else '' }}
-                            </p>
-                        </div>
-                        <div class="text-xs text-gray-400 flex-shrink-0 ml-2">
-                            {{ schedule.created_at.strftime('%b %d') if schedule.created_at else '' }}
+                        <div class="space-y-2">
+                            {% for dept in departments_overview[:5] %}
+                            <div class="dept-card rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-xs font-bold text-blue-700 dark:text-blue-400">{{ dept.code[:2] }}</span>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-xs font-semibold text-gray-900 dark:text-white">{{ dept.name }}</h3>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ dept.code }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <div class="text-center hidden sm:block">
+                                            <p class="font-semibold text-gray-900 dark:text-white">{{ dept.curriculum_count }}</p>
+                                            <p class="text-gray-500 dark:text-gray-400">Curriculum</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="font-semibold text-gray-900 dark:text-white">{{ dept.section_count }}</p>
+                                            <p class="text-gray-500 dark:text-gray-400">Sections</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="font-semibold text-gray-900 dark:text-white">{{ dept.faculty_count }}</p>
+                                            <p class="text-gray-500 dark:text-gray-400">Dept Faculty</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-                <div class="mt-4 text-center">
-                    <a href="{{ url_for('schedule.index') }}" class="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                        View All Schedules →
-                    </a>
-                </div>
-                {% else %}
-                <div class="text-center py-6 sm:py-8">
-                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>
-                    <p class="text-xs sm:text-sm text-gray-500 font-medium">No schedules created yet</p>
-                    <p class="text-xs text-gray-400 mt-1">Start by creating your first schedule</p>
-                    <a href="{{ url_for('schedule.index') }}" class="btn-primary inline-flex items-center justify-center mt-3 px-3 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg font-medium shadow-sm transition-all">
-                        Create Schedule
-                    </a>
-                </div>
-                {% endif %}
-            </div>
+                    {% endif %}
+                    
+                    <!-- Today's Schedule Overview -->
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Today's Schedule Overview</h2>
+                            {% if todays_schedule_overview %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ todays_schedule_overview|length }} class{{ 'es' if todays_schedule_overview|length != 1 else '' }}</span>
+                            {% else %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400">No classes</span>
+                            {% endif %}
+                        </div>
 
-            <!-- Department & Faculty Overview Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 animate-slide-in">
-                <!-- Programs Overview -->
-                <div class="bg-white rounded-xl shadow-sm p-2 sm:p-4 border border-gray-200">
-                    <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                        <div class="stat-icon p-3 rounded-xl">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Programs</h3>
-                    </div>
-                    {% if departments_overview %}
-                    <div class="space-y-2 max-h-64 overflow-y-auto">
-                        {% for dept in departments_overview %}
-                        <div class="p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div class="flex items-center justify-between mb-2">
-                                <p class="text-xs sm:text-sm font-semibold text-gray-800 truncate flex-1 mr-2">{{ dept.name }}</p>
-                                <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium flex-shrink-0">{{ dept.code }}</span>
+                        {% if todays_schedule_overview %}
+                        <div class="space-y-2 max-h-56 lg:h-[calc(100vh-25rem)] lg:max-h-none overflow-y-auto custom-scrollbar pr-1">
+                            {% for schedule in todays_schedule_overview %}
+                            <div class="schedule-item rounded-lg p-2.5 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                            {{ schedule.subject.subject_code if schedule.subject else 'N/A' }}{% if schedule.subject and schedule.subject.subject_name %} - {{ schedule.subject.subject_name }}{% endif %}
+                                        </h4>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                            {{ schedule.section.full_section_name if schedule.section else 'N/A' }} - {{ schedule.faculty.full_name if schedule.faculty else 'TBA' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex-shrink-0 text-right">
+                                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        {{ schedule.start_time.strftime('%I:%M %p') if schedule.start_time else 'TBA' }}{% if schedule.end_time %} - {{ schedule.end_time.strftime('%I:%M %p') }}{% endif %}
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[8rem]">
+                                        Room {{ schedule.room.room_number if schedule.room and schedule.room.room_number else (schedule.room.room_no if schedule.room and schedule.room.room_no else 'TBA') }}
+                                    </p>
+                                </div>
                             </div>
-                            <div class="flex items-center flex-wrap gap-2 sm:gap-4 text-xs text-gray-600">
-                                <span class="truncate">📚 {{ dept.curriculum_count }} Curriculum</span>
-                                <span class="truncate">👥 {{ dept.section_count }} Sections</span>
-                                <span class="truncate">👨‍🏫 {{ dept.faculty_count }} Faculty</span>
-                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-6 sm:py-8">
-                        <p class="text-xs sm:text-sm text-gray-500">No programs available</p>
-                        {% if current_user.is_admin %}
-                        <a href="{{ url_for('department.index') }}" class="inline-block mt-2 text-xs sm:text-sm text-green-600 hover:text-green-700 font-medium">
-                            Add Program →
-                        </a>
+                        {% else %}
+                        <div class="rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400">
+                            No scheduled classes for today in your current scope.
+                        </div>
                         {% endif %}
                     </div>
-                    {% endif %}
+                    
                 </div>
-
-                <!-- Faculty Overview -->
-                <div class="bg-white rounded-xl shadow-sm p-2 sm:p-4 border border-gray-200">
-                    <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                        <div class="stat-icon p-3 rounded-xl">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-xs sm:text-sm font-semibold text-gray-900">Faculties</h3>
-                    </div>
+                
+                <!-- Right Column (1/3) -->
+                <div class="space-y-3">
+                    
+                    <!-- Faculty Load Summary -->
                     {% if faculty_workload %}
-                    <div class="space-y-2 max-h-64 overflow-y-auto">
-                        {% for faculty in faculty_workload %}
-                        <div class="p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div class="flex items-center justify-between mb-2">
-                                <p class="text-xs sm:text-sm font-semibold text-gray-800 truncate flex-1 mr-2">{{ faculty.full_name }}</p>
-                                <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium flex-shrink-0">{{ faculty.total_units|round(1) if faculty.total_units else 0 }} units</span>
-                            </div>
-                            <div class="flex items-center flex-wrap gap-2 sm:gap-4 text-xs text-gray-600">
-                                <span class="truncate">🏢 {{ faculty.department_name if faculty.department_name else 'No Dept' }}</span>
-                                <span class="truncate">📅 {{ faculty.schedule_count }} Classes</span>
-                            </div>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div class="mb-3">
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Faculty Load Summary</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Top 5 by active class schedules this term</p>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{{ faculty_with_schedules_count }} of {{ faculty_count }} active faculty currently have schedules</p>
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-6 sm:py-8">
-                        <p class="text-xs sm:text-sm text-gray-500">No faculty schedules available</p>
-                        <a href="{{ url_for('faculty.index') }}" class="inline-block mt-2 text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium">
-                            Manage Faculties →
-                        </a>
+                        <div class="space-y-2">
+                            {% for faculty in faculty_workload %}
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                        <span class="text-xs font-medium text-white">{{ faculty.full_name[0] }}</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">{{ faculty.full_name }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ faculty.department_name or 'No Department' }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 flex-shrink-0 ml-2">
+                                    <div class="text-right">
+                                        <p class="text-xs font-semibold text-gray-900 dark:text-white">{{ faculty.schedule_count }}</p>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400">classes</p>
+                                    </div>
+                                    <div class="w-px h-7 bg-gray-200 dark:bg-gray-700"></div>
+                                    <div class="text-right">
+                                        <p class="text-xs font-semibold text-gray-900 dark:text-white">{{ '%.1f'|format(faculty.total_units) }}</p>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400">units</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     {% endif %}
+                    
+                    <!-- Recent Activity -->
+                    {% if recent_activities %}
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+                        </div>
+                        <div class="space-y-1 max-h-56 overflow-y-auto custom-scrollbar">
+                            {% for activity in recent_activities[:8] %}
+                            <div class="activity-item py-2 px-2 rounded">
+                                <div class="flex items-start gap-2">
+                                    <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        {% if 'created' in activity.action.lower() or 'added' in activity.action.lower() %}
+                                        <svg class="w-2.5 h-2.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                        {% elif 'updated' in activity.action.lower() or 'edited' in activity.action.lower() %}
+                                        <svg class="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                        {% elif 'deleted' in activity.action.lower() or 'archived' in activity.action.lower() %}
+                                        <svg class="w-2.5 h-2.5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-2.5 h-2.5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs text-gray-700 dark:text-gray-300 truncate">{{ activity.action }}</p>
+                                        <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ activity.created_at | format_system_datetime('%b %d, %I:%M %p') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- System Info (Admin Only) -->
+                    {% if user and user.is_admin %}
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 border border-slate-700 dark:border-slate-600 rounded-lg p-4 text-white">
+                        <h2 class="text-sm font-semibold mb-3">System Overview</h2>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-300">Total Users</span>
+                                <span class="text-sm font-semibold">{{ user_count }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-300">Programs</span>
+                                <span class="text-sm font-semibold">{{ program_count }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-300">Buildings</span>
+                                <span class="text-sm font-semibold">{{ system_building_count }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-300">Total Rooms</span>
+                                <span class="text-sm font-semibold">{{ system_room_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
                 </div>
             </div>
-        </div>
+        
+        </div><!-- End Scrollable Content Area -->
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    // Filter dashboard by department
+    // Dynamic greeting based on time of day
+    function updateGreeting() {
+        const hour = new Date().getHours();
+        const greetingEl = document.getElementById('greeting');
+        
+        if (hour >= 5 && hour < 12) {
+            greetingEl.textContent = 'Good morning';
+        } else if (hour >= 12 && hour < 17) {
+            greetingEl.textContent = 'Good afternoon';
+        } else if (hour >= 17 && hour < 21) {
+            greetingEl.textContent = 'Good evening';
+        } else {
+            greetingEl.textContent = 'Good night';
+        }
+    }
+    
+    // Program filter
     function filterByDepartment(departmentId) {
         const url = new URL(window.location.href);
         if (departmentId) {
-            url.searchParams.set('department_id', departmentId);
+            url.searchParams.set('program_id', departmentId);
         } else {
-            url.searchParams.delete('department_id');
+            url.searchParams.delete('program_id');
         }
         window.location.href = url.toString();
     }
+    
+    // Toast notification system
+    function showToast(message, type = 'success') {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: `<svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            error: `<svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`,
+            info: `<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`
+        };
+        
+        const colors = {
+            success: 'text-green-800 dark:text-green-200',
+            error: 'text-red-800 dark:text-red-200',
+            info: 'text-blue-800 dark:text-blue-200'
+        };
+        
+        toast.innerHTML = `
+            ${icons[type] || icons.success}
+            <p class="${colors[type] || colors.success} font-medium flex-1 text-sm">${message}</p>
+            <button onclick="removeToast(this.parentElement)" class="ml-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+        
+        container.appendChild(toast);
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    
+    function removeToast(toast) {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }
+    
+    // Animate numbers on load
+    function animateValue(element, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            element.textContent = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateGreeting();
+        
+        // Animate stat numbers
+        document.querySelectorAll('.count-animate').forEach(el => {
+            const finalValue = parseInt(el.textContent);
+            if (!isNaN(finalValue)) {
+                animateValue(el, 0, finalValue, 800);
+            }
+        });
+    });
 </script>
 {% endblock %}
+

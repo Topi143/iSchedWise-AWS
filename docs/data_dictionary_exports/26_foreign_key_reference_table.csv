@@ -1,0 +1,44 @@
+#,Child Table,FK Column,Parent Table,Parent Col,On Delete,Description
+1,users,archived_by,users,id,SET NULL,Self-referential: ID of the user who performed the archive action
+2,login_history,user_id,users,id,CASCADE,Deleting a user removes all their login session records
+3,trusted_devices,user_id,users,id,CASCADE,Deleting a user removes all their trusted-device records
+4,user_activity_logs,user_id,users,id,CASCADE,Deleting a user removes all their audit log entries
+5,user_programs,user_id,users,id,CASCADE,Deleting a user removes all their program access grants
+6,user_programs,program_id,programs,id,CASCADE,Deleting a program removes all user access grants for it
+7,programs,department_id,departments,id,SET NULL,Deleting a department detaches its programs (programs are kept)
+8,programs,archived_by,users,id,SET NULL,Nullifies archive attribution if the archiving user is deleted
+9,curricula,program_id,programs,id,RESTRICT,Cannot delete a program that has attached curricula
+10,curricula,created_by,users,id,SET NULL,Nullifies creator attribution if the user is deleted
+11,curricula,archived_by,users,id,SET NULL,Nullifies archive attribution if the user is deleted
+12,year_levels,curriculum_id,curricula,id,CASCADE,Deleting a curriculum deletes all its year levels
+13,semesters,year_level_id,year_levels,id,CASCADE,Deleting a year level deletes all its semesters
+14,subjects,semester_id,semesters,id,CASCADE,Deleting a semester deletes all its subjects
+15,sections,program_id,programs,id,CASCADE,Deleting a program deletes all its student sections
+16,faculty,department_id,departments,id,SET NULL,Deleting a department detaches its faculty members
+17,faculty,archived_by,users,id,SET NULL,Nullifies archive attribution if the user is deleted
+18,faculty_availability,faculty_id,faculty,id,CASCADE,Deleting a faculty member removes all their availability slots
+19,faculty_availability,created_by,users,id,SET NULL,Nullifies creator attribution if the user is deleted
+20,faculty_subject_assignments,faculty_id,faculty,id,CASCADE,Deleting a faculty member removes all their subject assignments
+21,faculty_subject_assignments,subject_id,subjects,id,CASCADE,Deleting a subject removes all related faculty assignments
+22,faculty_subject_assignments,archived_by,users,id,SET NULL,Nullifies archive attribution if the user is deleted
+23,buildings,archived_by,users,id,SET NULL,Nullifies archive attribution if the user is deleted
+24,rooms,building_id,buildings,id,CASCADE,Deleting a building deletes all rooms inside it
+25,schedules,section_id,sections,id,CASCADE,Deleting a section deletes all its class schedule entries
+26,schedules,subject_id,subjects,id,CASCADE,Deleting a subject deletes all schedules for that subject
+27,schedules,faculty_id,faculty,id,SET NULL,Deleting a faculty member clears the assignment; schedule kept
+28,schedules,room_id,rooms,id,SET NULL,Deleting a room clears the room assignment; schedule is kept
+29,schedules,locked_by,users,id,SET NULL,Deleting a user releases any edit locks they held
+30,exam_schedules,section_id,sections,id,CASCADE,Deleting a section deletes all its exam schedule entries
+31,exam_schedules,subject_id,subjects,id,CASCADE,Deleting a subject deletes all related exam entries
+32,exam_schedules,faculty_id,faculty,id,SET NULL,Deleting a faculty member clears the proctor assignment
+33,exam_schedules,room_id,rooms,id,SET NULL,Deleting a room clears the room assignment on exam entries
+34,exam_schedules,locked_by,users,id,SET NULL,Deleting a user releases any exam edit locks they held
+35,schedule_snapshots,section_id,sections,id,SET NULL,Deleting a section nulls scope linkage; snapshot payload retained
+36,schedule_snapshots,created_by,users,id,SET NULL,Nullifies creator attribution if the user is deleted
+37,archives,section_id,sections,id,SET NULL,Deleting a section NULLs the FK; snapshot text is retained
+38,archives,subject_id,subjects,id,SET NULL,Deleting a subject NULLs the FK; snapshot text is retained
+39,archives,faculty_id,faculty,id,SET NULL,Deleting a faculty member NULLs the FK; snapshot text retained
+40,archives,room_id,rooms,id,SET NULL,Deleting a room NULLs the FK; snapshot text is retained
+41,archives,archived_by,users,id,SET NULL,Nullifies archive attribution if the user is deleted
+42,institution_settings,updated_by,users,id,SET NULL,Nullifies editor attribution if the user is deleted
+43,system_config,updated_by,users,id,SET NULL,Nullifies editor attribution if the user is deleted

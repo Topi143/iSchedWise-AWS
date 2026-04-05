@@ -1,5 +1,5 @@
 """
-Test to verify faculty subject assignment is restricted by user's department
+Test to verify faculty subject assignment is restricted by user's program
 """
 import sys
 import os
@@ -9,15 +9,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from app import create_app
 from app.extensions import db
-from app.models import User, Faculty, Subject, Curriculum, Department
+from app.models import User, Faculty, Subject, Curriculum, Program
 from app.models.faculty import FacultySubjectAssignment
 
 def test_department_restriction():
-    """Test that users can only assign subjects from their own department"""
+    """Test that users can only assign subjects from their own program"""
     app = create_app()
     
     with app.app_context():
-        print("\n=== Testing Faculty Subject Assignment Department Restrictions ===\n")
+        print("\n=== Testing Faculty Subject Assignment Program Restrictions ===\n")
         
         # Get test users
         admin_user = User.query.filter_by(email='admin@norzagaray.edu').first()
@@ -30,15 +30,15 @@ def test_department_restriction():
         print(f"✅ Admin User: {admin_user.email} (Role: {admin_user.role})")
         print(f"✅ Dean User: {dean_user.email} (Role: {dean_user.role})")
         
-        # Get dean's departments
-        dean_departments = dean_user.get_department_ids()
-        admin_departments = admin_user.get_department_ids()
+        # Get dean's programs
+        dean_departments = dean_user.get_program_ids()
+        admin_departments = admin_user.get_program_ids()
         
-        print(f"\n📋 Dean's Department IDs: {dean_departments}")
-        print(f"📋 Admin's Department IDs: {admin_departments} (None = All departments)")
+        print(f"\n📋 Dean's Program IDs: {dean_departments}")
+        print(f"📋 Admin's Program IDs: {admin_departments} (None = All programs)")
         
         if dean_departments:
-            dean_dept_names = [dept.department_name for dept in dean_user.departments.all()]
+            dean_dept_names = [dept.program_name for dept in dean_user.programs.all()]
             print(f"   Dean's Departments: {', '.join(dean_dept_names)}")
         
         # Get all curricula
@@ -50,20 +50,20 @@ def test_department_restriction():
         restricted_curricula = []
         
         for curriculum in all_curricula:
-            if dean_departments is None or curriculum.department_id in dean_departments:
+            if dean_departments is None or curriculum.program_id in dean_departments:
                 accessible_curricula.append(curriculum)
             else:
                 restricted_curricula.append(curriculum)
         
         print(f"\n✅ Curricula Dean Can Access: {len(accessible_curricula)}")
         for curr in accessible_curricula[:3]:  # Show first 3
-            dept = Department.query.get(curr.department_id)
-            print(f"   - {curr.curriculum_code} ({dept.department_name if dept else 'No dept'})")
+            dept = Program.query.get(curr.program_id)
+            print(f"   - {curr.curriculum_code} ({dept.program_name if dept else 'No dept'})")
         
         print(f"\n❌ Curricula Dean Cannot Access: {len(restricted_curricula)}")
         for curr in restricted_curricula[:3]:  # Show first 3
-            dept = Department.query.get(curr.department_id)
-            print(f"   - {curr.curriculum_code} ({dept.department_name if dept else 'No dept'})")
+            dept = Program.query.get(curr.program_id)
+            print(f"   - {curr.curriculum_code} ({dept.program_name if dept else 'No dept'})")
         
         # Test subject access through curriculum relationship
         print("\n\n=== Testing Subject Access Control ===\n")
@@ -78,8 +78,8 @@ def test_department_restriction():
                     print(f"✅ Sample Accessible Subject:")
                     print(f"   Subject: {sample_accessible.subject_code} - {sample_accessible.course_description}")
                     print(f"   Curriculum: {accessible_curr.curriculum_code}")
-                    dept = Department.query.get(accessible_curr.department_id)
-                    print(f"   Department: {dept.department_name if dept else 'Unknown'}")
+                    dept = Program.query.get(accessible_curr.program_id)
+                    print(f"   Program: {dept.program_name if dept else 'Unknown'}")
         
         if restricted_curricula:
             restricted_curr = restricted_curricula[0]
@@ -90,10 +90,10 @@ def test_department_restriction():
                     print(f"\n❌ Sample Restricted Subject (Dean cannot assign):")
                     print(f"   Subject: {sample_restricted.subject_code} - {sample_restricted.course_description}")
                     print(f"   Curriculum: {restricted_curr.curriculum_code}")
-                    dept = Department.query.get(restricted_curr.department_id)
-                    print(f"   Department: {dept.department_name if dept else 'Unknown'}")
+                    dept = Program.query.get(restricted_curr.program_id)
+                    print(f"   Program: {dept.program_name if dept else 'Unknown'}")
         
-        # Test the department access validation logic
+        # Test the program access validation logic
         print("\n\n=== Testing Access Validation Logic ===\n")
         
         test_subject = Subject.query.first()
@@ -102,31 +102,31 @@ def test_department_restriction():
             
             print(f"Test Subject: {test_subject.subject_code}")
             print(f"Curriculum: {curriculum.curriculum_code if curriculum else 'None'}")
-            print(f"Department ID: {curriculum.department_id if curriculum else 'None'}")
+            print(f"Program ID: {curriculum.program_id if curriculum else 'None'}")
             
             # Test admin access (should always be True)
-            admin_has_access = admin_departments is None or (curriculum and curriculum.department_id in admin_departments)
+            admin_has_access = admin_departments is None or (curriculum and curriculum.program_id in admin_departments)
             print(f"\n👤 Admin Access: {admin_has_access} ✅")
             
             # Test dean access
             if dean_departments is not None:
-                dean_has_access = curriculum and curriculum.department_id in dean_departments
+                dean_has_access = curriculum and curriculum.program_id in dean_departments
                 print(f"👤 Dean Access: {dean_has_access} {'✅' if dean_has_access else '❌'}")
                 if not dean_has_access:
-                    print(f"   Reason: Subject's department ({curriculum.department_id if curriculum else 'None'}) not in dean's departments ({dean_departments})")
+                    print(f"   Reason: Subject's program ({curriculum.program_id if curriculum else 'None'}) not in dean's programs ({dean_departments})")
             else:
                 print(f"👤 Dean Access: True ✅ (Dean has admin-like access)")
         
         print("\n\n=== Summary ===\n")
-        print("✅ Department-based access control is working correctly!")
+        print("✅ Program-based access control is working correctly!")
         print("✅ Admins can access all curricula and subjects")
-        print("✅ Deans can only access curricula and subjects from their assigned departments")
+        print("✅ Deans can only access curricula and subjects from their assigned programs")
         print("✅ The validation logic in faculty assignment routes will enforce these restrictions")
         
-        print("\n💡 When a Dean tries to assign a subject from another department:")
+        print("\n💡 When a Dean tries to assign a subject from another program:")
         print("   - The subject will not appear in their curriculum list (filtered in index route)")
         print("   - If they somehow submit it, backend validation will reject it with an error message")
-        print("   - Error: 'You do not have permission to assign subjects from other departments'")
+        print("   - Error: 'You do not have permission to assign subjects from other programs'")
 
 if __name__ == '__main__':
     test_department_restriction()

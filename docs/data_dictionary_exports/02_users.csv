@@ -1,0 +1,24 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+username,Unique login username,varchar,80,,Yes,--
+email,User email address,varchar,120,,Yes,--
+password_hash,Werkzeug scrypt password hash,varchar,256,,Yes,--
+role,"User role: admin, super_admin, or dean",varchar,20,,Yes,--
+full_name,Full display name of the user,varchar,100,,Yes,--
+is_active,"Whether the account is active (1=active, 0=inactive)",tinyint(1),--,,Yes,1
+is_archived,Soft-delete flag; archived accounts cannot log in,tinyint(1),--,,Yes,0
+archived_by,ID of the user who archived this account,int,11,FK -> users.id,No,NULL
+archived_at,Timestamp when the account was archived,datetime,--,,No,NULL
+archive_reason,Reason provided for archiving the account,varchar,255,,No,NULL
+email_verified,Whether account setup / email verification is completed,tinyint(1),--,,Yes,0
+email_verified_at,Timestamp when email was verified,datetime,--,,No,NULL
+needs_password_change,Forces a password change on the user's next login,tinyint(1),--,,Yes,0
+two_factor_enabled,Whether TOTP two-factor authentication is enabled,tinyint(1),--,,Yes,0
+two_factor_secret,Base32 secret used for TOTP verification,varchar,64,,No,NULL
+two_factor_enabled_at,Timestamp when two-factor authentication was enabled,datetime,--,,No,NULL
+text_size,Text size preference as a percentage (range 70-150),int,11,,Yes,100
+dark_mode,"UI preference: 0 = light mode, 1 = dark mode",tinyint(1),--,,Yes,0
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL
+last_login,Timestamp of the user's most recent successful login,datetime,--,,No,NULL
+force_logout_at,"If set, sessions before this timestamp are invalidated",datetime,--,,No,NULL

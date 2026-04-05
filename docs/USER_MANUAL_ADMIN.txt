@@ -1,0 +1,83 @@
+==============================================================================
+              iSchedWise V4 - ADMIN USER MANUAL
+          (Admin-Exclusive Pages and Features)
+==============================================================================
+
+Note: This manual covers only the pages and features
+exclusive to the Admin role. For all shared pages
+(Dashboard, Programs, Curriculum, Faculties, Buildings,
+Schedules, Reports, Archives, Account, Settings), refer
+to the Dean User Manual. Admin users have access to
+everything the Dean can access, plus the following.
+
+
+1. USERS
+Screenshot needed: Users Page (with user table)
+
+The Users page allows you to manage all system accounts.
+
+View Users - A table displays all users with username,
+email, full name, role badge, status (active/inactive),
+last login time, assigned programs, and creation date.
+Filter by role and search by username, email, or name.
+
+Create User - Click add, enter a username, email, password
+(8-30 characters), full name, and select a role (Admin or
+Dean). For Dean accounts, assign the programs they will
+manage.
+
+Edit User - Click a user to modify their email, full name,
+password, role, or program assignments.
+
+Activate/Deactivate - Toggle a user's active status.
+Inactive users cannot log in.
+
+Archive User - Archive a user with a reason. Archived users
+cannot log in and can be viewed in the Archives section.
+
+Delete User - Only available for archived users. Permanently
+removes the user from the database.
+
+
+2. REPORTS - ACTIVITY
+Screenshot needed: Reports Activity Page
+
+This report shows the system activity log with all actions
+performed by users. View who did what, when it happened,
+and from where. Filter by user, action type, or date range.
+
+
+3. SETTINGS - INSTITUTION (ADMIN ONLY)
+Screenshot needed: Settings Page (Institution Settings section)
+
+In addition to the shared settings (Academic, Schedule Time,
+Exam, Faculty Load), Admin users can also configure:
+
+Institution Settings - Update the institution name and
+upload a custom logo. These appear on the login page and
+sidebar branding.
+
+
+4. SIDEBAR NAVIGATION (ADMIN VIEW)
+Screenshot needed: Sidebar (Admin view showing all menu items)
+
+Admin users see all navigation items including:
+
+  Dashboard
+  Programs
+  Curriculum
+  Faculties
+  Buildings
+  Schedules (submenu: Create New, Class, Faculty, Room, Exam)
+  Reports (submenu: Overview, Faculty, Rooms, Weekly,
+           Compare, Activity)
+  Archives (submenu: Overview, Schedules, Curriculum,
+            Programs, Faculty, Buildings)
+  Users
+  Account
+  Settings
+
+The "Users" page and "Activity" report are visible only to
+Admin users and do not appear for Dean accounts.
+
+==============================================================================

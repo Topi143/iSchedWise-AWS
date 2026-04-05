@@ -11,7 +11,8 @@ class Curriculum(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     curriculum_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
+    curriculum_name = db.Column(db.String(200), nullable=False)
+    program_id = db.Column(db.Integer, db.ForeignKey('programs.id'), nullable=False)
     degree_program = db.Column(db.String(200), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_archived = db.Column(db.Boolean, default=False, index=True)
@@ -28,6 +29,18 @@ class Curriculum(db.Model):
     
     def __repr__(self):
         return f'<Curriculum {self.curriculum_code}>'
+    
+    def get_display_code(self, year_level):
+        """
+        Returns the display code based on year level.
+        Delegates to the program's get_display_code method.
+        If program is shared with another program up to a certain year,
+        returns combined code (e.g., 'BSCS/ACT') for those years.
+        Otherwise returns just the program code (e.g., 'BSCS').
+        """
+        if self.program:
+            return self.program.get_display_code(year_level)
+        return ''
     
     def archive(self, user_id=None, reason=None):
         """Mark curriculum as archived instead of deleting."""
@@ -52,7 +65,8 @@ class Curriculum(db.Model):
             'id': self.id,
             'curriculum_code': self.curriculum_code,
             'degree_program': self.degree_program,
-            'department_name': self.department.department_name if self.department else None,
+            'department_name': self.program.department.department_name if self.program and self.program.department else None,
+            'program_name': self.program.program_name if self.program else None,
             'year_levels_count': len(self.year_levels),
             'is_active': self.is_active,
             'is_archived': self.is_archived,

@@ -1,0 +1,12 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+faculty_id,Faculty member this availability slot belongs to,int,11,FK -> faculty.id,Yes,--
+day_of_week,"Day name for recurring availability, e.g., 'Monday'",varchar,20,,No,NULL
+start_time,Start of the available time window,time,--,,Yes,--
+end_time,End of the available time window,time,--,,Yes,--
+academic_year,"Academic year this availability applies to, e.g., '2025-2026'",varchar,20,,No,NULL
+semester,"Semester this availability applies to, e.g., '1st Semester'",varchar,50,,No,NULL
+is_active,Whether this availability slot is currently active,tinyint(1),--,,Yes,1
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL
+created_by,ID of the user who created this availability entry,int,11,FK -> users.id,No,NULL

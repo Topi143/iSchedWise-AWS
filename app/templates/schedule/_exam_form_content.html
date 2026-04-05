@@ -1,0 +1,477 @@
+{# Inline Exam Schedule Form - 3 Panel Layout (Form | Calendar | AI) #}
+{# This partial is included directly in schedule_exam_form.html as page content, NOT as a modal overlay #}
+
+{# Macro to generate exam time options with configurable slot duration #}
+{% macro exam_time_options(start_hour=7, end_hour=17, slot_duration=30) %}
+    <option value="">Select time...</option>
+    {% set total_minutes = (end_hour - start_hour) * 60 %}
+    {% for offset in range(0, total_minutes + 1, slot_duration) %}
+        {% set hour = start_hour + (offset // 60) %}
+        {% set minute = offset % 60 %}
+        {% if hour <= end_hour %}
+            {% set time_24h = '%02d:%02d'|format(hour, minute) %}
+            {% set hour_12 = (hour % 12) if (hour % 12) != 0 else 12 %}
+            {% set am_pm = 'AM' if hour < 12 else 'PM' %}
+            {% set time_12h = '%d:%02d %s'|format(hour_12, minute, am_pm) %}
+            <option value="{{ time_24h }}">{{ time_12h }}</option>
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% from 'schedule/_empty_state.html' import schedule_empty_state %}
+{% from 'schedule/_form_shared_macros.html' import section_legend %}
+
+{% if not unified_page %}
+<!-- Page Header - Fixed (flex-shrink-0) -->
+<div class="mb-2 sm:mb-3 flex-shrink-0">
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+        <div class="p-3 sm:p-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <a href="{% if selected_section %}{{ url_for('schedule.exam_view', section_id=selected_section.id) }}{% else %}{{ url_for('schedule.exam_view') }}{% endif %}" 
+                       class="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <div class="flex items-center space-x-2 sm:space-x-3">
+                        <!-- Add Mode Icon -->
+                        <div id="examModalIconAdd" class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </div>
+                        <!-- Edit Mode Icon (hidden by default) -->
+                        <div id="examModalIconEdit" class="hidden w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 id="examModalTitle" class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Add Exam Schedule</h1>
+                            <p id="examModalSubtitle" class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Create a new exam schedule entry</p>
+                        </div>
+                        <!-- Back to Add Button (shown only in edit mode) -->
+                        <button type="button" id="backToAddExamBtn" onclick="switchBackToAddExamMode()" class="hidden ml-3 flex items-center px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            New
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <a href="{% if selected_section %}{{ url_for('schedule.exam_view', section_id=selected_section.id) }}{% else %}{{ url_for('schedule.exam_view') }}{% endif %}" 
+                       class="hidden sm:flex items-center px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit" form="addExamScheduleForm" id="submitExamScheduleAdd" disabled class="flex items-center px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white bg-gray-400 rounded-lg cursor-not-allowed transition-all">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span id="submitExamScheduleAddText">Fill Required</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 3-Panel Content Area (Form | Calendar | AI) -->
+<div class="flex-1 overflow-visible lg:overflow-hidden flex flex-col md:flex-row bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <!-- Left Panel: Form -->
+    <div class="w-full md:w-[300px] lg:w-[340px] xl:w-[380px] overflow-y-auto bg-white dark:bg-gray-800 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 flex-shrink-0 custom-scrollbar">
+        <form id="addExamScheduleForm" method="POST" action="{{ url_for('exam_schedule.add') }}" class="p-4 sm:p-5">
+            <!-- Hidden fields for edit mode -->
+            <input type="hidden" id="exam_schedule_id_add" name="exam_schedule_id" value="">
+            <input type="hidden" id="exam_schedule_version_add" name="version" value="">
+            
+            <!-- Assistant panel is shared and docked at the page layout level (_ai_drawer.html) -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="section_id_exam_add" name="section_id" value="">
+
+            <!-- ═══ Section Selection (always visible) ═══ -->
+            <div class="mb-4">
+                <div class="form-field-group">
+                    <label for="examModalSectionSwitcher" class="form-label-compact flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        Section <span class="text-red-400">*</span>
+                    </label>
+                    <select id="examModalSectionSwitcher" onchange="switchExamModalSection(this.value)" 
+                            class="form-select-compact w-full">
+                        <option value="">Select a section...</option>
+                        {% for section in exam_sections|sort(attribute='program.program_code,year_level,section_name') %}
+                        <option value="{{ section.id }}" data-name="{{ section.full_section_name }}">
+                            {{ section.full_section_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- ═══ No Section Selected Hint ═══ -->
+            <div id="noSectionOverlayExam" class="{% if selected_section %}hidden{% endif %}">
+                {{ schedule_empty_state(
+                    'Select a Section',
+                    'Choose a section above to start creating an exam schedule',
+                    theme='orange',
+                    icon='exam',
+                    compact=True
+                ) }}
+            </div>
+
+            <!-- ═══ Form Fields Container (hidden when no section) ═══ -->
+            <div id="examFormFieldsContainer" class="{% if not selected_section %}hidden{% endif %}">
+
+            <!-- ═══ Smart Status Line (Progress + Contextual Feedback) ═══ -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Progress</span>
+                    <span id="examFormProgress" class="text-[10px] font-bold text-orange-600">0 / 6</span>
+                </div>
+                <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-2">
+                    <div id="examFormProgressBar" class="bg-gradient-to-r from-orange-500 to-amber-500 h-1.5 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <!-- Context line -->
+                <div id="examFormStatusLine" class="flex items-center gap-1.5 text-xs transition-all duration-300 min-h-[20px]">
+                    <span id="examStatusIcon" class="flex-shrink-0 w-4 h-4 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </span>
+                    <span id="examStatusText" class="text-gray-500 dark:text-gray-300 truncate">Select a section to begin</span>
+                    <span id="examStatusBadge" class="ml-auto flex-shrink-0 hidden text-[10px] font-semibold px-1.5 py-0.5 rounded-full"></span>
+                </div>
+            </div>
+            
+            <div class="space-y-4 sm:space-y-5">
+                <!-- ═══ Section 1: Exam Details ═══ -->
+                <fieldset class="space-y-4">
+                    {{ section_legend(1, 'Exam Details', 'orange') }}
+                    
+                    <!-- Curriculum Selection -->
+                    <div class="form-field-group">
+                        <label for="curriculum_id_exam_add" class="form-label-compact">
+                            Curriculum <span class="text-red-500 dark:text-red-400">*</span>
+                        </label>
+                        <select id="curriculum_id_exam_add" name="curriculum_id" required onchange="loadSubjectsForCurriculum('exam_add')" class="form-select-compact">
+                            <option value="">Select a curriculum...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Subject -->
+                    <div class="form-field-group">
+                        <label for="subject_id_exam_add" class="form-label-compact">
+                            Subject <span class="text-red-500 dark:text-red-400">*</span>
+                        </label>
+                        <select id="subject_id_exam_add" name="subject_id" required 
+                               onchange="handleExamSubjectChange('add')"
+                               class="form-select-compact">
+                            <option value="">Select curriculum first...</option>
+                        </select>
+                        <button type="button" onclick="openSubjectBrowser('exam_add')" class="text-[11px] text-orange-500 dark:text-orange-300 hover:text-orange-700 dark:hover:text-orange-200 mt-1 inline-flex items-center gap-1 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            Browse all program subjects &rarr;
+                        </button>
+                    </div>
+                    
+                    <!-- Schedule Type (LEC / LAB) -->
+                    <div id="examScheduleTypeContainer_add" class="form-field-group">
+                        <label for="schedule_type_exam_add" class="form-label-compact">
+                            Type <span class="text-red-500 dark:text-red-400">*</span>
+                        </label>
+                        <select id="schedule_type_exam_add" name="schedule_type" class="form-select-compact">
+                            <option value="lecture" id="examLectureOption_add" selected>Lecture</option>
+                            <option value="lab" id="examLabOption_add">Lab</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Exam Date -->
+                    <div class="form-field-group">
+                        <label for="exam_date_add" class="form-label-compact">
+                            Exam Date <span class="text-red-500 dark:text-red-400">*</span>
+                        </label>
+                        <input type="date" id="exam_date_add" name="exam_date" required 
+                               {% if exam_period_start %}min="{{ exam_period_start }}"{% endif %}
+                               {% if exam_period_end %}max="{{ exam_period_end }}"{% endif %}
+                               class="form-input-compact">
+                        {% if exam_period_start and exam_period_end %}
+                        <p class="text-[10px] text-purple-600 mt-1 flex items-center">
+                            <svg class="w-2.5 h-2.5 mr-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="exam-period-display" data-start="{{ exam_period_start }}" data-end="{{ exam_period_end }}">
+                                Period: {{ exam_period_start }} — {{ exam_period_end }}
+                            </span>
+                        </p>
+                        {% else %}
+                        <p class="text-[10px] text-amber-600 mt-1 flex items-center">
+                            <svg class="w-2.5 h-2.5 mr-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            Configure exam period in Settings
+                        </p>
+                        {% endif %}
+                    </div>
+                </fieldset>
+
+                <!-- ═══ Section 2: Proctor & Room ═══ -->
+                <fieldset class="space-y-4">
+                    {{ section_legend(2, 'Proctor & Room', 'green') }}
+                    
+                    <!-- Faculty (Proctor) -->
+                    <div class="form-field-group">
+                        <label for="faculty_search_exam_add" class="form-label-compact">
+                            Faculty (Proctor) <span class="text-red-500 dark:text-red-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="faculty_search_exam_add" placeholder="Search faculty..." 
+                                   oninput="filterFacultyModalExam('exam_add', this.value)" 
+                                   onfocus="showFacultyDropdownModalExam('exam_add')" 
+                                   class="form-input-compact pr-8"
+                                   autocomplete="off">
+                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="hidden" id="faculty_id_exam_add" name="faculty_id" required>
+                            <div id="faculty_dropdown_exam_add" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                                {% for faculty in all_faculties %}
+                                <div class="faculty-option px-3 py-2 hover:bg-green-50 dark:hover:bg-green-900/35 cursor-pointer text-sm border-b border-gray-50 dark:border-gray-700 last:border-b-0 transition-colors" 
+                                     data-faculty-id="{{ faculty.id }}" 
+                                     data-faculty-name="{{ faculty.full_name }}" 
+                                      data-available-days="{{ (faculty.available_days or [])|join(',') }}"
+                                     onclick="selectFacultyModalExam('exam_add', {{ faculty.id }}, '{{ faculty.full_name|e }}')">
+                                    <div class="font-medium text-gray-900 dark:text-gray-200 text-sm">{{ faculty.full_name }}</div>
+                                    {% if faculty.department %}
+                                    <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ faculty.department.department_code }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div id="proctor_warning_exam_add" class="hidden mt-1.5"></div>
+                        <div id="examFacultyAvailabilityWarningAdd" class="hidden"></div>
+                    </div>
+                    
+                    <!-- Room -->
+                    {% set room_search_id = 'room_search_exam_add' %}
+                    {% set room_hidden_id = 'room_id_exam_add' %}
+                    {% set room_dropdown_id = 'room_dropdown_exam_add' %}
+                    {% set room_filter_handler = 'filterRoomsModalExam' %}
+                    {% set room_focus_handler = 'showRoomDropdownModalExam' %}
+                    {% set room_select_handler = 'selectRoomModalExam' %}
+                    {% set selector_mode = 'exam_add' %}
+                    {% set hover_palette = 'orange' %}
+                    {% include 'schedule/_room_selector.html' %}
+                </fieldset>
+                
+                <!-- ═══ Section 3: Time ═══ -->
+                <fieldset class="space-y-4">
+                    {{ section_legend(3, 'Time', 'orange') }}
+                    
+                    <!-- Time Fields Row -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="form-field-group">
+                            <label for="start_time_exam_add" class="form-label-compact">
+                                Start Time <span class="text-red-500 dark:text-red-400">*</span>
+                            </label>
+                            <div class="custom-time-picker tp-compact" data-time-picker
+                                 data-name="start_time" data-id="start_time_exam_add"
+                                 data-value="" data-required="true"
+                                 data-onchange="autoCalculateExamEndTime('add')">
+                            </div>
+                        </div>
+                        <div class="form-field-group">
+                            <label for="end_time_exam_add" class="form-label-compact">
+                                End Time <span class="auto-badge bg-orange-100 text-orange-600">AUTO</span>
+                            </label>
+                            <div class="custom-time-picker tp-compact" data-time-picker
+                                 data-name="end_time" data-id="end_time_exam_add"
+                                 data-value="" data-required="true"
+                                 data-onchange="checkExamLunchOverlap('add')">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="examScheduleHoursWarningAdd" class="hidden"></div>
+                    
+                    <!-- Duration Limit Warning -->
+                    <div id="durationLimitWarning_add" class="hidden p-2.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-xs font-semibold text-red-800 dark:text-red-300">Duration Exceeds Limit</p>
+                                <p class="text-[10px] text-red-700 dark:text-red-300 mt-0.5">Max allowed: <span id="durationLimitText_add">2 hours</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lunch Overlap Warning -->
+                    <div id="lunchOverlapWarning_add" class="hidden p-2.5 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-xl">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-xs font-semibold text-yellow-800 dark:text-yellow-300">Lunch Break Overlap</p>
+                                <p class="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">Overlaps with <span id="lunchTimeDisplay_add">{{ exam_lunch_start|default('12:00') }} - {{ exam_lunch_end|default('13:00') }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            </div> <!-- /examFormFieldsContainer -->
+        </form>
+
+        <!-- Exam form validation (safety net for edge cases) -->
+        <script>
+        function validateExamFormBeforeSubmit() {
+            const sectionId = document.getElementById('section_id_exam_add')?.value;
+            const subjectId = document.getElementById('subject_id_exam_add')?.value;
+            const facultyId = document.getElementById('faculty_id_exam_add')?.value;
+            const roomId = document.getElementById('room_id_exam_add')?.value;
+            const startTime = document.getElementById('start_time_exam_add')?.value;
+            const endTime = document.getElementById('end_time_exam_add')?.value;
+
+            if (!sectionId || !subjectId) {
+                if (typeof showToast === 'function') showToast('Please select a section and subject.', 'warning');
+                return false;
+            }
+            if (!facultyId) {
+                if (typeof showToast === 'function') showToast('Please select a faculty member.', 'warning');
+                return false;
+            }
+            if (!roomId) {
+                if (typeof showToast === 'function') showToast('Please select a room.', 'warning');
+                return false;
+            }
+            if (!startTime || !endTime) {
+                if (typeof showToast === 'function') showToast('Please set start and end times.', 'warning');
+                return false;
+            }
+            if (endTime <= startTime) {
+                if (typeof showToast === 'function') showToast('End time must be after start time.', 'warning');
+                return false;
+            }
+            return true;
+        }
+        </script>
+    </div>
+    
+    <!-- Center Panel: Weekly Calendar View -->
+    <div class="flex flex-1 flex-col bg-white dark:bg-gray-800 lg:border-r border-gray-200 dark:border-gray-700 overflow-hidden min-w-0" style="min-height: 0;">
+        <!-- Calendar Header with View Toggle -->
+        <div class="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/30 flex-shrink-0">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div class="p-1.5 sm:p-2 rounded-lg bg-orange-100 dark:bg-orange-900/40">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h4 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">Section Exam Schedule</h4>
+                <span id="examModalCalendarEventCount" class="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-200 px-2 py-1 rounded-full font-medium whitespace-nowrap">0 exams</span>
+            </div>
+            <div class="flex items-center gap-2 lg:mr-28 xl:mr-32">
+                <div class="bg-gray-100 dark:bg-gray-700 p-0.5 rounded-lg flex">
+                    <button type="button" id="examModalViewToggleTable" onclick="switchExamModalView('table')" 
+                            class="px-2 py-1 rounded-md text-xs font-medium transition-all text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" title="Table View">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <button type="button" id="examModalViewToggleCalendar" onclick="switchExamModalView('calendar')" 
+                            class="px-2 py-1 rounded-md text-xs font-medium transition-all bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-300 shadow-sm" title="Calendar View">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="examModalViewContainer" class="flex-1 overflow-hidden relative flex flex-col" style="min-height: 0;">
+            <div id="examModalCalendarEmptyState" class="absolute inset-0 z-10 bg-white dark:bg-gray-800">
+                {{ schedule_empty_state(
+                    'No Section Selected',
+                    'Select a section from the form to view its exam schedule',
+                    theme='orange',
+                    icon='exam'
+                ) }}
+            </div>
+            
+            <div id="examModalTableView" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div class="flex-1 overflow-auto custom-scrollbar">
+                    <table class="w-full text-xs sm:text-sm border-collapse">
+                        <thead class="bg-orange-50/60 dark:bg-orange-900/20 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-2.5 sm:px-3 py-2.5 text-left text-[10px] sm:text-xs font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wider border-b-2 border-orange-200 dark:border-orange-800">Date</th>
+                                <th class="px-2.5 sm:px-3 py-2.5 text-left text-[10px] sm:text-xs font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wider border-b-2 border-orange-200 dark:border-orange-800">Time</th>
+                                <th class="px-2.5 sm:px-3 py-2.5 text-left text-[10px] sm:text-xs font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wider border-b-2 border-orange-200 dark:border-orange-800">Subject</th>
+                                <th class="px-2.5 sm:px-3 py-2.5 text-left text-[10px] sm:text-xs font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wider border-b-2 border-orange-200 dark:border-orange-800 hidden sm:table-cell">Room</th>
+                                <th class="px-2.5 sm:px-3 py-2.5 text-left text-[10px] sm:text-xs font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wider border-b-2 border-orange-200 dark:border-orange-800 hidden lg:table-cell">Proctor</th>
+                                <th class="px-2.5 sm:px-3 py-2.5 text-center text-[10px] sm:text-xs font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wider border-b-2 border-orange-200 dark:border-orange-800 hidden sm:table-cell" style="width: 70px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="examModalTableBody" class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800"></tbody>
+                    </table>
+                    <div id="examModalTableEmptyState" class="hidden">
+                        {{ schedule_empty_state(
+                            'No Exams',
+                            'This section has no scheduled exams yet',
+                            theme='orange',
+                            icon='exam',
+                            cta_label='Start With Exam Details',
+                            cta_action='focusExamFormStart()',
+                            compact=True
+                        ) }}
+                    </div>
+                </div>
+            </div>
+            
+            <div id="examModalCalendarContainer" class="hidden flex-1 flex flex-col overflow-hidden relative" style="min-height: 0;">
+                <div id="examModalWeekCalendar" class="hidden flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+                    <div class="flex border-b border-gray-200 dark:border-gray-700 bg-[#f8fafc] dark:bg-gray-800 flex-shrink-0">
+                        <div class="week-time-header flex-shrink-0 w-12 sm:w-14 flex items-center justify-center p-0 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Time</span>
+                        </div>
+                        <div class="flex-1 grid grid-cols-7">
+                            <div class="week-day-header" data-day="Monday"><span class="day-abbrev">Mon</span><span class="day-full hidden sm:inline">Monday</span></div>
+                            <div class="week-day-header" data-day="Tuesday"><span class="day-abbrev">Tue</span><span class="day-full hidden sm:inline">Tuesday</span></div>
+                            <div class="week-day-header" data-day="Wednesday"><span class="day-abbrev">Wed</span><span class="day-full hidden sm:inline">Wednesday</span></div>
+                            <div class="week-day-header" data-day="Thursday"><span class="day-abbrev">Thu</span><span class="day-full hidden sm:inline">Thursday</span></div>
+                            <div class="week-day-header" data-day="Friday"><span class="day-abbrev">Fri</span><span class="day-full hidden sm:inline">Friday</span></div>
+                            <div class="week-day-header" data-day="Saturday"><span class="day-abbrev">Sat</span><span class="day-full hidden sm:inline">Saturday</span></div>
+                            <div class="week-day-header" data-day="Sunday" style="border-right: none;"><span class="day-abbrev">Sun</span><span class="day-full hidden sm:inline">Sunday</span></div>
+                        </div>
+                    </div>
+                    <div id="examModalCalendarBody" class="flex-1 flex overflow-hidden" style="min-height: 0;">
+                        <div id="examModalTimeLabels" class="week-time-column w-12 sm:w-14 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"></div>
+                        <div id="examModalDaysGrid" class="flex-1 grid grid-cols-7 relative bg-white dark:bg-gray-800 min-w-0"></div>
+                    </div>
+                    <div class="week-calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot bg-orange-500"></span>
+                            <span>Exam</span>
+                        </div>
+                        <div class="legend-item legend-hint">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Click on event to edit
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assistant panel rendered separately in shared docked container (_ai_drawer.html) -->
+</div>

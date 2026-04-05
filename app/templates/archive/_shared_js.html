@@ -1,0 +1,514 @@
+﻿<!-- Archive Shared JavaScript - Included by all archive pages -->
+<script>
+    // Move archive modal roots to <body> so fixed backdrops span the whole app shell.
+    function ensureArchiveModalsInBody() {
+        const modalIds = ['unifiedDeleteModal', 'unifiedRestoreModal', 'archiveDetailModal'];
+        modalIds.forEach((id) => {
+            const modal = document.getElementById(id);
+            if (modal && modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ensureArchiveModalsInBody, { once: true });
+    } else {
+        ensureArchiveModalsInBody();
+    }
+
+    // ============================================
+    // SHARED UTILITIES
+    // ============================================
+    
+    // Helper function to get CSRF token from cookie
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+    }
+    
+    // Helper function to escape strings for use in onclick handlers
+    function escapeForOnClick(str) {
+        if (!str) return '';
+        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+    
+    // Utility date/time formatting functions
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    
+    function formatTime(timeString) {
+        if (!timeString) return 'N/A';
+        const parts = timeString.split(':');
+        const hours = parseInt(parts[0]);
+        const minutes = parts[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${minutes} ${ampm}`;
+    }
+    
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return 'N/A';
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
+    function formatRelativeTime(dateTimeString) {
+        if (!dateTimeString) return '';
+        const date = new Date(dateTimeString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHr = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHr / 24);
+        const diffWeek = Math.floor(diffDay / 7);
+        const diffMonth = Math.floor(diffDay / 30);
+        const diffYear = Math.floor(diffDay / 365);
+
+        if (diffSec < 60) return 'Just now';
+        if (diffMin < 60) return `${diffMin}m ago`;
+        if (diffHr < 24) return `${diffHr}h ago`;
+        if (diffDay === 1) return 'Yesterday';
+        if (diffDay < 7) return `${diffDay}d ago`;
+        if (diffWeek < 5) return `${diffWeek}w ago`;
+        if (diffMonth < 12) return `${diffMonth}mo ago`;
+        return `${diffYear}y ago`;
+    }
+
+    function formatDateTimeWithRelative(dateTimeString) {
+        if (!dateTimeString) return 'N/A';
+        const abs = formatDateTime(dateTimeString);
+        const rel = formatRelativeTime(dateTimeString);
+        return rel ? `${abs} <span class="archive-meta-relative">(${rel})</span>` : abs;
+    }
+
+    // ============================================
+    // TOAST NOTIFICATION SYSTEM
+    // ============================================
+    
+    function showToast(message, type = 'success') {
+    if (window.__iswToastManager && typeof window.__iswToastManager.show === 'function') {
+        return window.__iswToastManager.show.apply(window.__iswToastManager, arguments);
+    }
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+            error: '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
+            danger: '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
+            warning: '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>',
+            info: '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+        };
+        
+        toast.innerHTML = `
+            <div class="flex items-center">
+                ${icons[type] || icons.info}
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-medium text-gray-900">${message}</p>
+                </div>
+                <button onclick="removeToast(this.parentElement.parentElement)" class="ml-4 text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(toast);
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    
+    function removeToast(toast) {
+        if (!toast || !toast.parentElement) return;
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }
+
+    // ============================================
+    // ARCHIVE DETAIL PREVIEW
+    // ============================================
+    
+    async function showArchiveDetail(archiveId) {
+        const modal = document.getElementById('archiveDetailModal');
+        const content = document.getElementById('archiveDetailContent');
+        
+        content.innerHTML = `
+            <div class="text-center py-8">
+                <div class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                <p class="text-gray-500 mt-2">Loading details...</p>
+            </div>
+        `;
+        
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        
+        try {
+            const response = await fetch(`/archive/api/archives/${archiveId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const archive = data.archive;
+                content.innerHTML = renderArchiveDetailContent(archive);
+            } else {
+                content.innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="font-medium">Error loading details</p>
+                        <p class="text-sm text-gray-500 mt-1">${data.message || 'Please try again'}</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            content.innerHTML = `
+                <div class="text-center py-8 text-red-600">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="font-medium">Network error</p>
+                    <p class="text-sm text-gray-500 mt-1">Please check your connection and try again</p>
+                </div>
+            `;
+        }
+    }
+    
+    function renderArchiveDetailContent(archive) {
+        let typeBadgeClass = 'bg-blue-100 text-blue-700';
+        let typeBadgeText = 'Lecture';
+        if (archive.schedule_type === 'lab') {
+            typeBadgeClass = 'bg-green-100 text-green-700';
+            typeBadgeText = 'Laboratory';
+        } else if (archive.schedule_type === 'exam') {
+            typeBadgeClass = 'bg-red-100 text-red-700';
+            typeBadgeText = 'Exam';
+        }
+        
+        return `
+            <div class="space-y-4">
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-blue-600 uppercase tracking-wider">Subject</span>
+                            <h3 class="text-base font-semibold text-gray-900 mt-1">${archive.subject_code || 'N/A'}</h3>
+                            <p class="text-sm text-gray-600">${archive.course_description || 'No description'}</p>
+                        </div>
+                        <span class="px-2.5 py-1 text-xs font-medium rounded-full ${typeBadgeClass}">${typeBadgeText}</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <span class="text-xs font-medium text-gray-500 uppercase">Section</span>
+                        </div>
+                        <p class="font-semibold text-gray-900">${archive.section_name || 'N/A'}</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            <span class="text-xs font-medium text-gray-500 uppercase">Program</span>
+                        </div>
+                        <p class="font-semibold text-gray-900">${archive.program_name || 'N/A'}</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <span class="text-xs font-medium text-gray-500 uppercase">Faculty</span>
+                        </div>
+                        <p class="font-semibold text-gray-900">${archive.faculty_name || 'TBA'}</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                            <span class="text-xs font-medium text-gray-500 uppercase">Room</span>
+                        </div>
+                        <p class="font-semibold text-gray-900">${archive.room_number || 'TBA'}${archive.building_name ? ' (' + archive.building_name + ')' : ''}</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span class="text-xs font-medium text-gray-500 uppercase">${archive.exam_date ? 'Date' : 'Day'}</span>
+                        </div>
+                        <p class="font-semibold text-gray-900">${archive.exam_date ? formatDate(archive.exam_date) : (archive.day_of_week || 'N/A')}</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs font-medium text-gray-500 uppercase">Time</span>
+                        </div>
+                        <p class="font-semibold text-gray-900">${formatTime(archive.start_time)} - ${formatTime(archive.end_time)}</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Academic Information</h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                        <div><span class="text-gray-500">Academic Year:</span><p class="font-medium text-gray-900">${archive.academic_year || 'N/A'}</p></div>
+                        <div><span class="text-gray-500">Semester:</span><p class="font-medium text-gray-900">${archive.semester || 'N/A'}</p></div>
+                        ${archive.exam_period ? `<div><span class="text-gray-500">Exam Period:</span><p class="font-medium text-gray-900">${archive.exam_period}</p></div>` : ''}
+                    </div>
+                </div>
+                <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <h4 class="text-sm font-semibold text-amber-700 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                        Archive Information
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div><span class="text-amber-600">Archived Date:</span><p class="font-medium text-gray-900">${archive.archived_at ? formatDateTime(archive.archived_at) : 'N/A'}</p></div>
+                        <div><span class="text-amber-600">Archived By:</span><p class="font-medium text-gray-900">${archive.archived_by_name || 'System'}</p></div>
+                        ${archive.archive_reason ? `<div class="sm:col-span-2"><span class="text-amber-600">Reason:</span><p class="font-medium text-gray-900">${archive.archive_reason}</p></div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function closeArchiveDetailModal() {
+        document.getElementById('archiveDetailModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    // ============================================
+    // UNIFIED MODAL SYSTEM
+    // ============================================
+    
+    const deleteConfigs = {
+        archive: {
+            title: 'Delete Archive',
+            message: 'Are you sure you want to permanently delete this archived schedule?',
+            warnings: '',
+            endpoint: (id) => `/archive/api/archive/${id}`,
+            method: 'DELETE',
+            onSuccess: () => { if (typeof loadGroupedArchives === 'function') loadGroupedArchives(currentTab); }
+        },
+        curriculum: {
+            title: 'Delete Curriculum',
+            message: 'Are you sure you want to permanently delete this curriculum?',
+            warnings: '<div class="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r"><p class="text-xs text-amber-700 font-medium">This will also delete all year levels, semesters, subjects, and related schedules.</p></div>',
+            endpoint: (id) => `/archive/api/curriculum/${id}`,
+            method: 'DELETE',
+            onSuccess: () => { if (typeof loadArchivedCurricula === 'function') loadArchivedCurricula(); }
+        },
+        program: {
+            title: 'Delete Program',
+            message: 'Are you sure you want to permanently delete this program?',
+            warnings: '<div class="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r"><p class="text-xs text-amber-700 font-medium">This will also delete all sections, curricula, and related data.</p></div>',
+            endpoint: (id) => `/archive/api/program/${id}`,
+            method: 'DELETE',
+            onSuccess: () => { if (typeof loadArchivedDepartments === 'function') loadArchivedDepartments(); }
+        },
+        faculty: {
+            title: 'Delete Faculty',
+            message: 'Are you sure you want to permanently delete this faculty member?',
+            warnings: '<div class="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r"><p class="text-xs text-amber-700 font-medium">This will also delete all subject assignments and related data.</p></div>',
+            endpoint: (id) => `/archive/api/faculty/${id}`,
+            method: 'DELETE',
+            onSuccess: () => { if (typeof loadArchivedFaculty === 'function') loadArchivedFaculty(); }
+        },
+        building: {
+            title: 'Delete Building',
+            message: 'Are you sure you want to permanently delete this building?',
+            warnings: '<div class="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r"><p class="text-xs text-amber-700 font-medium">This will also delete all rooms in this building.</p></div>',
+            endpoint: (id) => `/archive/api/buildings/${id}`,
+            method: 'DELETE',
+            onSuccess: () => { if (typeof loadArchivedBuildings === 'function') loadArchivedBuildings(); }
+        }
+    };
+    
+    const restoreConfigs = {
+        curriculum: {
+            title: 'Restore Curriculum',
+            message: 'Restore this curriculum to the active list?',
+            info: 'This curriculum will be moved back to the active curriculum list.',
+            endpoint: (id) => `/archive/api/curriculum/${id}/unarchive`,
+            method: 'POST',
+            onSuccess: () => { if (typeof loadArchivedCurricula === 'function') loadArchivedCurricula(); }
+        },
+        program: {
+            title: 'Restore Program',
+            message: 'Restore this program to the active list?',
+            info: 'This program will be moved back to the active programs list.',
+            endpoint: (id) => `/archive/api/program/${id}/unarchive`,
+            method: 'POST',
+            onSuccess: () => { if (typeof loadArchivedDepartments === 'function') loadArchivedDepartments(); }
+        },
+        faculty: {
+            title: 'Restore Faculty',
+            message: 'Restore this faculty member to the active list?',
+            info: 'This faculty member will be moved back to the active faculty list.',
+            endpoint: (id) => `/archive/api/faculty/${id}/unarchive`,
+            method: 'POST',
+            onSuccess: () => { if (typeof loadArchivedFaculty === 'function') loadArchivedFaculty(); }
+        },
+        building: {
+            title: 'Restore Building',
+            message: 'Restore this building to the active list?',
+            info: 'This building will be moved back to the active buildings list.',
+            endpoint: (id) => `/archive/api/buildings/${id}/unarchive`,
+            method: 'POST',
+            onSuccess: () => { if (typeof loadArchivedBuildings === 'function') loadArchivedBuildings(); }
+        }
+    };
+    
+    function openUnifiedDeleteModal(id, type, displayName = '') {
+        const config = deleteConfigs[type];
+        if (!config) return;
+        
+        document.getElementById('unified_delete_id').value = id;
+        document.getElementById('unified_delete_type').value = type;
+        document.getElementById('deleteModalTitle').textContent = config.title;
+        document.getElementById('deleteModalMessage').innerHTML = displayName 
+            ? `Delete <strong class="text-red-600">${displayName}</strong>?`
+            : config.message;
+        document.getElementById('deleteModalWarnings').innerHTML = config.warnings;
+        document.getElementById('unifiedDeleteModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    
+    function closeUnifiedDeleteModal() {
+        document.getElementById('unifiedDeleteModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    
+    async function confirmUnifiedDelete() {
+        const id = document.getElementById('unified_delete_id').value;
+        const type = document.getElementById('unified_delete_type').value;
+        const config = deleteConfigs[type];
+        
+        if (!config) { closeUnifiedDeleteModal(); return; }
+
+        const btn = document.getElementById('unifiedDeleteConfirmBtn');
+        if (btn) { btn.classList.add('btn-loading'); btn.innerHTML = '<span class="btn-spinner"></span>Deleting...'; }
+        
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || getCookie('csrf_token');
+            const response = await fetch(config.endpoint(id), {
+                method: config.method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            
+            const data = await response.json();
+            closeUnifiedDeleteModal();
+            
+            if (data.success) {
+                showToast(data.message || 'Deleted successfully', 'success');
+                config.onSuccess();
+            } else {
+                showToast('Error: ' + (data.message || 'Failed to delete'), 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            closeUnifiedDeleteModal();
+            showToast('Error deleting item', 'error');
+        } finally {
+            if (btn) { btn.classList.remove('btn-loading'); btn.innerHTML = 'Delete'; }
+        }
+    }
+    
+    function openUnifiedRestoreModal(id, type, displayName = '') {
+        const config = restoreConfigs[type];
+        if (!config) return;
+        
+        document.getElementById('unified_restore_id').value = id;
+        document.getElementById('unified_restore_type').value = type;
+        document.getElementById('restoreModalTitle').textContent = config.title;
+        document.getElementById('restoreModalMessage').innerHTML = displayName 
+            ? `Restore <strong class="text-emerald-600">${displayName}</strong>?`
+            : config.message;
+        document.getElementById('restoreModalInfo').textContent = config.info;
+        document.getElementById('unifiedRestoreModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    
+    function closeUnifiedRestoreModal() {
+        document.getElementById('unifiedRestoreModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    
+    async function confirmUnifiedRestore() {
+        const id = document.getElementById('unified_restore_id').value;
+        const type = document.getElementById('unified_restore_type').value;
+        const config = restoreConfigs[type];
+        
+        if (!config) { closeUnifiedRestoreModal(); return; }
+
+        const btn = document.getElementById('unifiedRestoreConfirmBtn');
+        if (btn) { btn.classList.add('btn-loading'); btn.innerHTML = '<span class="btn-spinner"></span>Restoring...'; }
+        
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || getCookie('csrf_token');
+            const response = await fetch(config.endpoint(id), {
+                method: config.method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            
+            const data = await response.json();
+            closeUnifiedRestoreModal();
+            
+            if (data.success) {
+                showToast(data.message || 'Restored successfully', 'success');
+                config.onSuccess();
+            } else {
+                showToast('Error: ' + (data.message || 'Failed to restore'), 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            closeUnifiedRestoreModal();
+            showToast('Error restoring item', 'error');
+        } finally {
+            const btn = document.getElementById('unifiedRestoreConfirmBtn');
+            if (btn) { btn.classList.remove('btn-loading'); btn.innerHTML = 'Restore'; }
+        }
+    }
+    
+    // Legacy function wrappers
+    function deleteArchive(archiveId) { openUnifiedDeleteModal(archiveId, 'archive'); }
+    function closeDeleteArchiveModal() { closeUnifiedDeleteModal(); }
+    function confirmDeleteArchive() { confirmUnifiedDelete(); }
+
+    // ============================================
+    // ENTITY FILTER HELPERS
+    // ============================================
+    
+    function clearEntityFilters(entityType) {
+        const searchInput = document.getElementById(`${entityType}ArchiveSearch`);
+        if (searchInput) searchInput.value = '';
+        // Exit batch select mode if active
+        if (typeof BatchSelect !== 'undefined') BatchSelect.exit('arch' + entityType.charAt(0).toUpperCase() + entityType.slice(1));
+        if (entityType === 'curriculum' && typeof loadArchivedCurricula === 'function') loadArchivedCurricula();
+        else if ((entityType === 'program' || entityType === 'program') && typeof loadArchivedDepartments === 'function') loadArchivedDepartments();
+        else if (entityType === 'faculty' && typeof loadArchivedFaculty === 'function') loadArchivedFaculty();
+        else if (entityType === 'building' && typeof loadArchivedBuildings === 'function') loadArchivedBuildings();
+        showToast('Filters cleared', 'info');
+    }
+
+    // ============================================
+    // ENTITY EXPORT FUNCTIONS
+    // ============================================
+    
+    function exportEntity(entityType, format) {
+        const url = `/archive/export/${entityType}/${format}`;
+        window.open(url, '_blank');
+        showToast(`Exporting ${entityType} archives to ${format.toUpperCase()}...`, 'info');
+    }
+</script>
+

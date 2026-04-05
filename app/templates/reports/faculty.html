@@ -1,0 +1,846 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Workload Report - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'reports/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="reports-content bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Faculty Workload</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if academic_year and semester %}
+                                {{ semester }}, A.Y. {{ academic_year }}
+                            {% else %}
+                                Teaching load analysis
+                            {% endif %}
+                        </p>
+                    </div>
+                    <!-- Program Filter -->
+                    <div class="reports-toolbar flex items-center gap-2 flex-shrink-0">
+                        {% if programs|length > 1 %}
+                        <select id="filter-program" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                            <option value="">All Programs</option>
+                            {% for dept in programs %}
+                            <option value="{{ dept.id }}" {% if filter_department == dept.id %}selected{% endif %}>{{ dept.program_code }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif programs|length == 1 %}
+                        <input type="hidden" id="filter-program" value="{{ programs[0].id }}">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">{{ programs[0].program_code }}</span>
+                        {% else %}
+                        <input type="hidden" id="filter-program" value="">
+                        {% endif %}
+
+                        <!-- Export Daily Schedule Button -->
+                        <button onclick="openDailyScheduleModal()" class="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span class="hidden sm:inline">Export Daily Schedule</span>
+                            <span class="sm:hidden">Export</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+            <!-- Faculty Utilization Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- Avg Utilization -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Avg Utilization</span>
+                    </div>
+                    <p class="text-xl font-bold text-green-600 dark:text-green-400" id="stat-avg-util">{{ stats.avg_faculty_utilization }}%</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">of max teaching units</p>
+                </div>
+                <!-- Overloaded -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Overloaded</span>
+                    </div>
+                    <p class="text-xl font-bold text-red-600 dark:text-red-400" id="stat-overloaded">{{ stats.overloaded_faculty_count }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">faculty exceeding max units</p>
+                </div>
+                <!-- Warning -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Near Capacity</span>
+                    </div>
+                    <p class="text-xl font-bold text-amber-600 dark:text-amber-400" id="stat-warning">{{ stats.warning_faculty_count }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">faculty at 80-99%</p>
+                </div>
+                <!-- Underutilized -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Underutilized</span>
+                    </div>
+                    <p class="text-xl font-bold text-blue-600 dark:text-blue-400" id="stat-underutil">{{ stats.underutilized_faculty_count }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">faculty below 50%</p>
+                </div>
+            </div>
+
+            <!-- Utilization Distribution + Unavailable Faculty NOW -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <!-- Faculty Units Distribution -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                        </svg>
+                        Faculty Units Utilization Distribution
+                    </h3>
+                    <div class="space-y-2" id="utilization-distribution">
+                        {% set brackets = stats.faculty_utilization_brackets or {'0-25': 0, '25-50': 0, '50-80': 0, '80-100': 0, '100+': 0} %}
+                        {% set total_fac = stats.faculty_workloads|length if stats.faculty_workloads else 1 %}
+                        <!-- 0-25% -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-600 dark:text-gray-400 w-16 text-right font-medium">0-25%</span>
+                            <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 relative overflow-hidden">
+                                <div class="bg-blue-400 h-5 rounded-full transition-all duration-500 utilization-bar" data-width="{{ (brackets['0-25'] / total_fac * 100)|round(1) }}" style="width: 0%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 w-8">{{ brackets['0-25'] }}</span>
+                        </div>
+                        <!-- 25-50% -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-600 dark:text-gray-400 w-16 text-right font-medium">25-50%</span>
+                            <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 relative overflow-hidden">
+                                <div class="bg-cyan-400 h-5 rounded-full transition-all duration-500 utilization-bar" data-width="{{ (brackets['25-50'] / total_fac * 100)|round(1) }}" style="width: 0%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 w-8">{{ brackets['25-50'] }}</span>
+                        </div>
+                        <!-- 50-80% -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-600 dark:text-gray-400 w-16 text-right font-medium">50-80%</span>
+                            <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 relative overflow-hidden">
+                                <div class="bg-green-400 h-5 rounded-full transition-all duration-500 utilization-bar" data-width="{{ (brackets['50-80'] / total_fac * 100)|round(1) }}" style="width: 0%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 w-8">{{ brackets['50-80'] }}</span>
+                        </div>
+                        <!-- 80-100% -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-600 dark:text-gray-400 w-16 text-right font-medium">80-100%</span>
+                            <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 relative overflow-hidden">
+                                <div class="bg-amber-400 h-5 rounded-full transition-all duration-500 utilization-bar" data-width="{{ (brackets['80-100'] / total_fac * 100)|round(1) }}" style="width: 0%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 w-8">{{ brackets['80-100'] }}</span>
+                        </div>
+                        <!-- 100%+ -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-600 dark:text-gray-400 w-16 text-right font-medium">100%+</span>
+                            <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 relative overflow-hidden">
+                                <div class="bg-red-400 h-5 rounded-full transition-all duration-500 utilization-bar" data-width="{{ (brackets['100+'] / total_fac * 100)|round(1) }}" style="width: 0%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 w-8">{{ brackets['100+'] }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Total: <strong class="dark:text-gray-200">{{ stats.faculty_workloads|length }}</strong> faculty tracked</p>
+                    </div>
+                </div>
+
+                <!-- Faculty Availability Overview -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Faculty Weekly Availability
+                        <span class="ml-auto text-xs font-normal text-gray-400 dark:text-gray-500">{{ stats.current_day }} {{ stats.current_time_display }}</span>
+                    </h3>
+
+                    {% if stats.unavailable_faculty_now_count > 0 %}
+                    <!-- Currently Unavailable -->
+                    <p class="text-[0.65rem] font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1.5">Unavailable right now</p>
+                    <div class="space-y-1.5 mb-3">
+                        {% for f in stats.unavailable_faculty_now %}
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 rounded-lg">
+                            <div class="w-6 h-6 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-red-600 dark:text-red-400 font-medium text-[0.6rem]">{{ f.name[:2]|upper }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{{ f.name }}</p>
+                                <p class="text-[0.65rem] text-gray-500 dark:text-gray-400">{{ f.program }} &middot; {{ f.start_time }} – {{ f.end_time }}</p>
+                            </div>
+                            {% if f.reason %}
+                            <span class="text-[0.65rem] text-red-500 flex-shrink-0 max-w-[130px] truncate" title="{{ f.reason }}">{{ f.reason }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if stats.restricted_faculty_count > 0 %}
+                    <!-- Restricted Weekly Schedule -->
+                    <p class="text-[0.65rem] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1.5 {% if stats.unavailable_faculty_now_count > 0 %}pt-2 border-t border-gray-100 dark:border-gray-700{% endif %}">Limited weekly schedule <span class="text-gray-400 dark:text-gray-500 font-normal normal-case">&middot; {{ stats.restricted_faculty_count }} faculty</span></p>
+                    <div class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                        {% for f in stats.restricted_faculty %}
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 rounded-lg">
+                            <div class="w-6 h-6 {{ 'bg-green-100 dark:bg-green-900/30' if f.available_today else 'bg-amber-100 dark:bg-amber-900/30' }} rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="{{ 'text-green-600 dark:text-green-400' if f.available_today else 'text-amber-600 dark:text-amber-400' }} font-medium text-[0.6rem]">{{ f.name[:2]|upper }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{{ f.name }} <span class="text-gray-400 dark:text-gray-500 font-normal">&middot; {{ f.program }}</span></p>
+                            </div>
+                            <div class="flex gap-px flex-shrink-0">
+                                {% set all_days = ['M','T','W','Th','F','S'] %}
+                                {% set full_days = ['Mon','Tue','Wed','Thu','Fri','Sat'] %}
+                                {% for d in all_days %}
+                                {% set is_active = full_days[loop.index0] in f.available_days %}
+                                {% set is_today = full_days[loop.index0] == stats.current_day[:3] %}
+                                <span class="w-5 h-5 flex items-center justify-center text-[0.55rem] rounded {{ 'bg-green-500 text-white font-bold ring-1 ring-green-300' if is_active and is_today else 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-semibold' if is_active else 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-500' }}">{{ d }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if stats.restricted_faculty_count > 10 %}
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center">Showing 10 of {{ stats.restricted_faculty_count }}</p>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if stats.unavailable_faculty_now_count == 0 and stats.restricted_faculty_count == 0 %}
+                    <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">No availability restrictions found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Faculty Available Today + Unavailable This Week -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <!-- Faculty Available Today -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Available Today
+                        <span id="available-today-badge" class="ml-auto text-xs font-normal px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">{{ stats.current_day }} &middot; {{ stats.available_faculty_today_count }} faculty</span>
+                    </h3>
+                    {% if stats.available_faculty_today_count > 0 %}
+                    <div id="available-today-list" class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
+                        {% for f in stats.available_faculty_today %}
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/50 rounded-lg">
+                            <div class="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-green-700 dark:text-green-400 font-semibold text-[0.6rem]">{{ f.name[:2]|upper }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{{ f.name }}</p>
+                                <p class="text-[0.65rem] text-gray-500 dark:text-gray-400">{{ f.program }}</p>
+                            </div>
+                            <div class="flex flex-col items-end gap-1 flex-shrink-0 max-w-[9.5rem]">
+                                <span class="inline-flex items-center gap-1 text-[0.65rem] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    {{ f.schedule_count }} class{{ 'es' if f.schedule_count > 1 else '' }}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-[0.62rem] font-medium text-green-700 dark:text-green-300 bg-green-100/80 dark:bg-green-900/30 px-1.5 py-0.5 rounded max-w-full truncate" title="{{ f.availability_span_display }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {{ f.availability_span_display }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <p id="available-today-empty" class="text-xs text-gray-400 dark:text-gray-500 text-center py-4 hidden">No faculty available today.</p>
+                    {% else %}
+                    <div id="available-today-list" class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar hidden"></div>
+                    <p id="available-today-empty" class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">No faculty available today.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Unavailable Faculty Today -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                        </svg>
+                        Unavailable Today
+                        <span id="unavailable-today-badge" class="ml-auto text-xs font-normal px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">{{ stats.current_day }} &middot; {{ stats.unavailable_faculty_today_count }} facult{{ 'y' if stats.unavailable_faculty_today_count == 1 else 'ies' }}</span>
+                    </h3>
+                    {% if stats.unavailable_faculty_today_count > 0 %}
+                    <div id="unavailable-today-list" class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
+                        {% for f in stats.unavailable_faculty_today_list %}
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-red-50/50 dark:bg-red-900/10 border border-red-100/60 dark:border-red-800/50 rounded-lg">
+                            <div class="w-6 h-6 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-red-600 dark:text-red-400 font-semibold text-[0.6rem]">{{ f.name[:2]|upper }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{{ f.name }}</p>
+                                <p class="text-[0.65rem] text-gray-500 dark:text-gray-400">{{ f.program }}</p>
+                            </div>
+                            <span class="text-[0.65rem] text-red-400 flex-shrink-0 max-w-[120px] truncate" title="{{ f.reason }}">{{ f.reason }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <p id="unavailable-today-empty" class="text-xs text-gray-400 dark:text-gray-500 text-center py-4 hidden">All faculty are available today.</p>
+                    {% else %}
+                    <div id="unavailable-today-list" class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar hidden"></div>
+                    <p id="unavailable-today-empty" class="text-xs text-gray-400 dark:text-gray-500 text-center py-4">All faculty are available today.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Faculty Workload Chart -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                <h3 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Faculty Workloads (Teaching Units)
+                </h3>
+                <div class="chart-container-large">
+                    <canvas id="facultyDetailChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Faculty Workload Table -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                <div class="mb-4">
+                    <h2 class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        Complete Faculty Workload Data
+                        {% if stats.faculty_workloads %}
+                        <span class="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">({{ stats.faculty_workloads|length }} faculty)</span>
+                        {% endif %}
+                    </h2>
+                </div>
+                
+                <div class="reports-table-wrap overflow-x-auto">
+                    <table class="reports-table-mobile min-w-full table-fixed" id="faculty-workload-table">
+                        <colgroup>
+                            <col style="width: 22%;">
+                            <col style="width: 10%;">
+                            <col style="width: 8%;">
+                            <col style="width: 8%;">
+                            <col style="width: 10%;">
+                            <col style="width: 10%;">
+                            <col style="width: 8%;">
+                            <col style="width: 24%;">
+                        </colgroup>
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Faculty</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Dept</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Lec</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Lab</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Current assigned teaching load in units">Current Load</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Total scheduled class time for the week">Weekly Hrs</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Max</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Utilization</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="faculty-workload-tbody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        Showing <span id="faculty-showing">0</span> of <span id="faculty-total">0</span> faculty
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                        <button onclick="changeFacultyPage(-1)" id="faculty-prev-btn" class="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </button>
+                        <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Page <span id="faculty-current-page">1</span></span>
+                        <button onclick="changeFacultyPage(1)" id="faculty-next-btn" class="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            Next
+                            <svg class="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script id="faculty-workloads-data" type="application/json">{{ stats.faculty_workloads|default([])|tojson }}</script>
+<script>
+// ============================================================================
+// FACULTY WORKLOAD PAGE - Scoped JavaScript
+// ============================================================================
+
+let facultyDetailChart = null;
+let allFaculty = [];
+let currentFacultyPage = 1;
+const facultyPerPage = 10;
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+const formatUnit = (val) => {
+    if (val == null) return '0';
+    const num = Number(val);
+    return Number.isInteger(num) ? num.toString() : num.toFixed(1);
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const facultyDataElement = document.getElementById('faculty-workloads-data');
+    if (facultyDataElement) {
+        try {
+            allFaculty = JSON.parse(facultyDataElement.textContent || '[]');
+        } catch (error) {
+            allFaculty = [];
+        }
+    }
+    applyUtilizationDistributionWidths();
+    initializeCharts();
+    displayFacultyPage(1);
+});
+
+function applyUtilizationDistributionWidths() {
+    document.querySelectorAll('.utilization-bar').forEach((bar) => {
+        const widthValue = Number(bar.dataset.width || 0);
+        bar.style.width = `${Math.max(0, Math.min(100, widthValue))}%`;
+    });
+}
+
+function initializeCharts() {
+    const facultyDetailCtx = document.getElementById('facultyDetailChart').getContext('2d');
+    const topFacultyDetail = allFaculty.slice(0, 15);
+    facultyDetailChart = new Chart(facultyDetailCtx, {
+        type: 'bar',
+        data: {
+            labels: topFacultyDetail.map(f => {
+                const name = f.name.length > 25 ? f.name.substring(0, 25) + '...' : f.name;
+                return name + ' (' + f.program + ')';
+            }),
+            datasets: [
+                {
+                    label: 'Lecture Units',
+                    data: topFacultyDetail.map(f => f.lec_units),
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 2
+                },
+                {
+                    label: 'Lab Units',
+                    data: topFacultyDetail.map(f => f.lab_units),
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+                y: { stacked: true }
+            },
+            plugins: {
+                legend: { position: 'top', labels: { padding: 15, font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        footer: function(context) {
+                            let total = 0;
+                            context.forEach(item => { total += item.parsed.x; });
+                            return 'Total: ' + total + ' units';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function displayFacultyPage(page) {
+    currentFacultyPage = page;
+    const tbody = document.getElementById('faculty-workload-tbody');
+    tbody.innerHTML = '';
+    
+    const startIndex = (page - 1) * facultyPerPage;
+    const endIndex = startIndex + facultyPerPage;
+    const facultyToDisplay = allFaculty.slice(startIndex, endIndex);
+    
+    if (facultyToDisplay.length === 0) {
+        tbody.innerHTML = '<tr class="reports-table-empty-row"><td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No faculty workload data available</td></tr>';
+    } else {
+        facultyToDisplay.forEach(faculty => {
+            const row = document.createElement('tr');
+            row.className = 'reports-table-data-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors';
+            
+            const statusColors = {
+                'exceeded': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', bar: 'bg-red-500 dark:bg-red-400' },
+                'warning': { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', bar: 'bg-amber-500 dark:bg-amber-400' },
+                'normal': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', bar: 'bg-green-500 dark:bg-green-400' },
+                'underutilized': { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', bar: 'bg-blue-500 dark:bg-blue-400' },
+                'empty': { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-400', bar: 'bg-gray-400 dark:bg-gray-600' }
+            };
+            const status = faculty.load_status || 'normal';
+            const colors = statusColors[status] || statusColors.normal;
+            const utilizationPct = faculty.utilization_pct || 0;
+            const displayPct = Math.min(utilizationPct, 100);
+            
+            const initials = escapeHtml((faculty.name || '').slice(0, 2).toUpperCase());
+            const lecFormatted = formatUnit(faculty.lec_units);
+            const labFormatted = formatUnit(faculty.lab_units);
+            const currentUnits = faculty.current_units !== undefined ? faculty.current_units : faculty.total_units;
+            const currentFormatted = formatUnit(currentUnits);
+            const weeklyFormatted = formatUnit(faculty.weekly_hours);
+            const maxFormatted = formatUnit(faculty.max_units || 24);
+
+            row.innerHTML = `
+                <td data-label="Faculty" class="px-4 py-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0">
+                            <span class="text-blue-600 dark:text-blue-400 font-semibold text-[0.6rem] tracking-wider">${initials}</span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(faculty.name)}</span>
+                    </div>
+                </td>
+                <td data-label="Dept" class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[0.65rem] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        ${escapeHtml(faculty.program)}
+                    </span>
+                </td>
+                <td data-label="Lec" class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 text-center font-medium">${lecFormatted}</td>
+                <td data-label="Lab" class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 text-center font-medium">${labFormatted}</td>
+                <td data-label="Current Load" class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-md text-xs font-bold ${colors.bg} ${colors.text} shadow-sm border border-[rgba(0,0,0,0.05)] dark:border-[rgba(255,255,255,0.05)]">
+                        ${currentFormatted}
+                    </span>
+                </td>
+                <td data-label="Weekly Hrs" class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 text-center font-medium">
+                    <span class="flex items-center justify-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ${weeklyFormatted}
+                    </span>
+                </td>
+                <td data-label="Max" class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">${maxFormatted}</td>
+                <td data-label="Utilization" class="px-4 py-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="flex-1 w-20 bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden shadow-inner">
+                            <div class="${colors.bar} h-1.5 rounded-full transition-all duration-500" style="width: ${displayPct}%"></div>
+                        </div>
+                        <span class="text-xs font-bold ${colors.text} w-9 text-right">${utilizationPct.toFixed(0)}%</span>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    updateFacultyPagination();
+}
+
+function updateFacultyPagination() {
+    const totalPages = Math.ceil(allFaculty.length / facultyPerPage);
+    const startIndex = (currentFacultyPage - 1) * facultyPerPage + 1;
+    const endIndex = Math.min(currentFacultyPage * facultyPerPage, allFaculty.length);
+    
+    document.getElementById('faculty-showing').textContent = allFaculty.length > 0 ? `${startIndex}-${endIndex}` : '0';
+    document.getElementById('faculty-total').textContent = allFaculty.length;
+    document.getElementById('faculty-current-page').textContent = currentFacultyPage;
+    
+    document.getElementById('faculty-prev-btn').disabled = currentFacultyPage === 1;
+    document.getElementById('faculty-next-btn').disabled = currentFacultyPage >= totalPages;
+}
+
+function changeFacultyPage(direction) {
+    const totalPages = Math.ceil(allFaculty.length / facultyPerPage);
+    const newPage = currentFacultyPage + direction;
+    if (newPage >= 1 && newPage <= totalPages) {
+        displayFacultyPage(newPage);
+    }
+}
+
+function renderAvailableTodayCard(stats) {
+    const listContainer = document.getElementById('available-today-list');
+    const badge = document.getElementById('available-today-badge');
+    const emptyState = document.getElementById('available-today-empty');
+    if (!listContainer || !badge || !emptyState) return;
+
+    const currentDay = stats.current_day || 'Today';
+    const availableList = stats.available_faculty_today || [];
+    const availableCount = stats.available_faculty_today_count || 0;
+
+    badge.textContent = `${currentDay} · ${availableCount} faculty`;
+
+    if (availableCount === 0) {
+        listContainer.innerHTML = '';
+        listContainer.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+    listContainer.classList.remove('hidden');
+    listContainer.innerHTML = availableList.map((faculty) => {
+        const name = escapeHtml(faculty.name);
+        const program = escapeHtml(faculty.program);
+        const scheduleCount = Number(faculty.schedule_count || 0);
+        const scheduleLabel = scheduleCount === 1 ? 'class' : 'classes';
+        const timeSpan = escapeHtml(faculty.availability_span_display || 'Time unavailable');
+        const initials = escapeHtml((faculty.name || '').slice(0, 2).toUpperCase());
+
+        return `
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/50 rounded-lg">
+                <div class="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-green-700 dark:text-green-400 font-semibold text-[0.6rem]">${initials}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">${name}</p>
+                    <p class="text-[0.65rem] text-gray-500 dark:text-gray-400">${program}</p>
+                </div>
+                <div class="flex flex-col items-end gap-1 flex-shrink-0 max-w-[9.5rem]">
+                    <span class="inline-flex items-center gap-1 text-[0.65rem] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        ${scheduleCount} ${scheduleLabel}
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-[0.62rem] font-medium text-green-700 dark:text-green-300 bg-green-100/80 dark:bg-green-900/30 px-1.5 py-0.5 rounded max-w-full truncate" title="${timeSpan}">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ${timeSpan}
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    listContainer.scrollTop = 0;
+}
+
+function renderUnavailableTodayCard(stats) {
+    const listContainer = document.getElementById('unavailable-today-list');
+    const badge = document.getElementById('unavailable-today-badge');
+    const emptyState = document.getElementById('unavailable-today-empty');
+    if (!listContainer || !badge || !emptyState) return;
+
+    const currentDay = stats.current_day || 'Today';
+    const unavailableList = stats.unavailable_faculty_today_list || [];
+    const unavailableCount = stats.unavailable_faculty_today_count || 0;
+    const facultyWord = 'faculty';
+
+    badge.textContent = `${currentDay} · ${unavailableCount} ${facultyWord}`;
+
+    if (unavailableCount === 0) {
+        listContainer.innerHTML = '';
+        listContainer.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+    listContainer.classList.remove('hidden');
+    listContainer.innerHTML = unavailableList.map((faculty) => {
+        const name = escapeHtml(faculty.name);
+        const program = escapeHtml(faculty.program);
+        const reason = escapeHtml(faculty.reason || 'No classes today');
+        const initials = escapeHtml((faculty.name || '').slice(0, 2).toUpperCase());
+
+        return `
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-red-50/50 dark:bg-red-900/10 border border-red-100/60 dark:border-red-800/50 rounded-lg">
+                <div class="w-6 h-6 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-red-600 dark:text-red-400 font-semibold text-[0.6rem]">${initials}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">${name}</p>
+                    <p class="text-[0.65rem] text-gray-500 dark:text-gray-400">${program}</p>
+                </div>
+                <span class="text-[0.65rem] text-red-400 flex-shrink-0 max-w-[120px] truncate" title="${reason}">${reason}</span>
+            </div>
+        `;
+    }).join('');
+    listContainer.scrollTop = 0;
+}
+
+function applyFilters() {
+    const program = document.getElementById('filter-program').value;
+    const params = new URLSearchParams();
+    if (program) params.append('program', program);
+    params.append('include', 'counts,faculty');
+    
+    fetch('/reports/api/filtered-data?' + params.toString())
+        .then(response => response.json())
+        .then(data => {
+            // Update chart
+            const topFacultyDetail = data.stats.faculty_workloads.slice(0, 15);
+            facultyDetailChart.data.labels = topFacultyDetail.map(f => {
+                const name = f.name.length > 25 ? f.name.substring(0, 25) + '...' : f.name;
+                return name + ' (' + f.program + ')';
+            });
+            facultyDetailChart.data.datasets[0].data = topFacultyDetail.map(f => f.lec_units);
+            facultyDetailChart.data.datasets[1].data = topFacultyDetail.map(f => f.lab_units);
+            facultyDetailChart.update();
+            
+            // Update table
+            allFaculty = data.stats.faculty_workloads;
+            displayFacultyPage(1);
+            
+            // Update summary stat cards
+            const s = data.stats;
+            const avgEl = document.getElementById('stat-avg-util');
+            if (avgEl) avgEl.textContent = (s.avg_faculty_utilization || 0) + '%';
+            const overEl = document.getElementById('stat-overloaded');
+            if (overEl) overEl.textContent = s.overloaded_faculty_count || 0;
+            const warnEl = document.getElementById('stat-warning');
+            if (warnEl) warnEl.textContent = s.warning_faculty_count || 0;
+            const underEl = document.getElementById('stat-underutil');
+            if (underEl) underEl.textContent = s.underutilized_faculty_count || 0;
+            
+            // Update utilization distribution bars
+            const brackets = s.faculty_utilization_brackets || {};
+            const totalFac = (s.faculty_workloads || []).length || 1;
+            const distContainer = document.getElementById('utilization-distribution');
+            if (distContainer) {
+                const bars = distContainer.querySelectorAll('.flex.items-center.gap-3');
+                const keys = ['0-25', '25-50', '50-80', '80-100', '100+'];
+                bars.forEach((bar, i) => {
+                    const count = brackets[keys[i]] || 0;
+                    const pct = (count / totalFac * 100).toFixed(1);
+                    const fills = bar.querySelectorAll('.rounded-full.h-5');
+                    fills.forEach(fill => {
+                        if (!fill.classList.contains('bg-gray-100')) fill.style.width = pct + '%';
+                    });
+                    const numEl = bar.querySelector('.w-8');
+                    if (numEl) numEl.textContent = count;
+                });
+            }
+
+            renderAvailableTodayCard(s);
+            renderUnavailableTodayCard(s);
+        })
+        .catch(error => console.error('Error fetching filtered data:', error));
+}
+
+// ============================================================================
+// Daily Faculty Schedule Export Modal
+// ============================================================================
+function openDailyScheduleModal() {
+    document.getElementById('dailyScheduleModal').classList.remove('hidden');
+    document.getElementById('dailyScheduleModal').classList.add('flex');
+}
+
+function closeDailyScheduleModal() {
+    document.getElementById('dailyScheduleModal').classList.add('hidden');
+    document.getElementById('dailyScheduleModal').classList.remove('flex');
+}
+
+function downloadDailySchedule() {
+    const deptId = document.getElementById('daily-dept-select').value;
+    const day = document.getElementById('daily-day-select').value;
+    if (!deptId) {
+        showToast('Please select a program.', 'warning');
+        return;
+    }
+    if (!day) {
+        showToast('Please select a day.', 'warning');
+        return;
+    }
+    window.location.href = `/reports/export/faculty-schedule?program_id=${deptId}&day=${day}`;
+    closeDailyScheduleModal();
+}
+</script>
+
+<!-- Daily Faculty Schedule Export Modal -->
+<div id="dailyScheduleModal" class="hidden fixed inset-0 z-[60] items-center justify-center overflow-y-auto" aria-labelledby="dailyScheduleModalTitle" role="dialog" aria-modal="true" onclick="if(event.target===this) closeDailyScheduleModal()">
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeDailyScheduleModal()"></div>
+    <div class="relative z-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="bg-emerald-600 px-5 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 id="dailyScheduleModalTitle" class="text-white font-semibold text-base">Export Daily Faculty Schedule</h3>
+                </div>
+                <button onclick="closeDailyScheduleModal()" class="text-white/80 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- Modal Body -->
+        <div class="p-5 space-y-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Select a program and day to export the daily faculty schedule.</p>
+            <!-- Program Select -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Program</label>
+                <select id="daily-dept-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                    <option value="">- Select Program -</option>
+                    {% for dept in programs %}
+                    <option value="{{ dept.id }}">{{ dept.program_code }} - {{ dept.department.department_name if dept.department else dept.program_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Day Select -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day</label>
+                <select id="daily-day-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-700 dark:text-gray-200">
+                    <option value="">-- Select Day --</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                </select>
+            </div>
+        </div>
+        <!-- Modal Footer -->
+        <div class="px-4 sm:px-5 py-4 bg-gray-50 dark:bg-gray-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-gray-200 dark:border-gray-700">
+            <button onclick="closeDailyScheduleModal()" class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+            <button onclick="downloadDailySchedule()" class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Download Excel
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

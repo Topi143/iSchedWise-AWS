@@ -1,0 +1,13 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+faculty_id,Faculty member being assigned,int,11,FK -> faculty.id,Yes,--
+subject_id,Subject the faculty is assigned to teach,int,11,FK -> subjects.id,Yes,--
+academic_year,"Academic year of the assignment, e.g., '2025-2026'",varchar,20,,Yes,--
+semester,"Semester of the assignment, e.g., '1st Semester'",varchar,20,,Yes,--
+is_active,Whether the assignment is currently active,tinyint(1),--,,Yes,1
+is_archived,Soft-delete flag following the standard archive pattern,tinyint(1),--,,Yes,0
+archived_by,ID of the user who archived this assignment,int,11,FK -> users.id,No,NULL
+archived_at,Timestamp when the assignment was archived,datetime,--,,No,NULL
+archive_reason,Reason provided for archiving the assignment,varchar,255,,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

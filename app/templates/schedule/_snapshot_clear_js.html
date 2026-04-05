@@ -1,0 +1,420 @@
+<!-- Snapshot & Clear Schedule JavaScript -->
+<script>
+(function() {
+    // ========================================================================
+    // State
+    // ========================================================================
+    let _snapshotScope = 'class';   // current modal scope: 'class' or 'exam'
+    let _pendingRestoreId = null;   // snapshot id awaiting restore confirmation
+    const _isAdminUser = Boolean(window.SCHEDULE_IS_ADMIN);
+
+    /**
+     * Get the currently selected section ID from the page.
+     * Works for both class and exam view pages.
+     */
+    function getSelectedSectionId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('section_id') || null;
+    }
+
+    function getSelectedSectionName() {
+        // Try to find the section name from the detail header
+        const classHeader = document.querySelector('#class-detail h3');
+        const examHeader = document.querySelector('#exam-detail h3');
+        const header = classHeader || examHeader;
+        if (header) {
+            const text = header.textContent.trim();
+            const parts = text.split(' - ');
+            if (parts.length > 0) return parts[0].trim();
+        }
+        return null;
+    }
+
+    function syncScheduleHeaderActions() {
+        const hasSelectedSection = Boolean(getSelectedSectionId());
+        const showActions = _isAdminUser || hasSelectedSection;
+
+        document.querySelectorAll('[data-schedule-header-actions]').forEach(el => {
+            el.classList.toggle('hidden', !showActions);
+        });
+
+        document.querySelectorAll('[data-schedule-header-hint]').forEach(el => {
+            el.classList.toggle('hidden', showActions);
+        });
+    }
+
+    window.syncScheduleHeaderActions = syncScheduleHeaderActions;
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncScheduleHeaderActions);
+    } else {
+        syncScheduleHeaderActions();
+    }
+    window.addEventListener('popstate', syncScheduleHeaderActions);
+
+    // ========================================================================
+    // Snapshot Modal
+    // ========================================================================
+    window.openSnapshotModal = function(scope) {
+        _snapshotScope = scope;
+        const modal = document.getElementById('snapshotModal');
+        const title = document.getElementById('snapshotModalTitle');
+        title.textContent = scope === 'class' ? 'Class Schedule Snapshots' : 'Exam Schedule Snapshots';
+
+        // Pre-fill scope select based on whether a section is selected
+        const scopeSelect = document.getElementById('snapshotScopeSelect');
+        const sectionId = getSelectedSectionId();
+        if (!_isAdminUser) {
+            scopeSelect.value = 'section';
+        } else if (sectionId) {
+            scopeSelect.value = 'section';
+        } else {
+            scopeSelect.value = 'all';
+        }
+
+        modal.classList.remove('hidden');
+        if (typeof toggleSidebarBlur === 'function') toggleSidebarBlur(true);
+        document.getElementById('snapshotNameInput').value = '';
+        document.getElementById('snapshotNameInput').focus();
+        loadSnapshots();
+    };
+
+    window.closeSnapshotModal = function() {
+        document.getElementById('snapshotModal').classList.add('hidden');
+        document.getElementById('restoreConfirmModal').classList.add('hidden');
+        if (typeof toggleSidebarBlur === 'function') toggleSidebarBlur(false);
+    };
+
+    // ========================================================================
+    // Create Snapshot
+    // ========================================================================
+    window.createSnapshot = function() {
+        const nameInput = document.getElementById('snapshotNameInput');
+        const name = nameInput.value.trim();
+        if (!name) {
+            nameInput.focus();
+            nameInput.classList.add('ring-2', 'ring-red-400');
+            setTimeout(() => nameInput.classList.remove('ring-2', 'ring-red-400'), 2000);
+            return;
+        }
+
+        const scopeSelect = document.getElementById('snapshotScopeSelect');
+        const selectedSnapshotScope = scopeSelect ? scopeSelect.value : 'section';
+        const sectionId = selectedSnapshotScope === 'section' ? getSelectedSectionId() : null;
+
+        if (!_isAdminUser && selectedSnapshotScope !== 'section') {
+            if (scopeSelect) scopeSelect.value = 'section';
+            if (typeof showToast === 'function') showToast('Please select a section first', 'warning');
+            return;
+        }
+
+        if (selectedSnapshotScope === 'section' && !sectionId) {
+            if (typeof showToast === 'function') showToast('Please select a section first', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('createSnapshotBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Saving...';
+
+        fetch('/schedule/snapshot/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                snapshot_name: name,
+                snapshot_scope: _snapshotScope,
+                section_id: sectionId
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Save';
+            if (data.success) {
+                nameInput.value = '';
+                if (typeof showToast === 'function') showToast(data.message, 'success');
+                loadSnapshots();
+            } else {
+                if (typeof showToast === 'function') showToast(data.error || 'Failed to create snapshot', 'error');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Save';
+            if (typeof showToast === 'function') showToast('Network error creating snapshot', 'error');
+        });
+    };
+
+    // ========================================================================
+    // Load Snapshots List
+    // ========================================================================
+    function loadSnapshots() {
+        const loading = document.getElementById('snapshotLoading');
+        const empty = document.getElementById('snapshotEmpty');
+        const list = document.getElementById('snapshotList');
+
+        loading.classList.remove('hidden');
+        empty.classList.add('hidden');
+        list.classList.add('hidden');
+
+        const sectionId = getSelectedSectionId();
+        let url = `/schedule/snapshots?scope=${_snapshotScope}`;
+        if (sectionId) url += `&section_id=${sectionId}`;
+
+        fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            loading.classList.add('hidden');
+            if (!data.success || !data.snapshots || data.snapshots.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            list.innerHTML = '';
+            data.snapshots.forEach(snap => {
+                const typeLabel = getTypeLabel(snap.snapshot_type);
+                const scopeIcon = snap.section_id
+                    ? `<span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">${escapeHtml(snap.full_section_name)}</span>`
+                    : '<span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">All Sections</span>';
+
+                const item = document.createElement('div');
+                item.className = 'px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors';
+                item.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">${escapeHtml(snap.snapshot_name)}</span>
+                                ${typeLabel}
+                            </div>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                ${scopeIcon}
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">${snap.schedule_count} schedule(s)</span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">&bull;</span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">${escapeHtml(snap.created_at)}</span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">&bull;</span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">by ${escapeHtml(snap.created_by_name)}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button data-action="restore" data-snap-id="${snap.id}" data-snap-name="" data-snap-count="${snap.schedule_count}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 dark:text-teal-300 dark:bg-teal-900/30 dark:border-teal-800 dark:hover:bg-teal-900/50 transition-colors" title="Restore this snapshot">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Restore
+                            </button>
+                            <button data-action="delete" data-snap-id="${snap.id}" data-snap-name="" class="inline-flex items-center justify-center w-8 h-8 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Delete snapshot">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                // Set data-snap-name safely via DOM API (avoids quote/HTML issues)
+                item.querySelectorAll('[data-snap-name]').forEach(btn => {
+                    btn.dataset.snapName = snap.snapshot_name;
+                });
+                // Attach click handlers via addEventListener (no inline onclick)
+                item.querySelector('[data-action="restore"]').addEventListener('click', function() {
+                    confirmRestore(Number(this.dataset.snapId), this.dataset.snapName, Number(this.dataset.snapCount));
+                });
+                item.querySelector('[data-action="delete"]').addEventListener('click', function() {
+                    deleteSnapshot(Number(this.dataset.snapId), this.dataset.snapName);
+                });
+                list.appendChild(item);
+            });
+            list.classList.remove('hidden');
+        })
+        .catch(err => {
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+        });
+    }
+
+    function getTypeLabel(type) {
+        switch(type) {
+            case 'auto_pre_clear':
+                return '<span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">Auto (pre-clear)</span>';
+            case 'auto_pre_restore':
+                return '<span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300">Auto (pre-restore)</span>';
+            default:
+                return '<span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300">Manual</span>';
+        }
+    }
+
+    // ========================================================================
+    // Restore Snapshot
+    // ========================================================================
+    window.confirmRestore = function(snapshotId, name, count) {
+        _pendingRestoreId = snapshotId;
+        document.getElementById('restoreConfirmText').textContent = 
+            `Restore "${name}" (${count} schedule${count !== 1 ? 's' : ''})? Current schedules with matching scope will be replaced.`;
+        document.getElementById('restoreConfirmModal').classList.remove('hidden');
+        if (typeof toggleSidebarBlur === 'function') toggleSidebarBlur(true);
+    };
+
+    window.closeRestoreConfirm = function() {
+        document.getElementById('restoreConfirmModal').classList.add('hidden');
+        _pendingRestoreId = null;
+    };
+
+    window.executeRestore = function() {
+        if (!_pendingRestoreId) return;
+
+        const btn = document.getElementById('confirmRestoreBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Restoring...';
+
+        fetch(`/schedule/snapshot/${_pendingRestoreId}/restore`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Restore';
+            closeRestoreConfirm();
+            if (data.success) {
+                if (typeof showToast === 'function') showToast(data.message, 'success');
+                closeSnapshotModal();
+                // Reload the page to reflect restored schedules
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                if (typeof showToast === 'function') showToast(data.error || 'Restore failed', 'error');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Restore';
+            closeRestoreConfirm();
+            if (typeof showToast === 'function') showToast('Network error during restore', 'error');
+        });
+    };
+
+    // ========================================================================
+    // Delete Snapshot
+    // ========================================================================
+    window.deleteSnapshot = async function(snapshotId, name) {
+        const ok = await showConfirm({
+            title: 'Delete Snapshot',
+            message: 'Delete snapshot "' + name + '"? This cannot be undone.',
+            confirmText: 'Delete',
+            confirmColor: 'red'
+        });
+        if (!ok) return;
+
+        fetch(`/schedule/snapshot/${snapshotId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof showToast === 'function') showToast(data.message, 'success');
+                loadSnapshots();
+            } else {
+                if (typeof showToast === 'function') showToast(data.error || 'Delete failed', 'error');
+            }
+        })
+        .catch(err => {
+            if (typeof showToast === 'function') showToast('Network error deleting snapshot', 'error');
+        });
+    };
+
+    // ========================================================================
+    // Clear Modal
+    // ========================================================================
+    window.openClearModal = function(scope) {
+        _snapshotScope = scope;
+        const modal = document.getElementById('clearModal');
+        const subtitle = document.getElementById('clearModalSubtitle');
+        subtitle.textContent = scope === 'class' ? 'Remove class schedules' : 'Remove exam schedules';
+
+        const sectionId = getSelectedSectionId();
+        const sectionName = getSelectedSectionName();
+        const sectionLabel = document.getElementById('clearSectionLabel');
+        const sectionOption = document.getElementById('clearSectionOption');
+        const semesterOption = document.querySelector('input[name="clearScope"][value="semester"]');
+
+        if (sectionId && sectionName) {
+            sectionLabel.textContent = sectionName;
+            sectionOption.classList.remove('opacity-50', 'pointer-events-none');
+            sectionOption.querySelector('input').disabled = false;
+            sectionOption.querySelector('input').checked = true;
+        } else {
+            sectionLabel.textContent = 'No section selected';
+            sectionOption.classList.add('opacity-50', 'pointer-events-none');
+            sectionOption.querySelector('input').disabled = true;
+            if (_isAdminUser && semesterOption) {
+                semesterOption.checked = true;
+            }
+        }
+
+        modal.classList.remove('hidden');
+        if (typeof toggleSidebarBlur === 'function') toggleSidebarBlur(true);
+    };
+
+    window.closeClearModal = function() {
+        document.getElementById('clearModal').classList.add('hidden');
+        if (typeof toggleSidebarBlur === 'function') toggleSidebarBlur(false);
+    };
+
+    window.executeClear = function() {
+        const selectedScope = document.querySelector('input[name="clearScope"]:checked');
+        if (!selectedScope) return;
+
+        const clearType = selectedScope.value; // 'section' or 'semester'
+
+        if (!_isAdminUser && clearType !== 'section') {
+            if (typeof showToast === 'function') showToast('Please select a section first', 'warning');
+            return;
+        }
+
+        const sectionId = clearType === 'section' ? getSelectedSectionId() : null;
+
+        if (clearType === 'section' && !sectionId) {
+            if (typeof showToast === 'function') showToast('Please select a section first', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('confirmClearBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Clearing...';
+
+        fetch('/schedule/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                scope: _snapshotScope,
+                section_id: sectionId
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Clear Schedules';
+            closeClearModal();
+            if (data.success) {
+                if (typeof showToast === 'function') showToast(data.message, 'success');
+                // Reload to reflect cleared schedules
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                if (typeof showToast === 'function') showToast(data.error || 'Clear failed', 'error');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Clear Schedules';
+            closeClearModal();
+            if (typeof showToast === 'function') showToast('Network error during clear', 'error');
+        });
+    };
+
+    // ========================================================================
+    // Utility
+    // ========================================================================
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+})();
+</script>

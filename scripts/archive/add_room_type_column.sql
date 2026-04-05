@@ -1,0 +1,1 @@
+ALTER TABLE `rooms` ADD COLUMN `room_type` VARCHAR(50) NOT NULL DEFAULT 'Lecture';

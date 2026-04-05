@@ -14,7 +14,6 @@ let _facultyCache = {};          // Cache faculty lists per subject_id
 let _availableSubjects = null;   // Unscheduled subjects for "Add Subject"
 let _activeDropdown = null;      // Currently open dropdown element
 let _preferredBuildingId = null; // Building preference for room prioritisation
-let _batchScheduleMode = 'quick'; // 'quick' (greedy) or 'smart' (backtracking)
 
 // ─── Conflict Detection State ─────────────────────────────────────
 let _batchConflicts = {};        // Map of rowIndex → { status, conflicts[] }
@@ -26,6 +25,56 @@ const CONFLICT_CHECK_DEBOUNCE_MS = 800;
 const DAYS = (typeof window !== 'undefined' && window.OPERATION_DAYS) ? window.OPERATION_DAYS : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const BATCH_STATE_KEY = 'ischedwise_batch_mode';
 
+function syncBatchCalendarAlignment() {
+    if (typeof queueWeekCalendarHeaderAlignmentSync === 'function') {
+        queueWeekCalendarHeaderAlignmentSync();
+        return;
+    }
+
+    document.querySelectorAll('.week-calendar-container').forEach(container => {
+        const calendarBody = container.querySelector('.week-calendar-body');
+        if (!calendarBody) {
+            return;
+        }
+
+        const scrollbarOffset = Math.max(0, calendarBody.offsetWidth - calendarBody.clientWidth);
+        container.style.setProperty('--week-calendar-scrollbar-offset', `${scrollbarOffset}px`);
+    });
+}
+
+async function parseBatchApiJson(response, fallbackMessage) {
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+
+    if (!response.ok) {
+        if (contentType.includes('application/json')) {
+            const payload = await response.json();
+            throw new Error(payload.error || payload.message || `Request failed (${response.status})`);
+        }
+
+        const text = await response.text();
+        throw new Error((text || '').slice(0, 120).trim() || fallbackMessage || `Request failed (${response.status})`);
+    }
+
+    if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error((text || '').slice(0, 120).trim() || fallbackMessage || 'Invalid server response');
+    }
+
+    return response.json();
+}
+
+function resolveFullSectionName(sectionId, fallbackName) {
+    const fallback = (fallbackName || '').trim();
+    const switcher = document.getElementById('modalSectionSwitcher');
+    if (!switcher || !sectionId) return fallback;
+
+    const idStr = String(sectionId);
+    const opt = Array.from(switcher.options).find(o => String(o.value) === idStr);
+    if (!opt) return fallback;
+
+    const fullName = (opt.dataset.name || opt.textContent || '').trim();
+    return fullName || fallback;
+}
 // ─── Step Indicator & Progress Bar Helpers ────────────────────────
 
 function _updateBatchStep(activeStep) {
@@ -91,19 +140,16 @@ function enterBatchMode() {
     _facultyCache = {};
     _availableSubjects = null;
     _preferredBuildingId = null;
-    _batchScheduleMode = 'quick';
     _batchConflicts = {};
     _conflictCheckInFlight = false;
     if (_conflictCheckTimer) { clearTimeout(_conflictCheckTimer); _conflictCheckTimer = null; }
-
-    // Reset mode toggle UI
-    if (document.getElementById('batchModeQuick')) setBatchScheduleMode('quick');
 
     // Reset step indicator to step 1
     _updateBatchStep(1);
 
     // Reset batch panel UI — show curriculum step first
-    document.getElementById('autoScheduleSectionName').textContent = 'Section: ' + sectionName;
+    const displaySectionName = resolveFullSectionName(sectionId, sectionName);
+    document.getElementById('autoScheduleSectionName').textContent = 'Section: ' + displaySectionName;
     document.getElementById('batchCurriculumStep').classList.remove('hidden');
     document.getElementById('autoScheduleLoading').classList.add('hidden');
     document.getElementById('autoScheduleError').classList.add('hidden');
@@ -113,6 +159,7 @@ function enterBatchMode() {
     document.getElementById('autoScheduleFooter').classList.add('hidden');
     document.getElementById('batchAddSubjectPanel').classList.add('hidden');
     document.getElementById('batchAddSubjectBtn').classList.add('hidden');
+    document.getElementById('batchInlineViewToggle')?.classList.add('hidden');
 
     // Load buildings list for the building preference dropdown
     loadBuildingsForBatch();
@@ -162,10 +209,16 @@ function enterBatchMode() {
         iconEdit.classList.add('hidden');
     }
 
-    // Hide AI Assistant badge while in batch mode
-    const aiBadge = document.getElementById('aiBadge');
-    if (aiBadge) { aiBadge.classList.add('hidden'); aiBadge.classList.remove('flex'); }
-    if (typeof closeAIDrawer === 'function') closeAIDrawer();
+    // Hide docked assistant while in batch mode
+    if (typeof applyAIAssistantBatchLock === 'function') {
+        applyAIAssistantBatchLock(true, 'class');
+    } else if (typeof setAIAssistantDockVisible === 'function') {
+        setAIAssistantDockVisible(false);
+    } else {
+        const aiBadge = document.getElementById('aiBadge');
+        if (aiBadge) { aiBadge.classList.add('hidden'); aiBadge.classList.remove('flex'); }
+        if (typeof closeAIDrawer === 'function') closeAIDrawer();
+    }
 
     // Persist batch mode so a page refresh stays in batch
     sessionStorage.setItem(BATCH_STATE_KEY, 'class');
@@ -186,7 +239,7 @@ async function loadBatchCurricula(sectionId) {
 
     try {
         const res = await fetch(`/schedule/get-curricula/${sectionId}`);
-        const data = await res.json();
+        const data = await parseBatchApiJson(res, 'Unable to load curricula');
         const curricula = data.curricula || [];
 
         if (curricula.length === 0) {
@@ -216,7 +269,11 @@ async function loadBatchCurricula(sectionId) {
             if (btn) btn.disabled = !this.value;
         };
     } catch (e) {
+        console.error('[BATCH] Failed to load curricula:', e);
         select.innerHTML = '<option value="">Error loading curricula</option>';
+        if (typeof showToast === 'function') {
+            showToast(e.message || 'Error loading curricula', 'error');
+        }
     }
 }
 
@@ -269,32 +326,8 @@ function onBatchBuildingChange(value) {
     if (_batchData && _batchSectionId) {
         document.getElementById('autoScheduleLoading').classList.remove('hidden');
         document.getElementById('autoScheduleResults').classList.add('hidden');
+        document.getElementById('batchInlineViewToggle')?.classList.add('hidden');
         generateBatchPreview(_batchSectionId);
-    }
-}
-
-// ─── Schedule Mode Toggle (Quick / Smart) ─────────────────────────
-
-function setBatchScheduleMode(mode) {
-    _batchScheduleMode = mode || 'quick';
-
-    const quickBtn = document.getElementById('batchModeQuick');
-    const smartBtn = document.getElementById('batchModeSmart');
-    const hint = document.getElementById('batchModeHint');
-
-    const activeClass = 'flex-1 px-2 py-1.5 text-[11px] font-semibold rounded-md transition-all shadow-sm ring-1 ring-gray-200 dark:ring-gray-500';
-    const inactiveClass = 'flex-1 px-2 py-1.5 text-[11px] font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600';
-
-    if (quickBtn && smartBtn) {
-        if (mode === 'smart') {
-            smartBtn.className = activeClass + ' bg-purple-50 dark:bg-gray-600 text-purple-700 dark:text-purple-300';
-            quickBtn.className = inactiveClass;
-            if (hint) hint.textContent = 'Backtracking search — fewer unplaceable subjects';
-        } else {
-            quickBtn.className = activeClass + ' bg-violet-50 dark:bg-gray-600 text-violet-700 dark:text-violet-300';
-            smartBtn.className = inactiveClass;
-            if (hint) hint.textContent = 'First-fit heuristic — fast results';
-        }
     }
 }
 
@@ -361,9 +394,15 @@ function exitBatchMode(silent) {
         else iconEdit.classList.remove('hidden');
     }
 
-    // Restore AI Assistant badge
-    const aiBadge = document.getElementById('aiBadge');
-    if (aiBadge) { aiBadge.classList.remove('hidden'); aiBadge.classList.add('flex'); }
+    // Restore docked assistant
+    if (typeof applyAIAssistantBatchLock === 'function') {
+        applyAIAssistantBatchLock(false, 'class');
+    } else if (typeof setAIAssistantDockVisible === 'function') {
+        setAIAssistantDockVisible(true);
+    } else {
+        const aiBadge = document.getElementById('aiBadge');
+        if (aiBadge) { aiBadge.classList.remove('hidden'); aiBadge.classList.add('flex'); }
+    }
 }
 
 // ─── Modal-based Open / Close (for schedule_class.html backward compat) ─
@@ -386,7 +425,8 @@ function openAutoScheduleModal(sectionId, sectionName) {
     _facultyCache = {};
     _availableSubjects = null;
 
-    document.getElementById('autoScheduleSectionName').textContent = 'Section: ' + sectionName;
+    const displaySectionName = resolveFullSectionName(sectionId, sectionName);
+    document.getElementById('autoScheduleSectionName').textContent = 'Section: ' + displaySectionName;
     document.getElementById('autoScheduleLoading').classList.remove('hidden');
     document.getElementById('autoScheduleError').classList.add('hidden');
     document.getElementById('autoScheduleAllDone').classList.add('hidden');
@@ -428,19 +468,13 @@ async function generateBatchPreview(sectionId) {
         const body = { section_id: sectionId };
         if (_batchCurriculumId) body.curriculum_id = _batchCurriculumId;
         if (_preferredBuildingId) body.preferred_building_id = _preferredBuildingId;
-        if (_batchScheduleMode) body.mode = _batchScheduleMode;
 
-        // Update loading text for Smart mode
+        // Update loading text for auto scheduling mode
         const loadTitle = document.getElementById('autoScheduleLoadingTitle');
         const loadHint = document.getElementById('autoScheduleLoadingHint');
         if (loadTitle && loadHint) {
-            if (_batchScheduleMode === 'smart') {
-                loadTitle.textContent = 'Optimizing schedule...';
-                loadHint.textContent = 'Running backtracking search — this may take up to 30 seconds';
-            } else {
-                loadTitle.textContent = 'Building schedule preview...';
-                loadHint.textContent = 'Finding optimal time slots and rooms';
-            }
+            loadTitle.textContent = 'Building schedule preview...';
+            loadHint.textContent = 'Fast pass first, with optimized fallback when needed';
         }
 
         const response = await fetch('/schedule/batch-generate', {
@@ -457,23 +491,22 @@ async function generateBatchPreview(sectionId) {
             return;
         }
 
-        if (data.proposed.length === 0 && (!data.unplaceable || data.unplaceable.length === 0)) {
-            // If backend returned existing schedules, render them as editable rows
-            if (data.existing && data.existing.length > 0) {
-                // Treat existing items as proposed so renderBatchResults works
-                data.proposed = data.existing;
-                data.stats = data.stats || {};
-                data.stats.scheduled = data.existing.length;
-                data.stats.already_scheduled = 0;
+        const proposedItems = Array.isArray(data.proposed) ? data.proposed : [];
+        const existingItems = Array.isArray(data.existing) ? data.existing : [];
+        const unplaceableItems = Array.isArray(data.unplaceable) ? data.unplaceable : [];
+
+        const existingRows = existingItems.map(item => ({ ...item, is_existing: true }));
+        data.proposed = existingRows.concat(proposedItems);
+        data.stats = data.stats || {};
+        data.stats.already_scheduled = data.stats.already_scheduled || existingItems.length;
+
+        const noNewProposals = proposedItems.length === 0;
+        const noUnplaceable = unplaceableItems.length === 0;
+
+        if (noNewProposals && noUnplaceable) {
+            if (existingRows.length > 0) {
                 _batchData = data;
                 renderBatchResults(data);
-                // Mark existing rows with green border
-                const rows = document.querySelectorAll('#autoScheduleTableBody tr');
-                rows.forEach(row => {
-                    row.classList.remove('border-l-gray-200');
-                    row.classList.add('border-l-emerald-400');
-                    row.dataset.isExisting = 'true';
-                });
                 // Show info banner
                 document.getElementById('autoScheduleAllDone').classList.remove('hidden');
                 return;
@@ -532,6 +565,7 @@ function renderBatchResults(data) {
     // Show Add Subject button in header
     const addSubBtn = document.getElementById('batchAddSubjectBtn');
     if (addSubBtn) addSubBtn.classList.remove('hidden');
+    document.getElementById('batchInlineViewToggle')?.classList.remove('hidden');
 
     if (unplaceable > 0) {
         document.getElementById('autoStatUnplaceable').textContent = unplaceable;
@@ -567,7 +601,7 @@ function renderBatchResults(data) {
 
     validateAllRows();
 
-    // Initial conflict check — slight delay to let faculty auto-select settle
+    // Initial conflict check — slight delay to let async faculty lists render
     setTimeout(() => {
         performBatchConflictCheck();
     }, 1500);
@@ -591,14 +625,16 @@ function switchBatchView(view) {
     if (view === 'calendar') {
         tableView.classList.add('hidden');
         calView.classList.remove('hidden');
-        btnTable.className = 'px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100';
-        btnCal.className = 'px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-100 shadow-sm';
+        btnTable.className = 'batch-view-toggle-btn batch-view-toggle-btn-inactive';
+        btnCal.className = 'batch-view-toggle-btn batch-view-toggle-btn-active';
         buildBatchCalendar();
+        syncBatchCalendarAlignment();
     } else {
         calView.classList.add('hidden');
         tableView.classList.remove('hidden');
-        btnTable.className = 'px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-100 shadow-sm';
-        btnCal.className = 'px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100';
+        btnTable.className = 'batch-view-toggle-btn batch-view-toggle-btn-active';
+        btnCal.className = 'batch-view-toggle-btn batch-view-toggle-btn-inactive';
+        syncBatchCalendarAlignment();
     }
 }
 
@@ -608,7 +644,11 @@ function buildBatchCalendar() {
 
     // Gather current rows from the table
     const rows = document.querySelectorAll('#autoScheduleTableBody tr[data-row-index]');
-    if (!rows.length) { body.innerHTML = ''; return; }
+    if (!rows.length) {
+        body.innerHTML = '';
+        syncBatchCalendarAlignment();
+        return;
+    }
 
     // Determine time range from data
     let minHour = 24, maxHour = 0;
@@ -619,7 +659,12 @@ function buildBatchCalendar() {
         const st = row.querySelector('[data-field="start_time"]')?.value;
         const et = row.querySelector('[data-field="end_time"]')?.value;
         const type = row.querySelector('[data-field="schedule_type"]')?.value || 'lecture';
-        const subjectCode = row.querySelector('td:nth-child(3) .font-semibold')?.textContent || '';
+        const subjectCode = (
+            row.dataset.subjectCode ||
+            row.querySelector('td:nth-child(3) [data-subject-code]')?.textContent ||
+            row.querySelector('td:nth-child(3) .font-bold, td:nth-child(3) .font-semibold')?.textContent ||
+            ''
+        ).trim();
         const desc = row.querySelector('td:nth-child(3) .text-gray-400')?.getAttribute('title') || '';
         const roomName = row.querySelector('[data-field="room_name"]')?.value || '';
         const buildingName = row.querySelector('[data-field="building_name"]')?.value || '';
@@ -785,6 +830,8 @@ function buildBatchCalendar() {
         dayCol.appendChild(evContainer);
         body.appendChild(dayCol);
     });
+
+    syncBatchCalendarAlignment();
 }
 
 function _detectBatchOverlaps(dayEvents) {
@@ -849,13 +896,63 @@ function _refreshBatchCalendarIfVisible() {
     }
 }
 
+function _isBatchRowSaveable(row) {
+    if (!row) return false;
+    if (row.dataset.isExisting !== 'true') return true;
+    return row.dataset.isDirty === 'true';
+}
+
+function _markBatchRowDirtyState(row) {
+    if (!row || row.dataset.isExisting !== 'true') return;
+
+    const original = {
+        scheduleType: row.dataset.originalScheduleType || '',
+        facultyId: row.dataset.originalFacultyId || '',
+        roomId: row.dataset.originalRoomId || '',
+        day: row.dataset.originalDayOfWeek || '',
+        start: row.dataset.originalStartTime || '',
+        end: row.dataset.originalEndTime || ''
+    };
+
+    const current = {
+        scheduleType: String(row.querySelector('[data-field="schedule_type"]')?.value || ''),
+        facultyId: String(row.querySelector('[data-field="faculty_id"]')?.value || ''),
+        roomId: String(row.querySelector('[data-field="room_id"]')?.value || ''),
+        day: String(row.querySelector('[data-field="day_of_week"]')?.value || ''),
+        start: String(row.querySelector('[data-field="start_time"]')?.value || ''),
+        end: String(row.querySelector('[data-field="end_time"]')?.value || '')
+    };
+
+    const isDirty = (
+        current.scheduleType !== original.scheduleType ||
+        current.facultyId !== original.facultyId ||
+        current.roomId !== original.roomId ||
+        current.day !== original.day ||
+        current.start !== original.start ||
+        current.end !== original.end
+    );
+
+    row.dataset.isDirty = isDirty ? 'true' : 'false';
+}
+
 function buildBatchRow(item, idx) {
     const row = document.createElement('tr');
-    row.className = 'hover:bg-violet-50/30 dark:hover:bg-gray-750 transition-all group border-l-[3px] border-l-gray-200 dark:border-l-gray-600';
+    const isExisting = item.is_existing === true || item.is_existing === 'true';
+    row.className = 'hover:bg-violet-50/30 dark:hover:bg-gray-750 transition-all group';
     row.dataset.rowIndex = idx;
     row.dataset.subjectId = item.subject_id;
+    row.dataset.isExisting = isExisting ? 'true' : 'false';
+    row.dataset.subjectCode = item.subject_code || '';
     row.dataset.lecUnits = item.lec_units || 0;
     row.dataset.labUnits = item.lab_units || 0;
+    row.dataset.scheduleId = item.schedule_id || '';
+    row.dataset.isDirty = 'false';
+    row.dataset.originalScheduleType = item.schedule_type || 'lecture';
+    row.dataset.originalFacultyId = item.faculty_id ? String(item.faculty_id) : '';
+    row.dataset.originalRoomId = item.room_id ? String(item.room_id) : '';
+    row.dataset.originalDayOfWeek = item.day_of_week || 'Monday';
+    row.dataset.originalStartTime = item.start_time || '';
+    row.dataset.originalEndTime = item.end_time || '';
 
     const dayOptions = DAYS.map(d =>
         `<option value="${d}" ${d === item.day_of_week ? 'selected' : ''}>${d.substring(0, 3)}</option>`
@@ -876,23 +973,23 @@ function buildBatchRow(item, idx) {
     const hasRoom = !!item.room_id;
 
     row.innerHTML = `
-        <td class="px-2 py-2.5 text-center">
+        <td class="px-3 py-2.5 text-center">
             <div class="batch-status-icon flex items-center justify-center" title="Pending conflict check">
                 <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                     <svg class="w-2.5 h-2.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>
                 </div>
             </div>
         </td>
-        <td class="px-2 py-2.5 text-center">
+        <td class="px-3 py-2.5 text-center">
             <span class="batch-row-num text-[10px] font-medium text-gray-400 tabular-nums">${idx + 1}</span>
         </td>
         <td class="px-3 py-2.5 min-w-0">
             <div class="inline-flex items-center gap-1 mb-0.5">
-                <span class="font-bold text-gray-900 dark:text-gray-100 text-[11px] leading-tight">${escapeHtml(item.subject_code)}</span>
+                <span data-subject-code class="font-bold text-gray-900 dark:text-gray-100 text-[11px] leading-tight">${escapeHtml(item.subject_code)}</span>
             </div>
             <div class="text-gray-400 dark:text-gray-500 truncate max-w-[160px] text-[10px] leading-tight" title="${escapeHtml(item.course_description || '')}">${escapeHtml(item.course_description || '')}</div>
         </td>
-        <td class="px-2 py-2.5">
+        <td class="px-3 py-2.5">
             <div class="flex items-center gap-1">
                 ${typeDot}
                 <select data-field="schedule_type" onchange="onTypeChange(this)" class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 w-[52px] cursor-pointer">
@@ -900,7 +997,7 @@ function buildBatchRow(item, idx) {
                 </select>
             </div>
         </td>
-        <td class="px-2 py-2.5 relative">
+        <td class="px-3 py-2.5 relative">
             <div class="batch-faculty-picker" data-row="${idx}">
                 <button type="button" onclick="toggleBatchFacultyDropdown(this, ${idx})"
                         class="batch-faculty-trigger w-full text-left px-2 py-1.5 rounded-md border text-[11px] flex items-center justify-between gap-1 min-w-0 transition-colors
@@ -908,8 +1005,8 @@ function buildBatchRow(item, idx) {
                             ? 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-violet-300'
                             : 'border-dashed border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:border-amber-500'}"
                         title="${hasFaculty ? '' : 'Faculty not assigned'}">
-                    ${!hasFaculty ? '<svg class="w-3 h-3 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>' : ''}
-                    <span class="truncate flex-1 min-w-0">${hasFaculty ? escapeHtml(facultyDisplay) : 'Assign Faculty'}</span>
+                    ${!hasFaculty ? '<svg class="batch-faculty-warning-icon w-3 h-3 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>' : ''}
+                    <span class="batch-faculty-label truncate flex-1 min-w-0">${hasFaculty ? escapeHtml(facultyDisplay) : 'Assign Faculty'}</span>
                     <svg class="w-3 h-3 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <input type="hidden" data-field="faculty_id" value="${item.faculty_id || ''}">
@@ -924,29 +1021,29 @@ function buildBatchRow(item, idx) {
                 </div>
             </div>
         </td>
-        <td class="px-2 py-2.5">
+        <td class="px-3 py-2.5">
             <select data-field="day_of_week" onchange="onDayTimeChange(this)" class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 w-[70px] cursor-pointer">
                 ${dayOptions}
             </select>
         </td>
-        <td class="px-2 py-2.5 whitespace-nowrap">
+        <td class="px-3 py-2.5 whitespace-nowrap">
             <div class="flex items-center gap-0.5">
                 <div class="custom-time-picker !w-fit" data-time-picker
                      data-hidden-field="start_time"
                      data-value="${item.start_time || ''}"
                      data-onchange="onStartTimeChange(input)"
-                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 w-[84px]">
+                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 min-w-[96px] sm:w-[104px]">
                 </div>
                 <span class="text-gray-300 dark:text-gray-600 text-[9px] select-none px-0.5">–</span>
                 <div class="custom-time-picker !w-fit" data-time-picker
                      data-hidden-field="end_time"
                      data-value="${item.end_time || ''}"
                      data-onchange="onEndTimeChange(input)"
-                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 w-[84px]">
+                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 min-w-[96px] sm:w-[104px]">
                 </div>
             </div>
         </td>
-        <td class="px-2 py-2.5 relative">
+        <td class="px-3 py-2.5 relative">
             <div class="batch-room-picker" data-row="${idx}">
                 <button type="button" onclick="toggleBatchRoomDropdown(this, ${idx})"
                         class="batch-room-trigger w-full text-left px-2 py-1.5 rounded-md border text-[11px] flex items-center justify-between gap-1 min-w-0 transition-colors
@@ -971,7 +1068,7 @@ function buildBatchRow(item, idx) {
                 </div>
             </div>
         </td>
-        <td class="px-2 py-2.5 text-center">
+        <td class="px-3 py-2.5 text-center">
             <button type="button" onclick="removeBatchRow(this)" class="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" title="Remove row">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -1013,58 +1110,9 @@ function renderUnplaceableItems(items) {
 // ─── Faculty Dropdown ─────────────────────────────────────────────
 
 async function loadFacultyForRow(rowIdx, subjectId) {
-    const doAutoSelect = (list) => {
-        const row = document.querySelector(`#autoScheduleTableBody tr[data-row-index="${rowIdx}"]`);
-        const currentFacultyId = row?.querySelector('[data-field="faculty_id"]')?.value;
-        if (currentFacultyId) return; // Already has a faculty selected
-
-        // Try to auto-pick the best candidate so rows don't remain unassigned.
-        // Preference order: assigned -> availability/load -> lower utilization,
-        // while avoiding obvious intra-batch time overlaps when possible.
-        const day = row?.querySelector('[data-field="day_of_week"]')?.value || '';
-        const startTime = row?.querySelector('[data-field="start_time"]')?.value || '';
-        const endTime = row?.querySelector('[data-field="end_time"]')?.value || '';
-        const otherAssignments = getIntraBatchAssignments(rowIdx);
-
-        const availabilityRank = {
-            'available': 0,
-            'moderate': 1,
-            'high_load': 2,
-            'overloaded': 3
-        };
-
-        const hasIntraBatchConflict = (facultyId) => {
-            if (!day || !startTime || !endTime) return false;
-            return otherAssignments.some(other =>
-                String(other.faculty_id) === String(facultyId) &&
-                other.day === day &&
-                timesOverlap(startTime, endTime, other.start_time, other.end_time)
-            );
-        };
-
-        const ranked = [...list].sort((a, b) => {
-            if (!!a.is_assigned !== !!b.is_assigned) return a.is_assigned ? -1 : 1;
-            const ar = availabilityRank[a.availability] ?? 4;
-            const br = availabilityRank[b.availability] ?? 4;
-            if (ar !== br) return ar - br;
-            const au = Number(a.utilization_pct || 0);
-            const bu = Number(b.utilization_pct || 0);
-            if (au !== bu) return au - bu;
-            return String(a.full_name || '').localeCompare(String(b.full_name || ''));
-        });
-
-        const nonConflicting = ranked.filter(f => !hasIntraBatchConflict(f.id));
-        const pool = nonConflicting.length > 0 ? nonConflicting : ranked;
-        const best = pool.find(f => f.availability !== 'overloaded') || pool[0];
-
-        if (best) {
-            selectBatchFaculty(rowIdx, best.id, best.full_name);
-        }
-    };
-
     if (_facultyCache[subjectId]) {
         renderFacultyOptions(rowIdx, _facultyCache[subjectId]);
-        doAutoSelect(_facultyCache[subjectId]);
+        applyHybridFacultyDefaultForRow(rowIdx, _facultyCache[subjectId]);
         return;
     }
     try {
@@ -1072,10 +1120,38 @@ async function loadFacultyForRow(rowIdx, subjectId) {
         const data = await res.json();
         _facultyCache[subjectId] = data.faculty || [];
         renderFacultyOptions(rowIdx, _facultyCache[subjectId]);
-        doAutoSelect(_facultyCache[subjectId]);
+        applyHybridFacultyDefaultForRow(rowIdx, _facultyCache[subjectId]);
     } catch (e) {
         console.error('Failed to load faculty for subject', subjectId, e);
     }
+}
+
+function applyHybridFacultyDefaultForRow(rowIdx, facultyList) {
+    const row = document.querySelector(`#autoScheduleTableBody tr[data-row-index="${rowIdx}"]`);
+    if (!row) return;
+
+    const facultyIdInput = row.querySelector('[data-field="faculty_id"]');
+    const currentFacultyId = String(facultyIdInput?.value || '').trim();
+
+    // Preserve existing selection (e.g., existing schedule rows or manual picks).
+    if (currentFacultyId && currentFacultyId !== 'null' && currentFacultyId !== 'undefined') {
+        return;
+    }
+
+    const list = Array.isArray(facultyList) ? facultyList : [];
+    const assignedFaculty = list.filter(f => f && f.is_assigned);
+
+    // Hybrid rule: auto-select only for a single assigned match.
+    if (assignedFaculty.length === 1) {
+        const selected = assignedFaculty[0];
+        selectBatchFaculty(rowIdx, selected.id, selected.full_name);
+        return;
+    }
+
+    // Reset for none/ambiguous assignment cases.
+    row.querySelector('[data-field="faculty_id"]').value = '';
+    row.querySelector('[data-field="faculty_name"]').value = '';
+    setBatchFacultyTriggerState(row, '', '');
 }
 
 function renderFacultyOptions(rowIdx, facultyList) {
@@ -1160,21 +1236,73 @@ function filterBatchFacultyDropdown(searchInput, rowIdx) {
     });
 }
 
+function setBatchFacultyTriggerState(row, facultyId, facultyName) {
+    const trigger = row?.querySelector('.batch-faculty-trigger');
+    if (!trigger) return;
+
+    const label = trigger.querySelector('.batch-faculty-label');
+    const normalizedId = String(facultyId || '').trim();
+    const hasFaculty = !!normalizedId && normalizedId !== 'null' && normalizedId !== 'undefined';
+    const safeName = String(facultyName || '').trim();
+
+    const assignedClasses = [
+        'border-gray-200', 'dark:border-gray-600', 'bg-white', 'dark:bg-gray-700',
+        'text-gray-700', 'dark:text-gray-200', 'hover:border-violet-300'
+    ];
+    const unassignedClasses = [
+        'border-dashed', 'border-amber-400', 'border-amber-300', 'bg-amber-50', 'dark:bg-amber-900/20',
+        'text-amber-700', 'dark:text-amber-400', 'text-amber-600', 'hover:border-amber-500'
+    ];
+
+    trigger.classList.remove(...assignedClasses, ...unassignedClasses);
+    trigger.classList.add(...(hasFaculty ? assignedClasses : unassignedClasses));
+    trigger.title = hasFaculty ? '' : 'Faculty not assigned';
+
+    if (label) {
+        label.textContent = hasFaculty ? (safeName || 'Assigned Faculty') : 'Assign Faculty';
+    }
+
+    let warningIcon = trigger.querySelector('.batch-faculty-warning-icon');
+    if (hasFaculty) {
+        if (warningIcon) warningIcon.remove();
+    } else if (!warningIcon) {
+        warningIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        warningIcon.setAttribute('class', 'batch-faculty-warning-icon w-3 h-3 flex-shrink-0 text-amber-500');
+        warningIcon.setAttribute('fill', 'none');
+        warningIcon.setAttribute('stroke', 'currentColor');
+        warningIcon.setAttribute('viewBox', '0 0 24 24');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('d', 'M12 9v2m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z');
+        warningIcon.appendChild(path);
+
+        const chevron = trigger.querySelector('svg:last-child');
+        if (label) {
+            trigger.insertBefore(warningIcon, label);
+        } else if (chevron) {
+            trigger.insertBefore(warningIcon, chevron);
+        } else {
+            trigger.appendChild(warningIcon);
+        }
+    }
+}
+
 function selectBatchFaculty(rowIdx, facultyId, facultyName) {
     const row = document.querySelector(`#autoScheduleTableBody tr[data-row-index="${rowIdx}"]`);
     if (!row) return;
 
     row.querySelector('[data-field="faculty_id"]').value = facultyId;
     row.querySelector('[data-field="faculty_name"]').value = facultyName;
-
-    const trigger = row.querySelector('.batch-faculty-trigger');
-    trigger.querySelector('span').textContent = facultyName;
-    trigger.classList.remove('border-amber-300', 'bg-amber-50', 'text-amber-600');
-    trigger.classList.add('border-gray-200', 'bg-white', 'text-gray-700');
+    setBatchFacultyTriggerState(row, facultyId, facultyName);
 
     const dropdown = row.querySelector('.batch-faculty-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
     _activeDropdown = null;
+
+    _markBatchRowDirtyState(row);
 
     scheduleConflictCheck();
     validateAllRows();
@@ -1212,6 +1340,7 @@ async function loadAvailableRoomsForRow(rowIdx) {
     const endTime = row.querySelector('[data-field="end_time"]').value;
     const scheduleType = row.querySelector('[data-field="schedule_type"]').value;
     const subjectId = row.dataset.subjectId || '';
+    const scheduleId = row.dataset.scheduleId || '';
 
     if (!day || !startTime || !endTime) return;
 
@@ -1221,22 +1350,38 @@ async function loadAvailableRoomsForRow(rowIdx) {
     try {
         const params = new URLSearchParams({ day, start_time: startTime, end_time: endTime, schedule_type: scheduleType });
         if (subjectId) params.set('subject_id', subjectId);
-        if (_preferredBuildingId) params.set('building_id', _preferredBuildingId);
+        if (scheduleId) params.set('schedule_id', scheduleId);
+        const hasPreferredBuilding = !!_preferredBuildingId;
+        if (hasPreferredBuilding) params.set('building_id', _preferredBuildingId);
+
         const res = await fetch(`/schedule/batch-available-rooms?${params}`);
         const data = await res.json();
 
-        renderRoomOptions(rowIdx, data.rooms || []);
+        let rooms = data.rooms || [];
+        let usedFallback = false;
+
+        // Preferred building is a soft hint only; if no options, retry once without building hint.
+        if (hasPreferredBuilding && rooms.length === 0) {
+            const fallbackParams = new URLSearchParams(params);
+            fallbackParams.delete('building_id');
+            const fallbackRes = await fetch(`/schedule/batch-available-rooms?${fallbackParams}`);
+            const fallbackData = await fallbackRes.json();
+            rooms = fallbackData.rooms || [];
+            usedFallback = rooms.length > 0;
+        }
+
+        renderRoomOptions(rowIdx, rooms, usedFallback);
     } catch (e) {
         list.innerHTML = '<div class="p-3 text-center text-[10px] text-red-400">Failed to load rooms</div>';
     }
 }
 
-function renderRoomOptions(rowIdx, rooms) {
+function renderRoomOptions(rowIdx, rooms, usedFallback = false) {
     const list = document.querySelector(`.batch-room-list[data-row="${rowIdx}"]`);
     if (!list) return;
 
     if (!rooms || rooms.length === 0) {
-        list.innerHTML = '<div class="p-3 text-center text-[10px] text-gray-400">No available rooms</div>';
+        list.innerHTML = '<div class="p-3 text-center text-[10px] text-gray-400">No rooms found</div>';
         return;
     }
 
@@ -1248,7 +1393,17 @@ function renderRoomOptions(rowIdx, rooms) {
     const otherAssignments = getIntraBatchAssignments(rowIdx);
 
     list.innerHTML = '';
+    if (usedFallback) {
+        const hint = document.createElement('div');
+        hint.className = 'px-3 py-2 text-[10px] text-amber-600 bg-amber-50/80 dark:bg-amber-900/20 dark:text-amber-300 border-b border-amber-100 dark:border-amber-800/40';
+        hint.textContent = 'Preferred building has no available rooms for this slot. Showing alternatives.';
+        list.appendChild(hint);
+    }
+
     rooms.forEach(r => {
+        const occupiedLabel = (r && typeof r.occupied_note === 'string') ? r.occupied_note : '';
+        const isOccupied = Boolean(r && r.is_occupied);
+
         // Check if this room is used by another batch row at overlapping time
         let batchConflictLabel = '';
         for (const other of otherAssignments) {
@@ -1258,8 +1413,10 @@ function renderRoomOptions(rowIdx, rooms) {
             }
         }
 
+        const hasConflictLabel = Boolean(isOccupied || batchConflictLabel);
+
         const opt = document.createElement('div');
-        opt.className = 'batch-room-option px-3 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer transition-colors' + (batchConflictLabel ? ' bg-red-50/60 dark:bg-red-900/20' : '');
+        opt.className = 'batch-room-option px-3 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer transition-colors' + (hasConflictLabel ? ' bg-red-50/60 dark:bg-red-900/20' : '');
         opt.dataset.roomId = r.id;
         opt.dataset.roomNumber = r.room_number;
         opt.dataset.buildingName = r.building_name || '';
@@ -1272,7 +1429,10 @@ function renderRoomOptions(rowIdx, rooms) {
                     <div class="text-[11px] font-medium text-gray-800 dark:text-gray-200">${escapeHtml(r.room_number)}</div>
                     <div class="text-[10px] text-gray-400">${escapeHtml(r.building_name || '')} · ${escapeHtml(r.room_type || '')}</div>
                 </div>
-                ${batchConflictLabel ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 font-medium flex-shrink-0 whitespace-nowrap">${escapeHtml(batchConflictLabel)}</span>` : ''}
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    ${isOccupied && occupiedLabel ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 font-medium whitespace-nowrap">${escapeHtml(occupiedLabel)}</span>` : ''}
+                    ${batchConflictLabel ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 font-medium whitespace-nowrap">${escapeHtml(batchConflictLabel)}</span>` : ''}
+                </div>
             </div>
         `;
         list.appendChild(opt);
@@ -1301,6 +1461,8 @@ function selectBatchRoom(rowIdx, roomId, roomNumber, buildingName) {
     const dropdown = row.querySelector('.batch-room-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
     _activeDropdown = null;
+
+    _markBatchRowDirtyState(row);
 
     validateAllRows();
     scheduleConflictCheck();
@@ -1343,7 +1505,10 @@ function onTypeChange(select) {
         _batchData.proposed[idx].schedule_type = scheduleType;
     }
 
+    _markBatchRowDirtyState(row);
+
     scheduleConflictCheck();
+    validateAllRows();
     _refreshBatchCalendarIfVisible();
 }
 
@@ -1369,20 +1534,53 @@ function onStartTimeChange(input) {
     }
 
     recalcEndTime(row, input.value, durationMinutes);
+    _markBatchRowDirtyState(row);
     scheduleConflictCheck();
+    validateAllRows();
     _refreshBatchCalendarIfVisible();
 }
 
 function onEndTimeChange(input) {
     // End time manually changed — trigger conflict check
+    const row = input.closest('tr');
+    _markBatchRowDirtyState(row);
     scheduleConflictCheck();
+    validateAllRows();
     _refreshBatchCalendarIfVisible();
 }
 
 function onDayTimeChange(select) {
     // Room availability may have changed - clear room cache visual hint
     // The room dropdown reloads when opened, so no action needed here
-    scheduleConflictCheck();
+    const row = select.closest('tr');
+    _markBatchRowDirtyState(row);
+
+    const rowIdx = parseInt(row.dataset.rowIndex, 10);
+    const dayWarning = buildBatchFacultyDayWarning(row);
+    if (dayWarning && Number.isInteger(rowIdx)) {
+        _batchConflicts[rowIdx] = { status: 'warning', conflicts: [dayWarning] };
+        renderRowConflictStatus(row, rowIdx, _batchConflicts[rowIdx]);
+    }
+
+    const hasFullConflictPayload = Boolean(
+        row.querySelector('[data-field="faculty_id"]')?.value &&
+        row.querySelector('[data-field="day_of_week"]')?.value &&
+        row.querySelector('[data-field="start_time"]')?.value &&
+        row.querySelector('[data-field="end_time"]')?.value
+    );
+
+    if (hasFullConflictPayload) {
+        showConflictCheckingState();
+        if (_conflictCheckTimer) {
+            clearTimeout(_conflictCheckTimer);
+            _conflictCheckTimer = null;
+        }
+        performBatchConflictCheck();
+    } else {
+        scheduleConflictCheck();
+    }
+
+    validateAllRows();
     _refreshBatchCalendarIfVisible();
 }
 
@@ -1475,23 +1673,13 @@ async function openAddSubjectDropdown() {
 
         _availableSubjects = data.subjects;
 
-        const existingSubjects = new Set();
-        document.querySelectorAll('#autoScheduleTableBody tr').forEach(row => {
-            const subjectId = row.dataset.subjectId;
-            const type = row.querySelector('[data-field="schedule_type"]').value;
-            existingSubjects.add(subjectId + '_' + type);
-        });
-
         select.innerHTML = '<option value="">Select a subject to add...</option>';
 
         _availableSubjects.forEach((s, i) => {
-            const key = s.subject_id + '_' + s.schedule_type;
-            if (!existingSubjects.has(key)) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = `${s.subject_code} - ${s.course_description} (${s.schedule_type}, ${s.duration_minutes}min)`;
-                select.appendChild(opt);
-            }
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `${s.subject_code} - ${s.course_description} (${s.schedule_type}, ${s.duration_minutes}min)`;
+            select.appendChild(opt);
         });
 
     } catch (e) {
@@ -1556,9 +1744,7 @@ function addSelectedSubject() {
     // Update stats
     document.getElementById('autoStatScheduled').textContent = _batchData.proposed.length;
 
-    // Remove from dropdown
-    const opt = select.querySelector(`option[value="${selectedIdx}"]`);
-    if (opt) opt.remove();
+    // Keep option available so users can intentionally add duplicate subjects
     select.value = '';
 
     // Show footer if hidden
@@ -1688,7 +1874,7 @@ function reconcileFacultyAssignmentsBeforeSubmit() {
     const unresolved = [];
 
     rows.forEach((row, visualIdx) => {
-        if (row.dataset.isExisting === 'true') return;
+        if (!_isBatchRowSaveable(row)) return;
 
         const resolved = isFacultyAssignedForRow(row);
         const rowIndex = parseInt(row.dataset.rowIndex);
@@ -1712,16 +1898,27 @@ function validateAllRows() {
     let missingRoom = 0;
     let invalidTime = 0;
     const facultyRowDetails = [];
+    let saveableRows = 0;
 
     rows.forEach((row, idx) => {
+        _markBatchRowDirtyState(row);
+        if (!_isBatchRowSaveable(row)) return;
+
+        saveableRows++;
         const hasFaculty = isFacultyAssignedForRow(row);
+        const facultyId = row.querySelector('[data-field="faculty_id"]')?.value;
+        const facultyName = row.querySelector('[data-field="faculty_name"]')?.value;
+        setBatchFacultyTriggerState(row, hasFaculty ? facultyId : '', facultyName);
         const roomId = row.querySelector('[data-field="room_id"]')?.value;
         const startTime = row.querySelector('[data-field="start_time"]')?.value;
         const endTime = row.querySelector('[data-field="end_time"]')?.value;
 
         if (!hasFaculty) {
             missingFaculty++;
-            facultyRowDetails.push(`R${idx + 1}: ${_getFacultyResolveReason(row)}`);
+            facultyRowDetails.push({
+                row: idx + 1,
+                reason: _getFacultyResolveReason(row)
+            });
         }
         if (!roomId) missingRoom++;
         if (!startTime || !endTime || startTime >= endTime) invalidTime++;
@@ -1731,22 +1928,41 @@ function validateAllRows() {
     const msgEl = document.getElementById('batchValidationMsg');
     const msgText = document.getElementById('batchValidationText');
 
-    if (rows.length === 0) {
+    if (rows.length === 0 || saveableRows === 0) {
         confirmBtn.disabled = true;
         msgEl.classList.add('hidden');
         updateFooterBanner('empty');
         return;
     }
 
+    const reasonLabel = (reason) => {
+        switch (reason) {
+            case 'missing selection':
+                return 'faculty not selected';
+            case 'no faculty candidates loaded':
+                return 'no available faculty loaded yet';
+            case 'name does not match available faculty':
+                return 'selected name does not match available faculty';
+            case 'ambiguous faculty name':
+                return 'multiple faculty match this name';
+            case 'missing id sync':
+                return 'faculty selection not synced yet';
+            default:
+                return reason || 'faculty issue';
+        }
+    };
+
     const formIssues = [];
-    if (missingFaculty > 0) formIssues.push(`${missingFaculty} need faculty`);
-    if (missingRoom > 0) formIssues.push(`${missingRoom} need room`);
-    if (invalidTime > 0) formIssues.push(`${invalidTime} invalid time`);
+    if (missingFaculty > 0) formIssues.push(`${missingFaculty} row${missingFaculty > 1 ? 's' : ''} missing faculty assignment`);
+    if (missingRoom > 0) formIssues.push(`${missingRoom} row${missingRoom > 1 ? 's' : ''} missing room`);
+    if (invalidTime > 0) formIssues.push(`${invalidTime} row${invalidTime > 1 ? 's' : ''} with invalid time range`);
 
     // Check conflict state — count rows with CRITICAL/HIGH conflicts
     let conflictRows = 0;
-    Object.values(_batchConflicts).forEach(r => {
-        if (r.status === 'conflict') conflictRows++;
+    Object.entries(_batchConflicts).forEach(([idx, r]) => {
+        if (r.status !== 'conflict') return;
+        const row = rows[parseInt(idx, 10)];
+        if (_isBatchRowSaveable(row)) conflictRows++;
     });
 
     const hasFormIssues = formIssues.length > 0;
@@ -1757,7 +1973,11 @@ function validateAllRows() {
         const allIssues = [...formIssues];
         if (hasConflicts) allIssues.push(`${conflictRows} conflict(s)`);
         if (facultyRowDetails.length > 0) {
-            allIssues.push(facultyRowDetails.slice(0, 3).join(' · '));
+            const examples = facultyRowDetails
+                .slice(0, 3)
+                .map(entry => `Row ${entry.row}: ${reasonLabel(entry.reason)}`)
+                .join(' · ');
+            allIssues.push(`Examples — ${examples}`);
         }
         msgText.textContent = allIssues.join(', ');
         msgEl.classList.remove('hidden');
@@ -1818,7 +2038,9 @@ async function confirmBatchSchedule() {
     }
 
     // Pre-save conflict check — if conflicts exist, block
-    const conflictRows = Object.values(_batchConflicts).filter(r => r.status === 'conflict');
+    const allRows = document.querySelectorAll('#autoScheduleTableBody tr');
+    const conflictRows = Object.entries(_batchConflicts)
+        .filter(([idx, r]) => r.status === 'conflict' && _isBatchRowSaveable(allRows[parseInt(idx, 10)]));
     if (conflictRows.length > 0) {
         if (typeof showToast === 'function') showToast(`${conflictRows.length} row(s) have conflicts. Resolve them before saving.`, 'error');
         return;
@@ -1850,10 +2072,10 @@ async function confirmBatchSchedule() {
         if (result.success) {
             // Check for partial errors
             const rowErrors = result.row_errors || [];
+            const updated = result.updated || 0;
             if (rowErrors.length > 0) {
-                const errorMsgs = rowErrors.map(e => `Row ${e.row} (${e.subject_code}): ${e.error}`).join('\n');
                 if (typeof showToast === 'function') {
-                    showToast(`Created ${result.created} schedule(s). ${rowErrors.length} row(s) had conflicts.`, 'error');
+                    showToast(`Saved ${result.created + updated} schedule(s) (${result.created} created, ${updated} updated). ${rowErrors.length} row(s) had conflicts.`, 'error');
                 }
                 // Highlight error rows
                 rowErrors.forEach(e => {
@@ -1874,7 +2096,7 @@ async function confirmBatchSchedule() {
             closeBatchModal();
             _updateBatchStep(3);
             if (typeof showToast === 'function') {
-                showToast(`Successfully created ${result.created} schedule(s)!`, 'success');
+                showToast(`Saved ${result.created + updated} schedule(s) (${result.created} created, ${updated} updated).`, 'success');
             }
 
             setTimeout(() => {
@@ -1907,15 +2129,15 @@ function collectBatchItems() {
     const items = [];
 
     rows.forEach((row, idx) => {
-        // Skip rows that represent already-saved schedules
-        if (row.dataset.isExisting === 'true') return;
+        _markBatchRowDirtyState(row);
+        if (!_isBatchRowSaveable(row)) return;
 
         // Self-heal any row where faculty is visible but hidden id was not synced yet.
         resolveFacultyIdForRow(row);
 
         const original = (_batchData && _batchData.proposed && _batchData.proposed[idx]) || {};
 
-        items.push({
+        const rowObj = {
             subject_id: parseInt(row.dataset.subjectId) || original.subject_id,
             subject_code: original.subject_code || '',
             course_description: original.course_description || '',
@@ -1930,7 +2152,15 @@ function collectBatchItems() {
             end_time: row.querySelector('[data-field="end_time"]')?.value || '',
             lec_units: parseFloat(row.dataset.lecUnits) || 0,
             lab_units: parseFloat(row.dataset.labUnits) || 0,
-        });
+        };
+
+        const scheduleId = parseInt(row.dataset.scheduleId) || original.schedule_id;
+        if (row.dataset.isExisting === 'true' && scheduleId) {
+            rowObj.schedule_id = scheduleId;
+            rowObj.is_existing = true;
+        }
+
+        items.push(rowObj);
     });
 
     return items;
@@ -2041,35 +2271,30 @@ function renderRowConflictStatus(row, idx, result) {
     const statusCell = row.querySelector('.batch-status-icon');
     if (!statusCell) return;
 
-    // Remove old border classes
-    row.classList.remove('border-l-[3px]', 'border-l-gray-200', 'dark:border-l-gray-600', 'border-l-green-400', 'border-l-red-400', 'border-l-amber-400');
-    row.classList.remove('bg-red-50/50', 'bg-amber-50/50');
-    
-    // Always keep the 3px thickness for status
-    row.classList.add('border-l-[3px]');
+    // Remove old state classes
+    row.classList.remove('bg-red-50/50', 'dark:bg-red-900/20', 'bg-amber-50/50', 'dark:bg-amber-900/20');
 
     if (result.status === 'conflict') {
         // CRITICAL/HIGH — red
-        row.classList.add('border-l-red-400', 'bg-red-50/50');
+        row.classList.add('bg-red-50/50', 'dark:bg-red-900/20');
         const count = result.conflicts.length;
         statusCell.innerHTML = `
-            <button type="button" onclick="showRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center hover:bg-red-200 transition-colors cursor-pointer" title="${count} conflict(s) — click for details">
-                <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <button type="button" onclick="showRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/60 focus-visible:ring-2 focus-visible:ring-red-400/60 transition-colors cursor-pointer" title="${count} conflict(s) — click for details">
+                <svg class="w-3 h-3 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </button>`;
     } else if (result.status === 'warning') {
         // MEDIUM/LOW — amber
-        row.classList.add('border-l-amber-400', 'bg-amber-50/50');
+        row.classList.add('bg-amber-50/50', 'dark:bg-amber-900/20');
         const count = result.conflicts.length;
         statusCell.innerHTML = `
-            <button type="button" onclick="showRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center hover:bg-amber-200 transition-colors cursor-pointer" title="${count} warning(s) — click for details">
-                <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <button type="button" onclick="showRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center hover:bg-amber-200 dark:hover:bg-amber-900/60 focus-visible:ring-2 focus-visible:ring-amber-400/60 transition-colors cursor-pointer" title="${count} warning(s) — click for details">
+                <svg class="w-3 h-3 text-amber-600 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </button>`;
     } else {
         // OK — green
-        row.classList.add('border-l-green-400');
         statusCell.innerHTML = `
-            <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center" title="No conflicts">
-                <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <div class="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center" title="No conflicts">
+                <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             </div>`;
     }
 }
@@ -2091,7 +2316,7 @@ function showRowConflictTooltip(rowIdx) {
     const rect = row.getBoundingClientRect();
     const tooltip = document.createElement('div');
     tooltip.id = 'batchConflictTooltip';
-    tooltip.className = 'fixed z-[10000] bg-white border border-gray-200 rounded-xl shadow-2xl p-3 max-w-sm w-80';
+    tooltip.className = 'fixed z-[10000] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-3 max-w-sm w-80';
     tooltip.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 340)) + 'px';
 
     // Position below row if space, else above
@@ -2104,9 +2329,9 @@ function showRowConflictTooltip(rowIdx) {
 
     const conflictHtml = result.conflicts.map(c => {
         const isError = c.severity === 'critical' || c.severity === 'high';
-        const borderColor = isError ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50';
-        const textColor = isError ? 'text-red-700' : 'text-amber-700';
-        const iconColor = isError ? 'text-red-500' : 'text-amber-500';
+        const borderColor = isError ? 'border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/20' : 'border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20';
+        const textColor = isError ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300';
+        const iconColor = isError ? 'text-red-500 dark:text-red-400' : 'text-amber-500 dark:text-amber-400';
         const icon = isError
             ? '<svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'
             : '<svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
@@ -2116,8 +2341,8 @@ function showRowConflictTooltip(rowIdx) {
             <div class="flex items-start gap-2 p-2 ${borderColor} rounded-lg border">
                 <span class="${iconColor} mt-0.5">${icon}</span>
                 <div class="min-w-0">
-                    <span class="text-[10px] font-semibold uppercase ${textColor}">${escapeHtml(label)}</span>
-                    <p class="text-[11px] ${textColor} mt-0.5">${escapeHtml(c.message)}</p>
+                    <span class="text-[10px] font-bold tracking-wide uppercase ${textColor}">${escapeHtml(label)}</span>
+                    <p class="text-[11px] leading-relaxed ${textColor} mt-0.5">${escapeHtml(c.message)}</p>
                 </div>
             </div>`;
     }).join('');
@@ -2126,8 +2351,8 @@ function showRowConflictTooltip(rowIdx) {
 
     tooltip.innerHTML = `
         <div class="flex items-center justify-between mb-2">
-            <h4 class="text-xs font-bold text-gray-800">Row ${rowIdx + 1} · ${escapeHtml(rowLabel)}</h4>
-            <button onclick="document.getElementById('batchConflictTooltip')?.remove()" class="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+            <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100">Row ${rowIdx + 1} · ${escapeHtml(rowLabel)}</h4>
+            <button onclick="document.getElementById('batchConflictTooltip')?.remove()" class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:ring-2 focus-visible:ring-gray-400/50">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -2226,17 +2451,17 @@ function updateFooterBanner(status, count) {
 
     if (status === 'conflict') {
         banner.classList.remove('hidden');
-        banner.classList.add('bg-red-50', 'text-red-700');
+        banner.classList.add('bg-red-50', 'dark:bg-red-900/20', 'text-red-700', 'dark:text-red-300');
         icon.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
         text.textContent = `${count} row(s) have conflicts — resolve before saving`;
     } else if (status === 'warning') {
         banner.classList.remove('hidden');
-        banner.classList.add('bg-amber-50', 'text-amber-700');
+        banner.classList.add('bg-amber-50', 'dark:bg-amber-900/20', 'text-amber-700', 'dark:text-amber-300');
         icon.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
         text.textContent = `${count} row(s) have warnings — review recommended`;
     } else if (status === 'ok') {
         banner.classList.remove('hidden');
-        banner.classList.add('bg-emerald-50', 'text-emerald-700');
+        banner.classList.add('bg-emerald-50', 'dark:bg-emerald-900/20', 'text-emerald-700', 'dark:text-emerald-300');
         icon.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
         text.textContent = 'All schedules look good!';
     } else {
@@ -2272,6 +2497,37 @@ function getIntraBatchAssignments(excludeRowIdx) {
  */
 function timesOverlap(s1, e1, s2, e2) {
     return s1 < e2 && e1 > s2;
+}
+
+function buildBatchFacultyDayWarning(row) {
+    if (!row) return null;
+
+    const facultyId = row.querySelector('[data-field="faculty_id"]')?.value;
+    const dayOfWeek = row.querySelector('[data-field="day_of_week"]')?.value;
+    const subjectId = row.dataset.subjectId;
+
+    if (!facultyId || !dayOfWeek || !subjectId) return null;
+
+    const facultyList = _facultyCache[subjectId] || [];
+    const faculty = Array.isArray(facultyList)
+        ? facultyList.find(item => String(item.id) === String(facultyId))
+        : null;
+
+    if (!faculty || !Array.isArray(faculty.available_days) || faculty.available_days.length === 0) {
+        return null;
+    }
+
+    const normalizedDays = faculty.available_days.map(day => String(day).trim().toLowerCase());
+    if (normalizedDays.includes(String(dayOfWeek).trim().toLowerCase())) {
+        return null;
+    }
+
+    return {
+        type: 'faculty_availability',
+        severity: 'medium',
+        message: `${faculty.full_name || 'Selected faculty'} is not marked as available on ${dayOfWeek} at this time`,
+        details: { faculty_id: facultyId, status: 'not_in_schedule' }
+    };
 }
 
 // ─── Dropdown Positioning Helper ──────────────────────────────────

@@ -24,7 +24,7 @@ class Archive(db.Model):
     faculty_name = db.Column(db.String(100), nullable=True)
     room_number = db.Column(db.String(20), nullable=True)
     building_name = db.Column(db.String(100), nullable=True)
-    department_name = db.Column(db.String(100), nullable=True)
+    program_name = db.Column(db.String(100), nullable=True)
     
     # Schedule timing - Modified to support both class and exam schedules
     day_of_week = db.Column(db.String(20), nullable=True)  # For class schedules
@@ -54,15 +54,32 @@ class Archive(db.Model):
 
     def to_dict(self):
         """Convert archive to dictionary"""
+        # Get program_id from section relationship if available
+        program_id = None
+        if self.section and self.section.program:
+            program_id = self.section.program_id
+
+        # Get faculty department info if available
+        faculty_department_id = None
+        faculty_department_name = None
+        if self.faculty and self.faculty.department:
+            faculty_department_id = self.faculty.department_id
+            faculty_department_name = self.faculty.department.department_name
+
         return {
             'id': self.id,
+            'section_id': self.section_id,
+            'program_id': program_id,
+            'faculty_department_id': faculty_department_id,
+            'faculty_department_name': faculty_department_name,
             'section_name': self.section_name,
             'subject_code': self.subject_code,
             'course_description': self.course_description,
             'faculty_name': self.faculty_name,
             'room_number': self.room_number,
             'building_name': self.building_name,
-            'department_name': self.department_name,
+            'department_name': self.program_name,
+            'program_name': self.program_name,
             'day_of_week': self.day_of_week,
             'exam_date': self.exam_date.strftime('%Y-%m-%d') if self.exam_date else None,
             'start_time': self.start_time.strftime('%H:%M') if self.start_time else None,

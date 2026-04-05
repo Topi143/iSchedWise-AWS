@@ -1,0 +1,14 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+institution_name,Official name of the institution,varchar,255,,Yes,'Norzagaray College'
+system_name,Display name shown across the application UI,varchar,255,,No,NULL
+institution_logo,File path to the primary institution logo,varchar,255,,No,NULL
+branding_logo,File path to the global application branding logo,varchar,255,,No,NULL
+institution_logo_right,File path to a secondary logo (right side),varchar,255,,No,NULL
+institution_head,Name of the institution head or college president,varchar,255,,No,NULL
+updated_by,ID of the last user who updated these settings,int,11,FK -> users.id,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL
+excel_header_line1,First header line used in Excel exports,varchar,255,,No,'Republic of the Philippines'
+excel_header_line2,Second header line used in Excel exports,varchar,255,,No,'Municipality of Norzagaray'
+excel_schedule_color,Default schedule color used in Excel exports,varchar,7,,No,'#4472C4'

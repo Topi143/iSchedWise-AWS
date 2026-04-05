@@ -1,0 +1,18 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+section_id,Section that attends this class,int,11,FK -> sections.id,Yes,--
+subject_id,Subject being taught,int,11,FK -> subjects.id,Yes,--
+faculty_id,Faculty member assigned to teach; NULL if unassigned,int,11,FK -> faculty.id,No,NULL
+room_id,Room where the class is held; NULL if unassigned,int,11,FK -> rooms.id,No,NULL
+day_of_week,"Day of week: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday",varchar,20,,Yes,--
+start_time,Start time of the class period,time,--,,Yes,--
+end_time,End time of the class period,time,--,,Yes,--
+semester,"Semester this schedule belongs to, e.g., '1st Semester'",varchar,50,,No,NULL
+academic_year,"Academic year, e.g., '2025-2026'",varchar,20,,No,NULL
+schedule_type,"Type of session: lecture, lab, or both",varchar,20,,No,'lecture'
+is_active,Whether this schedule entry is active,tinyint(1),--,,Yes,1
+version,Optimistic locking version counter; incremented on each update,int,11,,Yes,1
+locked_by,ID of the user currently editing this entry (edit lock),int,11,FK -> users.id,No,NULL
+locked_at,Timestamp when the edit lock was acquired,datetime,--,,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

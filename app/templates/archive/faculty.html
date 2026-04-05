@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Archives - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'archive/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full min-h-0 overflow-hidden">
+        
+        <!-- Flash Messages (Hidden - converted to toasts) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flashMessages" class="hidden" data-messages='{{ messages | tojson }}'></div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                    <!-- Left: Icon + Title -->
+                    <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-base sm:text-lg font-semibold text-gray-900">Faculty Archives</h1>
+                                <span class="record-count-badge" id="facultyCount"></span>
+                            </div>
+                            <p class="text-xs text-gray-500 hidden sm:block">Manage archived faculty members</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Actions -->
+                    <div class="archive-header-actions flex-shrink-0">
+                        <!-- Export Dropdown -->
+                        <div class="relative archive-action-item" id="exportDropdown">
+                            <button onclick="toggleExportDropdown()" class="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="exportMenu" class="hidden absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                <button onclick="exportEntity('faculty', 'excel'); toggleExportDropdown();" class="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Export to Excel
+                                </button>
+                                <button onclick="exportEntity('faculty', 'pdf'); toggleExportDropdown();" class="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Export to PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search -->
+                        <div class="relative archive-action-item">
+                            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" id="facultyArchiveSearch" placeholder="Search faculty..." oninput="searchArchivedFaculty()"
+                                   class="archive-search-input pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <!-- Reset -->
+                        <button onclick="clearEntityFilters('faculty', 'facultyArchiveSearch', loadArchivedFaculty)" 
+                            class="archive-action-item w-full sm:w-auto justify-center inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" title="Reset filters">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Reset</span>
+                        </button>
+
+                        {% if can_manage_archive %}
+                        <!-- Batch Select Toggle -->
+                        <button id="archFacultyBatchToggle" onclick="BatchSelect.toggle('archFaculty')" class="archive-action-item w-full sm:w-auto justify-center inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Batch Select">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Select
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if can_manage_archive %}
+        <!-- Batch Select Toolbar (Hidden by default) -->
+        <div id="archFacultyBatchToolbar" style="display:none" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg mb-2 sm:mb-3 flex-shrink-0">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <input type="checkbox" id="archFacultyBatchSelectAll" onchange="BatchSelect.selectAll('archFaculty', this.checked)" class="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-600 text-white text-xs font-bold" id="archFacultyBatchCount">0</span>
+                <span class="text-sm font-medium text-red-700">selected</span>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+                <button id="archFacultyBatchToolbarRestoreBtn" onclick="BatchSelect.execute('archFaculty', 'restore')" disabled class="flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors">Restore</button>
+                <button id="archFacultyBatchToolbarDeleteBtn" onclick="BatchSelect.execute('archFaculty', 'delete')" disabled class="flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors">Delete</button>
+                <button onclick="BatchSelect.exit('archFaculty')" class="flex-1 sm:flex-none px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">Cancel</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Content Area -->
+        <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
+            <div class="bg-white border border-gray-100 rounded-xl shadow-sm flex-1 min-h-0 flex flex-col">
+                <!-- Loading State -->
+                <div id="faculty-loading" class="flex-1 flex items-center justify-center p-8">
+                    <div class="inline-flex items-center gap-2 text-gray-500">
+                        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm">Loading archived faculty...</span>
+                    </div>
+                </div>
+                
+                <!-- Faculty Container -->
+                <div id="faculty-archive-container" class="flex-1 flex flex-col"></div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/batch_select.js') }}"></script>
+{% include 'archive/_modals.html' %}
+{% include 'archive/_shared_js.html' %}
+
+<script>
+    // ============================================
+    // FACULTY ARCHIVE FUNCTIONS
+    // ============================================
+    
+    // Hold the universal loading indicator until data is ready
+    window._holdPageLoading = true;
+    const CAN_MANAGE_ARCHIVE = {{ 'true' if can_manage_archive else 'false' }};
+
+    let allFaculty = [];
+    let currentDisplayedFaculty = [];
+    const ITEMS_PER_PAGE = 10;
+    let currentPage = 1;
+    
+    async function loadArchivedFaculty() {
+        try {
+            const response = await fetch('/archive/api/faculty');
+            const data = await response.json();
+            
+            if (data.success) {
+                allFaculty = data.faculty;
+                displayFaculty(allFaculty);
+                // Update record count badge
+                const countBadge = document.getElementById('facultyCount');
+                if (countBadge) countBadge.textContent = allFaculty.length;
+            } else {
+                showToast('Error loading archived faculty: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error loading archived faculty', 'error');
+        } finally {
+            const loading = document.getElementById('faculty-loading');
+            if (loading) loading.style.display = 'none';
+            // Dismiss universal loading indicator
+            window._holdPageLoading = false;
+            hidePageLoading();
+        }
+    }
+    
+    function displayFaculty(faculty) {
+        const container = document.getElementById('faculty-archive-container');
+        
+        if (!faculty || faculty.length === 0) {
+            container.innerHTML = `
+                <div class="flex-1 flex items-center justify-center p-4 sm:p-6">
+                    <div class="text-center">
+                        <div class="relative mx-auto mb-4 w-16 h-16">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-16 h-16 rounded-full bg-blue-50"></div>
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium text-gray-700 mb-1">No Archived Faculty</p>
+                        <p class="text-xs text-gray-400">Archived faculty will appear here</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        // Store for pagination
+        currentDisplayedFaculty = faculty;
+        
+        // Pagination logic
+        const totalItems = faculty.length;
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+        const pageFaculty = faculty.slice(startIndex, endIndex);
+        
+        // Build pagination controls
+        let paginationHTML = '';
+        if (totalPages > 1) {
+            paginationHTML = `
+                <div class="archive-pagination">
+                    <div class="pagination-info">Showing ${startIndex + 1}-${endIndex} of ${totalItems}</div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" onclick="changePage(-1)" ${currentPage <= 1 ? 'disabled' : ''}>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        ${generatePageButtons(currentPage, totalPages)}
+                        <button class="pagination-btn" onclick="changePage(1)" ${currentPage >= totalPages ? 'disabled' : ''}>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            paginationHTML = `
+                <div class="record-count-footer">
+                    Showing ${totalItems} archived faculty member${totalItems !== 1 ? 's' : ''}
+                </div>
+            `;
+        }
+        
+        // Generate desktop list view
+        const desktopRows = pageFaculty.map(f => `
+            <div class="entity-list-row faculty-list-row" data-faculty-id="${f.id}">
+                <div class="archive-cell">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-xs">
+                            ${f.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                        <span class="archive-cell-text font-medium">${f.full_name}</span>
+                    </div>
+                </div>
+                <div class="archive-cell">
+                    <span class="archive-cell-text">${f.department_name || 'N/A'}</span>
+                </div>
+                <div class="archive-cell">
+                    <span class="${f.is_active ? 'entity-badge entity-badge-success' : 'entity-badge entity-badge-muted'}">${f.is_active ? 'Active' : 'Inactive'}</span>
+                </div>
+                <div class="archive-cell">
+                    <div class="archive-meta">${formatDateTimeWithRelative(f.archived_at)}</div>
+                    ${f.archived_by_name ? `<div class="archive-meta-by">by ${f.archived_by_name}</div>` : ''}
+                    ${f.archive_reason ? `<div class="archive-meta-reason">${f.archive_reason}</div>` : ''}
+                </div>
+                <div class="archive-cell">
+                    ${CAN_MANAGE_ARCHIVE ? `<div class="action-btn-group">
+                        <button onclick="unarchiveFaculty(${f.id}, '${escapeForOnClick(f.full_name)}')"
+                                class="action-btn action-btn-restore" title="Restore">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                        <button onclick="deleteFacultyPermanent(${f.id}, '${escapeForOnClick(f.full_name)}')" 
+                                class="action-btn action-btn-delete" title="Delete">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>` : '<span class="text-xs text-gray-400">View only</span>'}
+                </div>
+            </div>
+        `).join('');
+        
+        // Generate mobile card view
+        const mobileCards = pageFaculty.map(f => `
+            <div class="entity-mobile-card card-emerald" data-faculty-id="${f.id}">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                            ${f.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">${f.full_name}</h3>
+                            <p class="text-sm text-gray-600">${f.department_name || 'No Department'}</p>
+                        </div>
+                    </div>
+                    <span class="${f.is_active ? 'entity-badge entity-badge-success' : 'entity-badge entity-badge-muted'}">${f.is_active ? 'Active' : 'Inactive'}</span>
+                </div>
+                <div class="border-t border-gray-100 pt-3 flex items-center justify-between">
+                    <div>
+                        <div class="archive-meta">Archived: ${formatDateTimeWithRelative(f.archived_at)}</div>
+                        ${f.archived_by_name ? `<div class="archive-meta-by">by ${f.archived_by_name}</div>` : ''}
+                        ${f.archive_reason ? `<div class="archive-meta-reason">${f.archive_reason}</div>` : ''}
+                    </div>
+                    ${CAN_MANAGE_ARCHIVE ? `<div class="action-btn-group">
+                        <button onclick="unarchiveFaculty(${f.id}, '${escapeForOnClick(f.full_name)}')"
+                                class="action-btn action-btn-restore" title="Restore">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                        <button onclick="deleteFacultyPermanent(${f.id}, '${escapeForOnClick(f.full_name)}')" 
+                                class="action-btn action-btn-delete" title="Delete">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>` : '<span class="text-xs text-gray-400">View only</span>'}
+                </div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = `
+            <!-- Desktop List View -->
+            <div class="entity-list-desktop">
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="entity-list-header faculty-list-header">
+                        <span>Faculty Name</span>
+                        <span>Department</span>
+                        <span>Status</span>
+                        <span>Archived</span>
+                        <span>Actions</span>
+                    </div>
+                    <div class="entity-list-body">
+                        ${desktopRows}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Card View -->
+            <div class="entity-list-mobile">
+                ${mobileCards}
+            </div>
+            
+            ${paginationHTML}
+        `;
+        
+        // Refresh BatchSelect checkboxes if batch mode is active
+        if (CAN_MANAGE_ARCHIVE) {
+            BatchSelect.refreshCheckboxes('archFaculty');
+        }
+    }
+
+    function generatePageButtons(current, total) {
+        let buttons = '';
+        const maxVisible = 5;
+        let start = Math.max(1, current - Math.floor(maxVisible / 2));
+        let end = Math.min(total, start + maxVisible - 1);
+        if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+        if (start > 1) {
+            buttons += '<button class="pagination-btn" onclick="goToPage(1)">1</button>';
+            if (start > 2) buttons += '<span class="pagination-ellipsis">...</span>';
+        }
+        for (let i = start; i <= end; i++) {
+            buttons += '<button class="pagination-btn ' + (i === current ? 'active' : '') + '" onclick="goToPage(' + i + ')">' + i + '</button>';
+        }
+        if (end < total) {
+            if (end < total - 1) buttons += '<span class="pagination-ellipsis">...</span>';
+            buttons += '<button class="pagination-btn" onclick="goToPage(' + total + ')">' + total + '</button>';
+        }
+        return buttons;
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        displayFaculty(currentDisplayedFaculty);
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        displayFaculty(currentDisplayedFaculty);
+    }
+    
+    function searchArchivedFaculty() {
+        currentPage = 1;
+        const searchTerm = document.getElementById('facultyArchiveSearch').value.toLowerCase();
+        const filtered = allFaculty.filter(f => 
+            f.full_name.toLowerCase().includes(searchTerm) ||
+            (f.department_name && f.department_name.toLowerCase().includes(searchTerm))
+        );
+        displayFaculty(filtered);
+    }
+    
+    // Faculty Modal Functions - Using Unified Modal System
+    function unarchiveFaculty(facultyId, facultyName) {
+        openUnifiedRestoreModal(facultyId, 'faculty', facultyName);
+    }
+    function deleteFacultyPermanent(facultyId, facultyName) {
+        openUnifiedDeleteModal(facultyId, 'faculty', facultyName);
+    }
+    
+    // Legacy compatibility wrappers
+    function closeRestoreFacultyModal() { closeUnifiedRestoreModal(); }
+    function confirmRestoreFaculty() { confirmUnifiedRestore(); }
+    function closeDeleteFacultyModal() { closeUnifiedDeleteModal(); }
+    function confirmDeleteFaculty() { confirmUnifiedDelete(); }
+    
+    // ============================================
+    // EXPORT DROPDOWN
+    // ============================================
+    
+    function toggleExportDropdown() {
+        const menu = document.getElementById('exportMenu');
+        menu.classList.toggle('hidden');
+    }
+    
+    // Close export dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('exportDropdown');
+        if (dropdown && !dropdown.contains(e.target)) {
+            document.getElementById('exportMenu').classList.add('hidden');
+        }
+    });
+    
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const mainContentArea = document.getElementById('mainContentArea');
+        const mainElement = mainContentArea ? mainContentArea.querySelector('main') : null;
+
+        const originalMainContentOverflow = mainContentArea ? mainContentArea.style.overflow : '';
+        const originalMainMinHeight = mainElement ? mainElement.style.minHeight : '';
+        const originalMainHeight = mainElement ? mainElement.style.height : '';
+        const originalMainDisplay = mainElement ? mainElement.style.display : '';
+        const originalMainFlexDirection = mainElement ? mainElement.style.flexDirection : '';
+
+        function applyDesktopArchiveLayoutLock() {
+            const isDesktop = window.innerWidth >= 1024;
+
+            if (isDesktop) {
+                if (mainContentArea) {
+                    mainContentArea.style.overflow = 'hidden';
+                }
+                if (mainElement) {
+                    mainElement.style.minHeight = '0';
+                    mainElement.style.height = '100%';
+                    mainElement.style.display = 'flex';
+                    mainElement.style.flexDirection = 'column';
+                }
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
+            } else {
+                if (mainContentArea) {
+                    mainContentArea.style.overflow = originalMainContentOverflow;
+                }
+                if (mainElement) {
+                    mainElement.style.minHeight = originalMainMinHeight;
+                    mainElement.style.height = originalMainHeight;
+                    mainElement.style.display = originalMainDisplay;
+                    mainElement.style.flexDirection = originalMainFlexDirection;
+                }
+                document.documentElement.style.overflow = '';
+                document.body.style.overflow = '';
+            }
+        }
+
+        applyDesktopArchiveLayoutLock();
+        window.addEventListener('resize', applyDesktopArchiveLayoutLock);
+        window.addEventListener('beforeunload', function() {
+            if (mainContentArea) {
+                mainContentArea.style.overflow = originalMainContentOverflow;
+            }
+            if (mainElement) {
+                mainElement.style.minHeight = originalMainMinHeight;
+                mainElement.style.height = originalMainHeight;
+                mainElement.style.display = originalMainDisplay;
+                mainElement.style.flexDirection = originalMainFlexDirection;
+            }
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+        });
+
+        // Show flash messages as toasts
+        const flashMessages = document.getElementById('flashMessages');
+        if (flashMessages) {
+            try {
+                const messages = JSON.parse(flashMessages.dataset.messages);
+                messages.forEach(([category, message]) => {
+                    showToast(message, category);
+                });
+            } catch (e) {
+                console.error('Error parsing flash messages:', e);
+            }
+        }
+        
+        // Initialize BatchSelect for archived faculty
+        if (CAN_MANAGE_ARCHIVE) {
+            BatchSelect.init({
+                entityType: 'archFaculty',
+                listContainerId: 'faculty-archive-container',
+                itemSelector: '.entity-list-row, .entity-mobile-card',
+                idAttribute: 'data-faculty-id',
+                bulkActionUrls: {
+                    restore: '/archive/api/faculty/bulk-restore',
+                    delete: '/archive/api/faculty/bulk-delete'
+                },
+                bulkRequestFormatter: function(action, ids, reason) {
+                    return { ids: ids };
+                },
+                toggleBtnId: 'archFacultyBatchToggle',
+                toolbarId: 'archFacultyBatchToolbar',
+                countId: 'archFacultyBatchCount',
+                selectAllId: 'archFacultyBatchSelectAll',
+                entityLabel: 'faculty member',
+                entityLabelPlural: 'faculty members',
+                onComplete: function() { loadArchivedFaculty(); }
+            });
+        }
+
+        // Load archived faculty
+        loadArchivedFaculty();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}Archives Overview - iSchedWise{% endblock %}
+
+{% block extra_css %}
+{% include 'archive/_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Fixed-Viewport Application Layout -->
+<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3">
+    <div class="w-full flex flex-col h-full overflow-hidden">
+        
+        <!-- Page Header -->
+        <div class="mb-2 sm:mb-3 flex-shrink-0">
+            <div class="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900">Archives Overview</h1>
+                        <p class="text-xs text-gray-500">Summary of all archived data across the system</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4" id="statsGrid">
+                <!-- Schedule Archives -->
+                <div class="stat-card stat-card-blue p-4 cursor-pointer" onclick="showPageLoading(); window.location.href='/archive/schedules'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-medium">Schedules</p>
+                            <p class="text-xl font-bold text-gray-900" id="statSchedules">
+                                <span class="inline-block w-8 h-5 bg-gray-200 rounded animate-pulse"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Curriculum Archives -->
+                <div class="stat-card stat-card-purple p-4 cursor-pointer" onclick="showPageLoading(); window.location.href='/archive/curriculum'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-medium">Curriculum</p>
+                            <p class="text-xl font-bold text-gray-900" id="statCurriculum">
+                                <span class="inline-block w-8 h-5 bg-gray-200 rounded animate-pulse"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Programs Archives -->
+                <div class="stat-card stat-card-indigo p-4 cursor-pointer" onclick="showPageLoading(); window.location.href='/archive/programs'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-medium">Programs</p>
+                            <p class="text-xl font-bold text-gray-900" id="statPrograms">
+                                <span class="inline-block w-8 h-5 bg-gray-200 rounded animate-pulse"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Faculty Archives -->
+                <div class="stat-card stat-card-emerald p-4 cursor-pointer" onclick="showPageLoading(); window.location.href='/archive/faculty-members'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-medium">Faculty</p>
+                            <p class="text-xl font-bold text-gray-900" id="statFaculty">
+                                <span class="inline-block w-8 h-5 bg-gray-200 rounded animate-pulse"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buildings Archives -->
+                <div class="stat-card stat-card-orange p-4 cursor-pointer" onclick="showPageLoading(); window.location.href='/archive/buildings-page'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-medium">Buildings</p>
+                            <p class="text-xl font-bold text-gray-900" id="statBuildings">
+                                <span class="inline-block w-8 h-5 bg-gray-200 rounded animate-pulse"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Archives Breakdown -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <!-- By Type -->
+                <div class="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                        </svg>
+                        Schedule Archives by Type
+                    </h3>
+                    <div id="byTypeBreakdown" class="space-y-3">
+                        <div class="flex items-center justify-center py-6">
+                            <div class="animate-spin w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- By Academic Year -->
+                <div class="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Schedule Archives by Academic Year
+                    </h3>
+                    <div id="byYearBreakdown" class="space-y-3">
+                        <div class="flex items-center justify-center py-6">
+                            <div class="animate-spin w-6 h-6 border-3 border-purple-600 border-t-transparent rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="bg-white border border-gray-100 rounded-xl shadow-sm p-4 mb-4">
+                <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Quick Actions
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <a href="/archive/schedules" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700/60 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Schedule Archives</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">View class, faculty, room & exam archives</p>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                    <a href="/archive/curriculum" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700/60 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Curriculum Archives</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Browse archived curricula</p>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                    <a href="/archive/programs" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700/60 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Program Archives</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Browse archived programs/programs</p>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                    <a href="/archive/faculty-members" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700/60 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Faculty Archives</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Browse archived faculty members</p>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                    <a href="/archive/buildings-page" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700/60 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors">
+                            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Building Archives</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Browse archived buildings & rooms</p>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white border border-gray-100 rounded-xl shadow-sm p-4 mb-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Recently Archived Schedules
+                    </h3>
+                    <a href="/archive/schedules" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors">
+                        View All
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </a>
+                </div>
+                <div id="recentArchives" class="space-y-2">
+                    <div class="flex items-center justify-center py-6">
+                        <div class="animate-spin w-6 h-6 border-3 border-gray-400 border-t-transparent rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Hold the universal loading indicator until data is ready
+    window._holdPageLoading = true;
+
+    // Load all stats on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await Promise.all([
+                loadScheduleStats(),
+                loadEntityCounts(),
+                loadRecentArchives()
+            ]);
+        } finally {
+            window._holdPageLoading = false;
+            hidePageLoading();
+        }
+    });
+
+    async function loadScheduleStats() {
+        try {
+            const response = await fetch('/archive/api/archive/stats');
+            const data = await response.json();
+            
+            if (data.success) {
+                const stats = data.stats;
+                document.getElementById('statSchedules').textContent = stats.total || 0;
+                
+                // By Type breakdown
+                const byTypeEl = document.getElementById('byTypeBreakdown');
+                const typeColors = { 'lecture': 'blue', 'lab': 'green', 'exam': 'red' };
+                const typeLabels = { 'lecture': 'Lecture', 'lab': 'Laboratory', 'exam': 'Exam' };
+                
+                if (Object.keys(stats.by_type).length > 0) {
+                    byTypeEl.innerHTML = Object.entries(stats.by_type).map(([type, count]) => {
+                        const color = typeColors[type] || 'gray';
+                        const label = typeLabels[type] || type;
+                        const pct = stats.total > 0 ? Math.round(count / stats.total * 100) : 0;
+                        return `
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">${label}</span>
+                                        <span class="text-sm font-semibold text-gray-900">${count}</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-${color}-500 rounded-full transition-all" style="width: ${pct}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    byTypeEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">No schedule archives yet</p>';
+                }
+                
+                // By Year breakdown
+                const byYearEl = document.getElementById('byYearBreakdown');
+                if (Object.keys(stats.by_year).length > 0) {
+                    const maxCount = Math.max(...Object.values(stats.by_year));
+                    byYearEl.innerHTML = Object.entries(stats.by_year).sort((a, b) => b[0].localeCompare(a[0])).map(([year, count]) => {
+                        const pct = maxCount > 0 ? Math.round(count / maxCount * 100) : 0;
+                        return `
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">${year}</span>
+                                        <span class="text-sm font-semibold text-gray-900">${count}</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-purple-500 rounded-full transition-all" style="width: ${pct}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    byYearEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">No schedule archives yet</p>';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            document.getElementById('statSchedules').textContent = '-';
+        }
+    }
+
+    async function loadEntityCounts() {
+        // Load all entity counts in parallel
+        const entities = [
+            { url: '/archive/api/curricula', el: 'statCurriculum', key: 'curricula' },
+            { url: '/archive/api/programs', el: 'statPrograms', key: 'programs' },
+            { url: '/archive/api/faculty', el: 'statFaculty', key: 'faculty' },
+            { url: '/archive/api/buildings', el: 'statBuildings', key: 'buildings' }
+        ];
+        
+        await Promise.all(entities.map(async (entity) => {
+            try {
+                const response = await fetch(entity.url);
+                const data = await response.json();
+                if (data.success) {
+                    const items = data[entity.key] || [];
+                    document.getElementById(entity.el).textContent = items.length;
+                } else {
+                    document.getElementById(entity.el).textContent = '-';
+                }
+            } catch (error) {
+                console.error(`Error loading ${entity.key}:`, error);
+                document.getElementById(entity.el).textContent = '-';
+            }
+        }));
+    }
+
+    async function loadRecentArchives() {
+        try {
+            const response = await fetch('/archive/api/archives?limit=5');
+            const data = await response.json();
+            const container = document.getElementById('recentArchives');
+            
+            if (data.success && data.archives && data.archives.length > 0) {
+                container.innerHTML = data.archives.slice(0, 5).map(archive => {
+                    const typeColors = { 'lecture': 'blue', 'lab': 'green', 'exam': 'red' };
+                    const typeLabels = { 'lecture': 'Lecture', 'lab': 'Lab', 'exam': 'Exam' };
+                    const color = typeColors[archive.schedule_type] || 'gray';
+                    const label = typeLabels[archive.schedule_type] || archive.schedule_type;
+                    
+                    return `
+                        <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors">
+                            <div class="w-2 h-2 rounded-full bg-${color}-500 flex-shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-sm text-gray-900 truncate">${archive.subject_code || 'N/A'}</span>
+                                    <span class="px-1.5 py-0.5 text-xs font-medium rounded bg-${color}-100 text-${color}-700">${label}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 truncate">${archive.course_description || ''} • ${archive.section_name || ''}</p>
+                            </div>
+                            <div class="text-xs text-gray-400 flex-shrink-0">
+                                ${archive.archived_at ? formatRelativeTime(archive.archived_at) : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-6">
+                        <svg class="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                        <p class="text-sm text-gray-400">No recent archives</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading recent archives:', error);
+            document.getElementById('recentArchives').innerHTML = '<p class="text-sm text-red-500 text-center py-4">Error loading recent archives</p>';
+        }
+    }
+
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return '';
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatRelativeTime(dateTimeString) {
+        if (!dateTimeString) return '';
+        const date = new Date(dateTimeString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSecs = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecs / 60);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffSecs < 60) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+        if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+        return `${Math.floor(diffDays / 365)}y ago`;
+    }
+</script>
+{% endblock %}

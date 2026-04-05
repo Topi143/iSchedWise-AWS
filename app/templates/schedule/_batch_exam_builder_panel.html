@@ -1,0 +1,282 @@
+<!-- Batch Exam Schedule Builder - Inline Panel (replaces exam detail when active) -->
+<div id="examBatchBuilderPanel" class="hidden flex-1 overflow-hidden flex flex-col">
+    <div class="flex-1 overflow-hidden flex flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+
+        <!-- Header Bar -->
+        <div class="flex-shrink-0">
+            <div class="flex items-center justify-between p-3 sm:p-4 border-b border-orange-100 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white leading-tight">Batch Exam Builder</h2>
+                        <p id="examBatchSectionName" class="text-xs text-orange-600 dark:text-orange-400 truncate">Section: --</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="examBatchInlineViewToggle" class="hidden batch-view-toggle-wrap">
+                        <button type="button" id="examBatchViewTable" onclick="switchExamBatchView('table')" class="batch-view-toggle-btn batch-view-toggle-btn-active">
+                            <svg class="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                            Table
+                        </button>
+                        <button type="button" id="examBatchViewCalendar" onclick="switchExamBatchView('calendar')" class="batch-view-toggle-btn batch-view-toggle-btn-inactive">
+                            <svg class="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Calendar
+                        </button>
+                    </div>
+                    <button type="button" id="examBatchAddSubjectBtn" onclick="openExamAddSubjectDropdown()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-orange-700 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 dark:text-orange-300 dark:bg-orange-900/30 dark:border-orange-700 dark:hover:bg-orange-900/50 transition-colors shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        Add Subject
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step Indicator -->
+            <div id="examBatchStepIndicator" class="px-3 sm:px-5 py-2.5 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div class="flex items-center justify-between sm:justify-center gap-1 sm:gap-0 w-full max-w-xs sm:max-w-none mx-auto">
+                    <div class="exam-batch-step flex items-center gap-2" data-step="1">
+                        <div class="exam-batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-orange-600 text-white shadow-sm ring-2 ring-orange-200 dark:ring-orange-800">1</div>
+                        <div class="hidden sm:block">
+                            <span class="exam-batch-step-label text-[11px] font-semibold text-orange-700 dark:text-orange-300 block leading-tight">Configure</span>
+                            <span class="text-[9px] text-gray-500 font-medium">Pick curriculum</span>
+                        </div>
+                    </div>
+                    <div class="exam-batch-step-line hidden sm:block w-10 sm:w-16 h-0.5 bg-gray-200 dark:bg-gray-600 mx-2 rounded-full transition-all duration-500"></div>
+                    <div class="exam-batch-step flex items-center gap-2" data-step="2">
+                        <div class="exam-batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500">2</div>
+                        <div class="hidden sm:block">
+                            <span class="exam-batch-step-label text-[11px] font-medium text-gray-500 dark:text-gray-400 block leading-tight">Review &amp; Edit</span>
+                            <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium">Build schedule</span>
+                        </div>
+                    </div>
+                    <div class="exam-batch-step-line hidden sm:block w-10 sm:w-16 h-0.5 bg-gray-200 dark:bg-gray-600 mx-2 rounded-full transition-all duration-500"></div>
+                    <div class="exam-batch-step flex items-center gap-2" data-step="3">
+                        <div class="exam-batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500">3</div>
+                        <div class="hidden sm:block">
+                            <span class="exam-batch-step-label text-[11px] font-medium text-gray-500 dark:text-gray-400 block leading-tight">Save</span>
+                            <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium">Confirm items</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: none !important;">
+            <div id="examBatchStats" class="hidden">
+                <div id="examBatchSummaryLine"></div>
+                <div id="examBatchProgressBar">
+                    <div id="examBatchProgressPlaced"></div>
+                    <div id="examBatchProgressExisting"></div>
+                    <div id="examBatchProgressUnplaceable"></div>
+                </div>
+                <span id="examBatchStatScheduled">0</span>
+                <span id="examBatchStatExisting">0</span>
+                <span id="examBatchStatUnplaceableWrap" class="hidden"><span id="examBatchStatUnplaceable">0</span></span>
+                <span id="examBatchStatTotal">0</span>
+                <span id="examBatchConflictBadge" class="hidden"><span id="examBatchConflictCount">0</span></span>
+                <span id="examBatchWarningBadge" class="hidden"><span id="examBatchWarningCount">0</span></span>
+                <span id="examBatchAllClearBadge" class="hidden"></span>
+                <span id="examBatchCheckingBadge" class="hidden"></span>
+            </div>
+            <div id="examBatchAllDone" class="hidden"></div>
+        </div>
+
+        <!-- Add Subject Dropdown -->
+        <div id="examBatchAddSubjectPanel" class="hidden px-4 sm:px-5 py-2.5 bg-orange-50/80 dark:bg-orange-900/20 border-b border-orange-100 dark:border-orange-800/30 flex-shrink-0 transition-all">
+            <div class="flex items-center gap-2">
+                <select id="examBatchSubjectSelect" class="flex-1 text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 dark:focus:border-orange-500 dark:focus:ring-orange-800">
+                    <option value="">Select a subject to add...</option>
+                </select>
+                <button type="button" onclick="addExamSelectedSubject()" class="batch-action-btn batch-action-btn-primary-orange">Add</button>
+                <button type="button" onclick="closeExamAddSubjectDropdown()" class="batch-action-btn batch-action-btn-secondary">Cancel</button>
+                <button type="button" onclick="openSubjectBrowser('exam_batch')" class="batch-icon-btn batch-icon-btn-orange" title="Browse all subjects">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 pb-4 flex flex-col">
+
+            <!-- Step 1: Curriculum Selection -->
+            <div id="examBatchCurriculumStep" class="max-w-md mx-auto">
+                <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-600 p-5 space-y-4">
+                    <div class="flex items-center gap-3 mb-1">
+                        <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Configure Exam Batch</h3>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Select curriculum and building preference</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="examBatchCurriculumSelect" class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Curriculum</label>
+                        <select id="examBatchCurriculumSelect" class="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-800 transition-colors">
+                            <option value="">Loading curricula...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="examBatchBuildingSelect" class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            Building <span class="text-[10px] text-gray-400 dark:text-gray-500 font-normal normal-case">(opt.)</span>
+                        </label>
+                        <select id="examBatchBuildingSelect" onchange="onExamBatchBuildingChange(this.value)" class="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:border-orange-500 dark:focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-800 transition-colors">
+                            <option value="">All Buildings</option>
+                        </select>
+                    </div>
+                    <button type="button" id="examBatchCurriculumConfirmBtn" onclick="confirmExamBatchCurriculum()" disabled
+                            class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        Load Subjects
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="examBatchLoading" class="hidden flex flex-col items-center justify-center py-16">
+                <div class="relative w-14 h-14 mb-4">
+                    <div class="absolute inset-0 rounded-full border-[3px] border-orange-100 dark:border-orange-800"></div>
+                    <div class="absolute inset-0 rounded-full border-[3px] border-orange-500 dark:border-orange-400 border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-2 rounded-full border-[3px] border-amber-200 dark:border-amber-800 border-b-transparent animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                </div>
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Building exam schedule preview...</p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Finding optimal dates, times, and rooms</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="examBatchError" class="hidden flex flex-col items-center justify-center py-16">
+                <div class="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mb-4 ring-4 ring-red-100 dark:ring-red-900/20">
+                    <svg class="w-7 h-7 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-semibold text-red-700 dark:text-red-400">Unable to build exam schedule</p>
+                <p id="examBatchErrorMsg" class="text-[11px] text-red-500/80 dark:text-red-400 mt-1.5 max-w-sm text-center"></p>
+                <button type="button" onclick="confirmExamBatchCurriculum()" class="mt-4 px-4 py-2 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors inline-flex items-center gap-1.5">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Retry
+                </button>
+            </div>
+
+            <!-- Proposed Exams -->
+            <div id="examBatchResults" class="hidden flex-1 min-h-0 flex flex-col">
+
+                <!-- TABLE VIEW -->
+                <div id="examBatchTableView" class="flex-1 min-h-0">
+                <div class="h-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
+                    <table class="w-full min-w-[980px] text-xs">
+                        <thead>
+                            <tr class="bg-orange-50/80 dark:bg-orange-900/20 text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+                                <th class="px-3 py-3 text-center font-semibold w-[64px]" title="Status">Status</th>
+                                <th class="px-3 py-3 text-center font-medium w-[48px] text-gray-400 dark:text-gray-500">#</th>
+                                <th class="px-3 py-3 text-left font-bold text-gray-700 dark:text-gray-300 min-w-[220px]">Subject</th>
+                                <th colspan="2" class="px-3 py-3 text-left font-bold text-gray-700 dark:text-gray-300 min-w-[300px]">Schedule <span class="text-[9px] font-normal text-gray-400 dark:text-gray-500 normal-case ml-1">(Date & Time)</span></th>
+                                <th class="px-3 py-3 text-left font-bold text-gray-700 dark:text-gray-300 min-w-[190px]">Proctor</th>
+                                <th class="px-3 py-3 text-left font-bold text-gray-700 dark:text-gray-300 min-w-[170px]">Room</th>
+                                <th class="px-3 py-3 text-center font-bold text-gray-700 dark:text-gray-300 w-[80px]">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="examBatchTableBody" class="divide-y divide-gray-100 dark:divide-gray-700 relative">
+                            <!-- Empty State Guide -->
+                            <tr id="examBatchEmptyState" class="hidden">
+                                <td colspan="8" class="py-12 text-center border-l-[3px] border-l-transparent">
+                                    <div class="inline-flex flex-col items-center justify-center">
+                                        <div class="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3 text-orange-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        </div>
+                                        <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-1">Schedule is empty</h3>
+                                        <p class="text-[11px] text-gray-500 max-w-[240px] leading-relaxed">No subjects match your selection. Click <strong class="text-orange-600 dark:text-orange-400">+ Add Subject</strong> to manually add exams.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Rows filled by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+
+                <!-- CALENDAR VIEW -->
+                <div id="examBatchCalendarView" class="hidden flex-1 min-h-0">
+                    <div class="week-calendar-container border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm" style="height: 100%;">
+                        <div id="examBatchCalendarHeader" class="week-calendar-header" style="grid-template-columns: 56px repeat(7, 1fr);">
+                            <div class="week-time-header" style="font-size:0.6rem;">TIME</div>
+                            <!-- Date columns built by JS -->
+                        </div>
+                        <div id="examBatchCalendarBody" class="week-calendar-body" style="grid-template-columns: 56px repeat(7, 1fr);">
+                        </div>
+                        <div class="week-calendar-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot bg-orange-500"></span>
+                                <span>Exam</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot bg-amber-500"></span>
+                                <span>Unassigned Proctor</span>
+                            </div>
+                            <div class="legend-item legend-hint">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Click on event to edit in table view
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unplaceable Items -->
+                <div id="examBatchUnplaceableSection" class="hidden mt-4">
+                    <details class="group">
+                        <summary class="text-xs font-semibold text-red-600 cursor-pointer flex items-center gap-1.5 select-none px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30">
+                            <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            Could Not Place
+                        </summary>
+                        <div class="space-y-1.5 mt-2" id="examBatchUnplaceableList"></div>
+                        <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-400">
+                            <span class="inline-flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg px-2.5 py-1">
+                                <svg class="w-3 h-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01"></path></svg>
+                                Tip: Check <b>Room Management</b> to add more rooms or adjust room types.
+                            </span>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div id="examBatchFooter" class="hidden border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50/80 dark:bg-gray-800/90 rounded-b-xl">
+            <div id="examBatchFooterBanner" class="hidden px-4 sm:px-5 py-1.5 text-[11px] font-medium flex items-center gap-2 border-b border-gray-100 dark:border-gray-700">
+                <span id="examBatchFooterBannerIcon"></span>
+                <span id="examBatchFooterBannerText"></span>
+            </div>
+            <div class="px-4 sm:px-5 py-3">
+                <div class="min-h-[1.25rem] mb-2">
+                    <p id="examBatchValidationMsg" class="text-[11px] text-amber-600 dark:text-amber-400 hidden flex items-center gap-1.5 min-w-0 w-full">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"></path></svg>
+                        <span id="examBatchValidationText" class="truncate">Assign proctors to all rows before saving</span>
+                    </p>
+                </div>
+                <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                    <!-- Cancel -->
+                    <button type="button" onclick="exitExamBatchMode()" class="px-3.5 py-2 text-[11px] font-semibold text-gray-500 bg-white hover:bg-gray-50 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors">
+                        Cancel
+                    </button>
+                    <!-- Save Button Group -->
+                    <div class="flex flex-col items-end">
+                        <button type="button" id="examBatchConfirmBtn" onclick="confirmExamBatchSchedule()" disabled
+                                class="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            Save &amp; Finish
+                        </button>
+                        <span class="hidden sm:block text-[9px] text-gray-500 dark:text-gray-400 mt-1 pr-1 font-medium">This saves all rows above</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

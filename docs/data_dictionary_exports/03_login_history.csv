@@ -1,0 +1,9 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+user_id,The user who initiated this session,int,11,FK -> users.id,Yes,--
+login_at,Timestamp when the user logged in,datetime,--,,Yes,--
+logout_at,Timestamp when the user logged out; NULL if still active,datetime,--,,No,NULL
+ip_address,Client IP address at login (IPv4 and IPv6 supported),varchar,45,,No,NULL
+user_agent,Full browser/client User-Agent string at login,text,--,,No,NULL
+session_id,Flask session identifier token,varchar,128,,No,NULL
+is_active,"Whether this session is currently active (1=active, 0=ended)",tinyint(1),--,,Yes,--

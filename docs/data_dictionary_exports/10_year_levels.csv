@@ -1,0 +1,7 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+curriculum_id,Curriculum that contains this year level,int,11,FK -> curricula.id,Yes,--
+year_number,"Numeric year indicator: 1=1st Year, 2=2nd Year, etc.",int,11,,Yes,--
+year_name,"Display label, e.g., '1st Year', '2nd Year'",varchar,50,,Yes,--
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

@@ -40,6 +40,9 @@ class Config:
     LOGIN_VIEW = 'auth.login'
     LOGIN_MESSAGE = 'Please log in to access this page.'
     LOGIN_MESSAGE_CATEGORY = 'info'
+
+    # Session policy configuration
+    SESSION_LOGOUT_POLICY = os.environ.get('SESSION_LOGOUT_POLICY', 'browser_close')
     
     # WTForms configuration
     WTF_CSRF_ENABLED = True
@@ -58,6 +61,16 @@ class Config:
     
     # Password Reset Configuration
     PASSWORD_RESET_TOKEN_EXPIRY = 3600  # 1 hour in seconds
+
+    # Two-Factor Authentication Configuration
+    TWO_FACTOR_ISSUER = os.environ.get('TWO_FACTOR_ISSUER') or 'iSchedWise'
+    TWO_FACTOR_PENDING_SECONDS = int(os.environ.get('TWO_FACTOR_PENDING_SECONDS') or 600)
+    TWO_FACTOR_TRUST_DAYS = int(os.environ.get('TWO_FACTOR_TRUST_DAYS') or 1)
+    TWO_FACTOR_TRUSTED_DEVICE_COOKIE = os.environ.get('TWO_FACTOR_TRUSTED_DEVICE_COOKIE') or 'isw_trusted_device'
+    TWO_FACTOR_OTP_LENGTH = int(os.environ.get('TWO_FACTOR_OTP_LENGTH') or 6)
+    TWO_FACTOR_OTP_EXPIRY_SECONDS = int(os.environ.get('TWO_FACTOR_OTP_EXPIRY_SECONDS') or 600)
+    TWO_FACTOR_OTP_RESEND_COOLDOWN_SECONDS = int(os.environ.get('TWO_FACTOR_OTP_RESEND_COOLDOWN_SECONDS') or 60)
+    TWO_FACTOR_OTP_MAX_ATTEMPTS = int(os.environ.get('TWO_FACTOR_OTP_MAX_ATTEMPTS') or 5)
 
 
 class DevelopmentConfig(Config):
@@ -87,6 +100,7 @@ class TestingConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SESSION_LOGOUT_POLICY = 'browser_close'
 
 
 # Configuration dictionary

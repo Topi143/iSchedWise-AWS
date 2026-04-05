@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>{% block title %}{{ app_brand_name }} - {{ institution_display_name }}{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% if institution_logo %}{{ url_for('static', filename=institution_logo) }}{% else %}{{ url_for('static', filename='images/norzagaray-college-logo.png') }}{% endif %}">
+    <script>
+        // FOUC prevention - apply dark mode before rendering
+        (function() {
+            try {
+                if (localStorage.getItem('ischedwise_dark_mode') === 'true') {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch(e) {}
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* ========== Background & Layout ========== */
+        .bg-building {
+            background-image: url("{{ url_for('static', filename='images/newbuilding.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        .bg-fallback {
+            background-color: #1e40af;
+        }
+
+        .left-panel {
+            min-height: 100vh;
+        }
+
+        .gradient-overlay {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.4) 100%);
+            animation: gradientShift 8s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+
+        /* ========== Logo ========== */
+        .logo-shadow {
+            filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.04)) drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* ========== Welcome Text Animation ========== */
+        .welcome-text {
+            animation: fadeInUp 1s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== Form Animations ========== */
+        .form-field {
+            transition: all 0.3s ease;
+        }
+
+        .form-field:focus-within {
+            transform: translateY(-2px);
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* ========== Card Entrance ========== */
+        .auth-card {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ========== Button Ripple ========== */
+        .btn-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-ripple:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* ========== Loading Spinner ========== */
+        .loading-spinner {
+            display: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading .loading-spinner { display: inline-block; }
+        .loading .btn-text { display: none; }
+
+        /* ========== Shake Animation ========== */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .shake { animation: shake 0.5s; }
+
+        /* ========== Password Strength Meter (unified 4-level) ========== */
+        .strength-meter {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .strength-meter-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .strength-weak   { background-color: #ef4444; width: 25%; }
+        .strength-fair    { background-color: #f59e0b; width: 50%; }
+        .strength-good    { background-color: #10b981; width: 75%; }
+        .strength-strong  { background-color: #059669; width: 100%; }
+
+        /* ========== Custom Scrollbar ========== */
+        .form-scroll::-webkit-scrollbar,
+        .overflow-y-auto::-webkit-scrollbar {
+            width: 4px;
+        }
+        .form-scroll::-webkit-scrollbar-track,
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .form-scroll::-webkit-scrollbar-thumb,
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 4px;
+        }
+        .form-scroll::-webkit-scrollbar-thumb:hover,
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.6);
+        }
+
+        /* ========== Mobile Responsive ========== */
+        @media (max-width: 768px) {
+            .bg-building {
+                background-attachment: scroll;
+            }
+            input, select, textarea {
+                font-size: 16px; /* Prevent iOS zoom */
+            }
+            button[type="submit"] {
+                min-height: 48px;
+            }
+        }
+
+        /* ========== Dark Mode Overrides ========== */
+        .dark .input-glow {
+            background-color: #1f2937;
+            border-color: #4b5563;
+            color: #f3f4f6;
+        }
+        .dark .input-glow::placeholder {
+            color: #6b7280;
+        }
+        .dark .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+        .dark .strength-meter {
+            background: #374151;
+        }
+        .dark .form-scroll::-webkit-scrollbar-thumb,
+        .dark .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+        }
+        .dark .form-scroll::-webkit-scrollbar-thumb:hover,
+        .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+        /* Dark flash messages */
+        .dark .flash-error { background-color: rgba(127, 29, 29, 0.3); border-color: #dc2626; }
+        .dark .flash-success { background-color: rgba(20, 83, 45, 0.3); border-color: #16a34a; }
+        .dark .flash-info { background-color: rgba(30, 58, 138, 0.3); border-color: #2563eb; }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body class="min-h-screen flex bg-white dark:bg-gray-900 transition-colors duration-200">
+    <!-- Left Side - Building Background with Overlay -->
+    <div class="hidden lg:flex lg:w-1/2 relative bg-building bg-fallback left-panel">
+        <!-- Gradient Overlay -->
+        <div class="absolute inset-0 gradient-overlay"></div>
+
+        <!-- Left Panel Content -->
+        <div class="relative z-10 flex flex-col justify-center items-center p-8 xl:p-12 text-white w-full">
+            <!-- Logo -->
+            <div class="mb-6">
+                <img src="{% if institution_logo %}{{ url_for('static', filename=institution_logo) }}{% else %}{{ url_for('static', filename='images/norzagaray-college-logo.png') }}{% endif %}"
+                     alt="{{ institution_display_name }} Logo"
+                     class="w-24 h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 logo-shadow mx-auto"
+                     onerror="this.style.display='none'">
+            </div>
+
+            {% block left_panel_content %}
+            <!-- Default: Welcome to app branding name -->
+            <div class="text-center mb-8 max-w-lg welcome-text">
+                <h1 class="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3">Welcome to</h1>
+                <h2 class="text-2xl lg:text-3xl xl:text-4xl font-bold mb-4">{{ app_brand_name }}</h2>
+                <div class="w-20 h-0.5 bg-white bg-opacity-80 mx-auto mb-6"></div>
+                <p class="text-base lg:text-lg xl:text-xl opacity-90 leading-relaxed">
+                    Intelligent Scheduling System
+                </p>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Right Side -->
+    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 md:p-8 lg:p-12">
+        <!-- Mobile Logo (visible on small screens) -->
+        <div class="lg:hidden mb-6 sm:mb-8">
+            <img src="{% if institution_logo %}{{ url_for('static', filename=institution_logo) }}{% else %}{{ url_for('static', filename='images/norzagaray-college-logo.png') }}{% endif %}"
+                 alt="{{ institution_display_name }} Logo"
+                 class="w-16 h-16 sm:w-20 sm:h-20 mx-auto logo-shadow">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white text-center mt-3 sm:mt-4">{{ app_brand_name }}</h2>
+        </div>
+
+        {% block right_panel_content %}{% endblock %}
+
+        <!-- Footer -->
+        <div class="mt-6 sm:mt-8 text-center text-xs text-gray-500 dark:text-gray-400">
+            <p>&copy; <span id="auth-year"></span> {{ app_brand_name }}. All rights reserved.</p>
+            <div class="mt-2 flex items-center justify-center gap-3">
+                <span>Intelligent Scheduling System for {{ institution_display_name }}</span>
+                <!-- Dark Mode Toggle -->
+                <button id="auth-dark-toggle" type="button" onclick="toggleAuthDarkMode()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <!-- Sun icon (shown in dark mode) -->
+                    <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <!-- Moon icon (shown in light mode) -->
+                    <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ========== Dynamic Copyright Year ========== */
+        document.getElementById('auth-year').textContent = new Date().getFullYear();
+
+        /* ========== Password Visibility Toggle (unified) ========== */
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const eye = document.getElementById(inputId + '-eye');
+            if (!input || !eye) return;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            }
+        }
+
+        /* ========== Password Strength Checker (unified 4-level) ========== */
+        function checkPasswordStrength(password) {
+            const meter = document.getElementById('strength-meter-fill');
+            const strengthText = document.getElementById('strength-text');
+            if (!meter || !strengthText) return;
+
+            const hasLength  = password.length >= 8;
+            const hasUpper   = /[A-Z]/.test(password);
+            const hasLower   = /[a-z]/.test(password);
+            const hasNumber  = /[0-9]/.test(password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+            // Update requirement indicators if they exist
+            updateRequirement('req-length', hasLength);
+            updateRequirement('req-upper', hasUpper);
+            updateRequirement('req-lower', hasLower);
+            updateRequirement('req-number', hasNumber);
+
+            let strength = 0;
+            if (hasLength)  strength++;
+            if (hasUpper)   strength++;
+            if (hasLower)   strength++;
+            if (hasNumber)  strength++;
+            if (hasSpecial) strength++;
+
+            meter.className = 'strength-meter-fill';
+            if (password.length === 0) {
+                meter.style.width = '0%';
+                strengthText.innerHTML = '<span class="text-gray-500">8-30 characters required</span>';
+            } else if (strength <= 2) {
+                meter.classList.add('strength-weak');
+                meter.style.width = '';
+                strengthText.innerHTML = '<span class="text-red-500"><i class="fas fa-times-circle mr-1"></i>Weak password</span>';
+            } else if (strength === 3) {
+                meter.classList.add('strength-fair');
+                meter.style.width = '';
+                strengthText.innerHTML = '<span class="text-amber-500"><i class="fas fa-exclamation-circle mr-1"></i>Fair password</span>';
+            } else if (strength === 4) {
+                meter.classList.add('strength-good');
+                meter.style.width = '';
+                strengthText.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle mr-1"></i>Good password</span>';
+            } else {
+                meter.classList.add('strength-strong');
+                meter.style.width = '';
+                strengthText.innerHTML = '<span class="text-green-600"><i class="fas fa-shield-alt mr-1"></i>Strong password</span>';
+            }
+        }
+
+        function updateRequirement(elementId, isMet) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            if (isMet) {
+                element.classList.remove('text-gray-400');
+                element.classList.add('text-green-500');
+                element.innerHTML = element.innerHTML.replace('fa-circle', 'fa-check-circle');
+            } else {
+                element.classList.remove('text-green-500');
+                element.classList.add('text-gray-400');
+                element.innerHTML = element.innerHTML.replace('fa-check-circle', 'fa-circle');
+            }
+        }
+
+        /* ========== Password Match Checker ========== */
+        function checkPasswordMatch(passwordId, confirmId, matchTextId) {
+            const password = document.getElementById(passwordId);
+            const confirm  = document.getElementById(confirmId);
+            const matchText = document.getElementById(matchTextId);
+            if (!password || !confirm || !matchText) return;
+
+            if (confirm.value.length === 0) {
+                matchText.innerHTML = '';
+                confirm.style.borderColor = '';
+            } else if (password.value === confirm.value) {
+                matchText.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle mr-1"></i>Passwords match</span>';
+                confirm.style.borderColor = '#86efac';
+            } else {
+                matchText.innerHTML = '<span class="text-red-500"><i class="fas fa-times-circle mr-1"></i>Passwords do not match</span>';
+                confirm.style.borderColor = '#fca5a5';
+            }
+        }
+
+        /* ========== Flash Message Handling ========== */
+        (function initFlashMessages() {
+            const containers = document.querySelectorAll('.flash-message');
+            containers.forEach(function(container) {
+                // Add close button
+                const closeBtn = document.createElement('button');
+                closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                closeBtn.className = 'ml-auto text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0';
+                closeBtn.setAttribute('aria-label', 'Dismiss message');
+                closeBtn.onclick = function() {
+                    container.style.opacity = '0';
+                    container.style.transform = 'translateX(20px)';
+                    setTimeout(function() { container.remove(); }, 300);
+                };
+
+                const flexDiv = container.querySelector('.flex');
+                if (flexDiv) flexDiv.appendChild(closeBtn);
+
+                container.style.transition = 'all 0.3s ease';
+
+                // Auto-dismiss success and info messages after 5 seconds
+                if (container.classList.contains('flash-success') || container.classList.contains('flash-info')) {
+                    setTimeout(function() {
+                        container.style.opacity = '0';
+                        container.style.transform = 'translateX(20px)';
+                        setTimeout(function() { container.remove(); }, 300);
+                    }, 5000);
+                }
+            });
+
+            // Error shake animation
+            const errorMessages = document.querySelectorAll('.flash-error');
+            if (errorMessages.length > 0) {
+                const form = document.querySelector('form');
+                if (form) {
+                    form.classList.add('shake');
+                    setTimeout(function() { form.classList.remove('shake'); }, 500);
+                }
+            }
+        })();
+
+        /* ========== Button Hover Effect ========== */
+        (function initButtonEffects() {
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (!submitBtn) return;
+
+            submitBtn.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 10px 20px rgba(37, 99, 235, 0.3)';
+            });
+            submitBtn.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '';
+            });
+        })();
+
+        /* ========== Loading State & Double-Submit Prevention ========== */
+        (function initFormSubmit() {
+            const form = document.querySelector('form');
+            if (!form) return;
+
+            let isSubmitting = false;
+            form.addEventListener('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+                isSubmitting = true;
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.classList.add('loading');
+                    submitBtn.disabled = true;
+
+                    // Create spinner if btn-text span exists
+                    const btnText = submitBtn.querySelector('.btn-text');
+                    if (btnText) {
+                        const spinner = document.createElement('div');
+                        spinner.className = 'loading-spinner';
+                        submitBtn.insertBefore(spinner, btnText);
+                    }
+                }
+            });
+        })();
+
+        /* ========== Dark Mode Toggle ========== */
+        function toggleAuthDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            try { localStorage.setItem('ischedwise_dark_mode', isDark.toString()); } catch(e) {}
+        }
+
+        /* ========== Input Validation Feedback ========== */
+        (function initInputFeedback() {
+            const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+            inputs.forEach(function(input) {
+                input.addEventListener('blur', function() {
+                    if (this.value.trim() === '' && this.hasAttribute('required')) {
+                        this.style.borderColor = '#fca5a5';
+                        setTimeout(function() { input.style.borderColor = ''; }, 2000);
+                    }
+                });
+                input.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        this.style.borderColor = '#86efac';
+                        setTimeout(function() { input.style.borderColor = ''; }, 1000);
+                    }
+                });
+            });
+        })();
+
+        {% block extra_js %}{% endblock %}
+    </script>
+</body>
+</html>

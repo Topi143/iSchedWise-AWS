@@ -1,0 +1,8 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+building_id,Building this room belongs to,int,11,FK -> buildings.id,Yes,--
+room_number,"Room identifier, e.g., 'CLB', 'CSB-201', 'HM 101'",varchar,50,,Yes,--
+room_type,"Room classification: Lecture, Laboratory, or Court/Gym",varchar,50,,Yes,'Lecture'
+is_available,Whether the room is available for scheduling,tinyint(1),--,,Yes,1
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

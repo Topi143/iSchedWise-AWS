@@ -1,0 +1,7 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+year_level_id,Year level that contains this semester,int,11,FK -> year_levels.id,Yes,--
+semester_number,"Numeric indicator: 1=1st Sem, 2=2nd Sem, 3=Summer",int,11,,Yes,--
+semester_name,"Display label, e.g., '1st Semester', 'Summer'",varchar,50,,Yes,--
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

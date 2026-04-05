@@ -1,0 +1,28 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+academic_year,"Active academic year, e.g., '2025-2026'",varchar,20,,Yes,--
+semester,"Active semester: '1st Semester', '2nd Semester', 'Summer'",varchar,50,,Yes,--
+exam_period,"Active exam period label: 'Prelim', 'Midterm', or 'Final'",varchar,20,,Yes,--
+exam_period_start,Start date of the current exam period,date,--,,No,NULL
+exam_period_end,End date of the current exam period,date,--,,No,NULL
+available_semesters,Comma-separated list of semesters selectable in the UI,varchar,100,,Yes,"'1st Semester,2nd Semester'"
+schedule_start_hour,Earliest allowed start hour for class schedules (0-23),int,11,,Yes,7
+schedule_end_hour,Latest allowed end hour for class schedules (0-23),int,11,,Yes,20
+exam_start_hour,Earliest allowed start hour for exam schedules (0-23),int,11,,Yes,7
+exam_end_hour,Latest allowed end hour for exam schedules (0-23),int,11,,Yes,17
+exam_lunch_start,Start of the exam lunch break,time,--,,Yes,'12:00:00'
+exam_lunch_end,End of the exam lunch break,time,--,,Yes,'13:00:00'
+exam_slot_duration,"Duration of each exam time slot in minutes (e.g., 30, 60)",int,11,,Yes,30
+exam_duration_limit,Maximum allowed exam duration in minutes (120 = 2 hours),int,11,,Yes,120
+default_faculty_max_units,Default max teaching unit load applied to all faculty,int,11,,Yes,24
+operation_days,Comma-separated operation days allowed for scheduling,varchar,255,,Yes,"'Monday,Tuesday,Wednesday, Thursday,Friday,Saturday'"
+is_active,Marks this as the currently active configuration row,tinyint(1),--,,Yes,1
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL
+schedule_start_time,Earliest allowed class schedule start time (HH:MM),time,--,,Yes,'07:00:00'
+schedule_end_time,Latest allowed class schedule end time (HH:MM),time,--,,Yes,'20:00:00'
+exam_start_time,Earliest allowed exam schedule start time (HH:MM),time,--,,Yes,'07:00:00'
+exam_end_time,Latest allowed exam schedule end time (HH:MM),time,--,,Yes,'17:00:00'
+smart_max_backtracks_per_subject,Smart scheduler per-subject backtracking limit,int,11,,Yes,3
+smart_max_total_backtracks,Smart scheduler total backtracking limit,int,11,,Yes,50
+smart_timeout_seconds,Smart scheduler timeout in seconds,int,11,,Yes,30

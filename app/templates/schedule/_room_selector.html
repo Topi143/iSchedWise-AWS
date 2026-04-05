@@ -1,0 +1,36 @@
+{# Shared room selector partial for class/exam forms #}
+{# Required context vars:
+   room_search_id, room_hidden_id, room_dropdown_id,
+   room_filter_handler, room_focus_handler, room_select_handler,
+   selector_mode, hover_palette #}
+<div class="form-field-group">
+    <label for="{{ room_search_id }}" class="form-label-compact">
+        Room <span class="text-red-500 dark:text-red-400">*</span>
+    </label>
+    <div class="relative">
+        <input type="text" id="{{ room_search_id }}" placeholder="Search room or building..."
+               oninput="{{ room_filter_handler }}('{{ selector_mode }}', this.value)"
+               onfocus="{{ room_focus_handler }}('{{ selector_mode }}')"
+               class="form-input-compact pr-8"
+               autocomplete="off">
+        <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input type="hidden" id="{{ room_hidden_id }}" name="room_id" required>
+        <div id="{{ room_dropdown_id }}" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+            {% for room in all_rooms %}
+            <div class="room-option px-3 py-2 hover:bg-{{ hover_palette }}-50 dark:hover:bg-{{ hover_palette }}-900/35 cursor-pointer text-sm border-b border-gray-50 dark:border-gray-700 last:border-b-0 transition-colors"
+                 data-room-id="{{ room.id }}"
+                 data-room-number="{{ room.room_number }}"
+                 data-building="{{ room.building.building_name if room.building else '' }}"
+                 data-room-type="{{ room.room_type }}"
+                 onclick="{{ room_select_handler }}('{{ selector_mode }}', {{ room.id }}, '{{ room.room_number|e }}', '{{ room.building.building_name|e if room.building else '' }}')">
+                <div class="font-medium text-gray-900 dark:text-gray-200 text-sm">{{ room.room_number }}</div>
+                {% if room.building %}
+                <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ room.building.building_name }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

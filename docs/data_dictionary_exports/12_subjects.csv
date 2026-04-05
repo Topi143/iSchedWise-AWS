@@ -1,0 +1,11 @@
+Field Name,Description,Data Type,Length,Key,Required,Default
+id,Auto-incremented primary key,int,11,PK,Yes,--
+semester_id,Semester this subject belongs to,int,11,FK -> semesters.id,Yes,--
+subject_code,"Subject code, e.g., 'CSC 101', 'GE COM'",varchar,50,,Yes,--
+course_description,"Full course title, e.g., 'Purposive Communication'",varchar,255,,Yes,--
+lec_units,"Number of lecture units (e.g., 3.0)",decimal,"(3,1)",,Yes,0.0
+lab_units,"Number of laboratory units (e.g., 1.0)",decimal,"(3,1)",,Yes,0.0
+total_units,Generated column: automatically computed as lec_units + lab_units,decimal,"(3,1)",GEN,Yes,--
+prerequisite,Prerequisite subject code(s) as a free-text string,varchar,255,,No,NULL
+created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
+updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL
