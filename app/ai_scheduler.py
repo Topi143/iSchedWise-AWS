@@ -393,14 +393,8 @@ Be direct and actionable. No markdown formatting."""
         parts = []
         entity_label = "exam" if is_exam else "class"
 
-        # Severity summary
-        critical = [c for c in conflicts if c.severity == ConflictSeverity.CRITICAL]
-        high = [c for c in conflicts if c.severity == ConflictSeverity.HIGH]
-
-        if critical:
-            parts.append(f"⚠️ {len(critical)} critical conflict(s) found.")
-        if high:
-            parts.append(f"🔶 {len(high)} high-severity conflict(s) found.")
+        # User-facing summary should stay concise and avoid technical severity wording.
+        parts.append(f"Conflicts found for this {entity_label} schedule.")
 
         # Type-specific messages
         if 'duplicate' in conflict_types:

@@ -65,10 +65,12 @@ function checkExamScheduleWithAI(mode) {
     const conflictsContainer = document.getElementById('aiConflictsExam' + (mode === 'add' ? 'Add' : 'Edit'));
     const recommendationsContainer = document.getElementById('aiRecommendationsExam' + (mode === 'add' ? 'Add' : 'Edit'));
     const explanationDiv = document.getElementById('aiExplanationExam' + (mode === 'add' ? 'Add' : 'Edit'));
+    const explanationWrapper = document.getElementById('aiExplanationWrapperExam' + (mode === 'add' ? 'Add' : 'Edit'));
     
     if (conflictsContainer) conflictsContainer.classList.add('hidden');
     if (recommendationsContainer) recommendationsContainer.classList.add('hidden');
     if (explanationDiv) explanationDiv.classList.add('hidden');
+    if (explanationWrapper) explanationWrapper.classList.add('hidden');
     
     // Call AI API
     fetch('/exam-schedule/ai-check-conflicts', {
@@ -168,6 +170,9 @@ function displayExamConflicts(conflicts, mode) {
     const suffix = mode === 'add' ? 'Add' : 'Edit';
     const conflictsContainer = document.getElementById('aiConflictsExam' + suffix);
     const conflictsList = document.getElementById('aiConflictsListExam' + suffix);
+    const isDetailedMode = typeof isDetailedAssistantMode === 'function'
+        ? isDetailedAssistantMode()
+        : (typeof isAiToggleEnabled === 'function' ? isAiToggleEnabled() : false);
     
     if (!conflictsList) return;
     
@@ -189,20 +194,34 @@ function displayExamConflicts(conflicts, mode) {
             if (details.subject) detailParts.push(details.subject);
             if (details.date) detailParts.push(details.date);
             if (details.time) detailParts.push(details.time);
+            const detailTextClass = isDetailedMode
+                ? 'text-[11px] text-gray-500 dark:text-gray-400 mt-1'
+                : 'text-[10px] text-gray-500 dark:text-gray-400 mt-0.5';
             const detailHtml = detailParts.length > 0
-                ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">${detailParts.join(' · ')}</p>` : '';
+                ? `<p class="${detailTextClass}">${detailParts.join(' · ')}</p>` : '';
+
+            const messageClass = isDetailedMode
+                ? `${severityConfig.messageClass} leading-normal`
+                : 'text-gray-800 dark:text-gray-200 leading-snug';
+
+            const metaHtml = isDetailedMode
+                ? `
+                    <div class="mb-0.5">
+                        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 capitalize tracking-wide">${examEscapeHtml(label)}</span>
+                    </div>
+                `
+                : '';
             
             const conflictDiv = document.createElement('div');
-            conflictDiv.className = `p-3 rounded-xl ${severityConfig.cardClass} mb-2.5 last:mb-0 bg-white dark:bg-gray-900/35 shadow-sm`;
+            conflictDiv.className = isDetailedMode
+                ? `p-3 rounded-xl ${severityConfig.cardClass} mb-2.5 last:mb-0 bg-white dark:bg-gray-900/35 shadow-sm`
+                : 'p-2.5 rounded-lg border border-gray-200/90 dark:border-gray-700 mb-2 last:mb-0 bg-white dark:bg-gray-900/25';
             conflictDiv.innerHTML = `
                 <div class="flex items-start gap-2.5">
                     <span class="mt-0.5 ${severityConfig.iconClass}">${icon}</span>
                     <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-0.5">
-                            <span class="text-[10px] font-bold tracking-wide uppercase ${severityConfig.messageClass}">${examEscapeHtml(label)}</span>
-                            <span class="px-1.5 py-0.5 rounded ${severityConfig.badgeClass}">${severity.toUpperCase()}</span>
-                        </div>
-                        <p class="text-xs font-semibold ${severityConfig.messageClass} leading-normal">${conflict.message}</p>
+                        ${metaHtml}
+                        <p class="text-xs font-semibold ${messageClass}">${conflict.message}</p>
                         ${detailHtml}
                     </div>
                 </div>
@@ -272,7 +291,11 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
     const suffix = mode === 'add' ? 'Add' : 'Edit';
     const recommendationsContainer = document.getElementById('aiRecommendationsExam' + suffix);
     const recommendationsList = document.getElementById('aiRecommendationsListExam' + suffix);
-    readOnly = readOnly === true;
+    const basicHint = document.getElementById('aiBasicModeHintExam' + suffix);
+    const recsHeader = document.getElementById('aiRecommendationsHeaderExam' + suffix);
+    const isDetailedMode = typeof isDetailedAssistantMode === 'function'
+        ? isDetailedAssistantMode()
+        : (typeof isAiToggleEnabled === 'function' ? isAiToggleEnabled() : false);
     
     if (!recommendationsList) return;
     
@@ -341,11 +364,21 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
         const uniqueId = `${sectionId}_${recIndex}`;
         const isExpanded = recIndex === 0; // First section expanded by default
         const maxVisibleOptions = 3; // Show first 3 options, rest in "show more"
+        const cardClass = isDetailedMode
+            ? `bg-white dark:bg-gray-900/35 border ${config.border} rounded-xl overflow-hidden mb-2.5 last:mb-0 shadow-sm`
+            : `bg-white dark:bg-gray-900/25 border ${config.border} rounded-lg overflow-hidden mb-2 last:mb-0`;
+        const sectionButtonClass = isDetailedMode
+            ? 'w-full px-3.5 py-3 flex items-center justify-between hover:bg-purple-50/40 dark:hover:bg-purple-900/15 transition-colors'
+            : 'w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors';
+        const sectionBodyClass = isDetailedMode ? 'px-3.5 pb-3.5' : 'px-3 pb-3';
+        const showMoreClass = isDetailedMode
+            ? `mt-2 text-xs ${config.btnText} hover:underline flex items-center gap-1 mx-auto`
+            : 'mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1 mx-auto';
         
         // Desktop version - Enhanced collapsible cards with quick actions
         if (recommendationsList) {
             const recDiv = document.createElement('div');
-            recDiv.className = `bg-white dark:bg-gray-900/35 border ${config.border} rounded-xl overflow-hidden mb-2.5 last:mb-0 shadow-sm`;
+            recDiv.className = cardClass;
             
             // Generate options HTML with improved design
             const generateOptionsHTML = (options, type) => {
@@ -355,7 +388,7 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
                 let html = '<div class="grid grid-cols-1 gap-1.5">';
                 
                 visibleOptions.forEach((opt, idx) => {
-                    html += generateExamOptionButton(opt, idx, type, config, mode, readOnly);
+                    html += generateExamOptionButton(opt, idx, type, config, mode, false, isDetailedMode);
                 });
                 
                 html += '</div>';
@@ -365,11 +398,11 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
                     html += `
                         <div id="moreExamOptions_${uniqueId}" class="hidden mt-2">
                             <div class="grid grid-cols-1 gap-1.5">
-                                ${hiddenOptions.map((opt, idx) => generateExamOptionButton(opt, idx + maxVisibleOptions, type, config, mode, readOnly)).join('')}
+                                ${hiddenOptions.map((opt, idx) => generateExamOptionButton(opt, idx + maxVisibleOptions, type, config, mode, false, isDetailedMode)).join('')}
                             </div>
                         </div>
                         <button type="button" onclick="toggleExamMoreOptions('${uniqueId}', this)" data-more-count="${hiddenOptions.length}"
-                                class="mt-2 text-xs ${config.btnText} hover:underline flex items-center gap-1 mx-auto">
+                                class="${showMoreClass}">
                             <span class="toggle-text">Show ${hiddenOptions.length} more</span>
                             <svg class="w-3 h-3 transition-transform toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -383,7 +416,7 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
             
             recDiv.innerHTML = `
                 <button type="button" onclick="toggleExamRecommendationSection('${uniqueId}')" 
-                        class="w-full px-3.5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors">
+                        class="${sectionButtonClass}">
                     <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">${config.label}</span>
                     <div class="flex items-center gap-1.5">
                         <span class="text-[10px] font-semibold ${config.badgeBg} ${config.badgeText} px-1.5 py-0.5 rounded-full">${rec.options.length}</span>
@@ -392,7 +425,7 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
                         </svg>
                     </div>
                 </button>
-                <div id="examContent_${uniqueId}" class="px-3.5 pb-3.5 ${isExpanded ? '' : 'hidden'}">
+                <div id="examContent_${uniqueId}" class="${sectionBodyClass} ${isExpanded ? '' : 'hidden'}">
                     ${generateOptionsHTML(rec.options, rec.type)}
                 </div>
             `;
@@ -402,6 +435,19 @@ function displayExamRecommendations(recommendations, mode, readOnly) {
     });
     
     if (recommendationsContainer) recommendationsContainer.classList.remove('hidden');
+
+    if (basicHint) {
+        basicHint.classList.toggle('hidden', isDetailedMode);
+    }
+
+    if (recsHeader) {
+        const subtitle = recsHeader.querySelector('p');
+        if (subtitle) {
+            subtitle.textContent = isDetailedMode
+                ? 'Apply actions with richer context and supporting rationale.'
+                : 'Apply actions directly with concise guidance.';
+        }
+    }
 }
 
 /**
@@ -417,41 +463,36 @@ function getExamConfidenceBadgeClass(confidence) {
 /**
  * Generate exam option button HTML based on type
  */
-function generateExamOptionButton(opt, idx, type, config, mode, readOnly) {
-    readOnly = readOnly === true;
-    const baseClasses = readOnly
-        ? `flex items-center gap-2 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 rounded-lg`
-        : `group flex items-center gap-2 px-3 py-2 text-xs ${config.btnBg} border ${config.btnBorder} rounded-lg transition-all cursor-pointer`;
-    const reasonHtml = opt.reason ? `<span class="text-[10px] text-gray-500 dark:text-gray-400 truncate"> · ${opt.reason}</span>` : '';
+function generateExamOptionButton(opt, idx, type, config, mode, readOnly, detailedMode = false) {
+    const baseClasses = detailedMode
+        ? `group flex items-start gap-2.5 px-3 py-2.5 text-xs ${config.btnBg} border ${config.btnBorder} rounded-lg transition-all cursor-pointer`
+        : `group flex items-center gap-2 px-2.5 py-1.5 text-[11px] ${config.btnBg} border ${config.btnBorder} rounded-md transition-all cursor-pointer`;
+    const labelClasses = detailedMode ? `font-semibold ${config.btnText}` : `font-medium ${config.btnText}`;
+    const reasonHtml = opt.reason
+        ? (detailedMode
+            ? `<span class="block text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">${opt.reason}</span>`
+            : `<span class="text-[10px] text-gray-500 dark:text-gray-400 truncate"> · ${opt.reason}</span>`)
+        : '';
+    const buildTextContent = (text) => detailedMode
+        ? `<span class="min-w-0 flex-1"><span class="${labelClasses}">${text}</span>${reasonHtml}</span>`
+        : `<span class="${labelClasses}">${text}</span>${reasonHtml}`;
     
     // Handle both 'time' and 'time_slot' types (backend uses 'time_slot')
     if (type === 'time' || type === 'time_slot') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200">${opt.display}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyExamTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" class="${baseClasses}">
-            <span class="font-medium ${config.btnText}">${opt.display}</span>${reasonHtml}
+            ${buildTextContent(opt.display)}
         </button>`;
     } else if (type === 'date') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200">${opt.display}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyExamDate('${opt.exam_date}', '${mode}', '${opt.display}')" class="${baseClasses}">
-            <span class="font-medium ${config.btnText}">${opt.display}</span>${reasonHtml}
+            ${buildTextContent(opt.display)}
         </button>`;
     } else if (type === 'room') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200 truncate">${opt.display}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyExamRoom(${opt.room_id}, '${mode}', '${opt.display.replace(/'/g, "\\'")}')" class="${baseClasses} text-left">
-            <span class="font-medium ${config.btnText} truncate">${opt.display}</span>${reasonHtml}
+            ${buildTextContent(opt.display)}
         </button>`;
     } else if (type === 'faculty') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200 truncate">${opt.display}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyExamFaculty(${opt.faculty_id}, '${mode}', '${opt.display.replace(/'/g, "\\'")}')" class="${baseClasses} text-left">
-            <span class="font-medium ${config.btnText} truncate">${opt.display}</span>${reasonHtml}
+            ${buildTextContent(opt.display)}
         </button>`;
     }
     return '';
@@ -497,12 +538,33 @@ function toggleExamMoreOptions(id, btn) {
  * @param {string} mode - 'add' or 'edit'
  */
 function displayExamAIExplanation(explanation, mode) {
-    const explanationDiv = document.getElementById('aiExplanationExam' + (mode === 'add' ? 'Add' : 'Edit'));
+    const suffix = mode === 'add' ? 'Add' : 'Edit';
+    const explanationDiv = document.getElementById('aiExplanationExam' + suffix);
+    const explanationWrapper = document.getElementById('aiExplanationWrapperExam' + suffix);
+    const isDetailedMode = typeof isDetailedAssistantMode === 'function'
+        ? isDetailedAssistantMode()
+        : (typeof isAiToggleEnabled === 'function' ? isAiToggleEnabled() : false);
+    const heading = isDetailedMode ? 'Detailed Analysis' : 'Quick Check';
+    const bodyClass = isDetailedMode
+        ? 'text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line'
+        : 'text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line';
+
+    if (explanationWrapper) {
+        explanationWrapper.className = isDetailedMode
+            ? 'mb-3 rounded-xl border border-purple-300/90 dark:border-purple-700 bg-gradient-to-br from-purple-50/90 to-indigo-50/70 dark:from-purple-900/25 dark:to-indigo-900/20 px-3.5 py-3 shadow-sm'
+            : 'mb-2.5 rounded-lg border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900/25 px-3 py-2';
+        explanationWrapper.innerHTML = `
+            <p class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">${heading}</p>
+            <div id="aiExplanationExam${suffix}" class="${bodyClass}">${explanation}</div>
+        `;
+        explanationWrapper.classList.remove('hidden');
+        return;
+    }
     
     if (explanationDiv) {
         explanationDiv.innerHTML = `
-            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">AI Analysis</p>
-            <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">${explanation}</p>
+            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">${heading}</p>
+            <p class="${bodyClass}">${explanation}</p>
         `;
         explanationDiv.classList.remove('hidden');
     }
@@ -619,7 +681,7 @@ function applyExamFaculty(facultyId, mode, displayText = '') {
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium text-gray-900 truncate">${displayText}</div>
-                <div class="text-xs text-gray-500">Applied from AI suggestion</div>
+                <div class="text-xs text-gray-500">Applied from assistant suggestion</div>
             </div>
         `;
     }

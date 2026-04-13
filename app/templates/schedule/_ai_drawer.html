@@ -13,21 +13,15 @@
     <div id="aiDrawerHeader" class="flex-shrink-0 border-b border-gray-100 dark:border-gray-700 px-3.5 sm:px-4 py-3 bg-white dark:bg-gray-800">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-                <div id="aiDrawerHeaderIcon" class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 {% if ai_enabled %}bg-purple-600{% else %}bg-gray-500{% endif %}">
-                    {% if ai_enabled %}
-                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                    </svg>
-                    {% else %}
+                <div id="aiDrawerHeaderIcon" class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 bg-blue-600">
                     <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
-                    {% endif %}
                 </div>
                 <div>
                     <h3 id="aiDrawerTitle" class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">Schedule Assistant</h3>
-                    <p id="aiDrawerSubtitle" class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{{ 'AI conflict checks and suggestions' if ai_enabled else 'Rule-based conflict checks' }}</p>
-                    <p id="aiDrawerModeLabel" class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-1">{{ 'AI mode' if ai_enabled else 'Basic mode' }}</p>
+                    <p id="aiDrawerSubtitle" class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Conflict checks with clear, actionable suggestions</p>
+                    <p id="aiDrawerModeLabel" class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-1">Quick mode</p>
                     <div class="mt-1">
                         <span id="aiDrawerStatePill" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Idle</span>
                     </div>
@@ -36,12 +30,12 @@
             <div class="flex items-center gap-2">
                 <!-- Mode Toggle -->
                 <div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700 rounded-full px-2 py-1">
-                    <span id="aiToggleLabelBasic" class="text-[10px] font-medium select-none transition-colors duration-200 {% if ai_enabled %}text-gray-400{% else %}text-gray-600{% endif %}">Basic</span>
-                    <label class="relative inline-flex items-center cursor-pointer" title="Switch between Basic and AI mode">
-                        <input type="checkbox" id="aiToggleClassDesktop" class="sr-only peer ai-toggle-checkbox" {% if ai_enabled %}checked{% endif %}>
+                    <span id="aiToggleLabelBasic" class="text-[10px] font-medium select-none transition-colors duration-200 text-blue-600 dark:text-blue-300">Quick</span>
+                    <label class="relative inline-flex items-center cursor-pointer" title="Switch between Quick and Detailed mode">
+                        <input type="checkbox" id="aiToggleClassDesktop" class="sr-only peer ai-toggle-checkbox">
                         <div class="w-7 h-4 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-purple-500 peer-checked:after:translate-x-3 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all after:shadow-sm"></div>
                     </label>
-                    <span id="aiToggleLabelAI" class="text-[10px] font-medium select-none transition-colors duration-200 {% if ai_enabled %}text-purple-600{% else %}text-gray-400{% endif %}">AI</span>
+                    <span id="aiToggleLabelAI" class="text-[10px] font-medium select-none transition-colors duration-200 text-gray-400">Detailed</span>
                 </div>
                 <div class="w-px h-4 bg-gray-200 dark:bg-gray-600"></div>
                 <button type="button" onclick="toggleAIDrawer()" class="hidden lg:inline-flex p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Collapse Assistant">
@@ -81,11 +75,11 @@
                 <div id="aiResolveAllAdd" class="hidden mb-3"></div>
                 <div id="aiRecommendationsAdd" class="hidden">
                     <div id="aiRecommendationsHeaderAdd" class="mb-2.5 px-0.5">
-                        <p class="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Suggestions</p>
+                        <p class="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Recommended Actions</p>
                     </div>
                     <div id="aiRecommendationsListAdd" class="space-y-2.5"></div>
                     <div id="aiBasicModeHintAdd" class="hidden mt-3 py-2.5 px-3 bg-gray-50 dark:bg-gray-900/40 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-center">
-                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Switch to <strong class="text-purple-600 dark:text-purple-400">AI</strong> mode for one-click apply</p>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Detailed mode includes fuller rationale and workload context.</p>
                     </div>
                 </div>
             </div>
@@ -98,8 +92,8 @@
                         </svg>
                     </div>
                 </div>
-                <h5 class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-1">Waiting for Input</h5>
-                <p class="text-[10px] text-gray-400 dark:text-gray-500 max-w-[180px] leading-relaxed">Fill in the schedule details to check for conflicts</p>
+                <h5 class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-1">Ready for Input</h5>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 max-w-[180px] leading-relaxed">Complete required schedule fields to run conflict checks.</p>
             </div>
         </div>
 
@@ -116,11 +110,11 @@
                 <div id="aiResolveAllExamAdd" class="hidden mb-3"></div>
                 <div id="aiRecommendationsExamAdd" class="hidden">
                     <div id="aiRecommendationsHeaderExamAdd" class="mb-2.5 px-0.5">
-                        <p class="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Suggestions</p>
+                        <p class="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Recommended Actions</p>
                     </div>
                     <div id="aiRecommendationsListExamAdd" class="space-y-2.5"></div>
                     <div id="aiBasicModeHintExamAdd" class="hidden mt-3 py-2.5 px-3 bg-gray-50 dark:bg-gray-900/40 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-center">
-                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Switch to <strong class="text-purple-600 dark:text-purple-400">AI</strong> mode for one-click apply</p>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Detailed mode includes fuller rationale and workload context.</p>
                     </div>
                 </div>
             </div>
@@ -133,8 +127,8 @@
                         </svg>
                     </div>
                 </div>
-                <h5 class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-1">Waiting for Input</h5>
-                <p class="text-[10px] text-gray-400 dark:text-gray-500 max-w-[180px] leading-relaxed">Fill in the exam details to check for conflicts</p>
+                <h5 class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-1">Ready for Input</h5>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 max-w-[180px] leading-relaxed">Complete required exam fields to run conflict checks.</p>
             </div>
         </div>
 

@@ -4069,7 +4069,7 @@ function checkScheduleWithAI(mode) {
     })
     .then(data => {
         if (!data.ai_enabled) {
-            explanationEl.textContent = 'AI assistance is not enabled. Configure your Gemini API key to use this feature.';
+            explanationEl.textContent = 'Detailed insights are not enabled. Configure your Gemini API key to use this feature.';
             return;
         }
         
@@ -4099,6 +4099,9 @@ function displayAIConflicts(conflicts, mode) {
     const suffix = mode === 'add' ? 'Add' : 'Edit';
     const conflictsContainer = document.getElementById('aiConflicts' + suffix);
     const conflictsList = document.getElementById('aiConflictsList' + suffix);
+    const isDetailedMode = typeof isDetailedAssistantMode === 'function'
+        ? isDetailedAssistantMode()
+        : (typeof isAiToggleEnabled === 'function' ? isAiToggleEnabled() : false);
     
     // Clear list
     if (conflictsList) conflictsList.innerHTML = '';
@@ -4116,20 +4119,34 @@ function displayAIConflicts(conflicts, mode) {
             if (details.subject) detailParts.push(details.subject);
             if (details.day) detailParts.push(details.day);
             if (details.time) detailParts.push(details.time);
+            const detailTextClass = isDetailedMode
+                ? 'text-[11px] text-gray-500 dark:text-gray-400 mt-1'
+                : 'text-[10px] text-gray-500 dark:text-gray-400 mt-0.5';
             const detailHtml = detailParts.length > 0
-                ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">${detailParts.join(' · ')}</p>` : '';
+                ? `<p class="${detailTextClass}">${detailParts.join(' · ')}</p>` : '';
+
+            const messageClass = isDetailedMode
+                ? `${severityConfig.messageClass} leading-normal`
+                : 'text-gray-800 dark:text-gray-200 leading-snug';
+
+            const metaHtml = isDetailedMode
+                ? `
+                    <div class="mb-1">
+                        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 capitalize tracking-wide">${conflictType}</span>
+                    </div>
+                `
+                : '';
             
             const conflictDiv = document.createElement('div');
-            conflictDiv.className = `mb-2.5 last:mb-0 rounded-xl border ${severityConfig.cardClass} bg-white dark:bg-gray-900/35 p-3 shadow-sm`;
+            conflictDiv.className = isDetailedMode
+                ? `mb-2.5 last:mb-0 rounded-xl border ${severityConfig.cardClass} bg-white dark:bg-gray-900/35 p-3 shadow-sm`
+                : 'mb-2 last:mb-0 rounded-lg border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900/25 p-2.5';
             conflictDiv.innerHTML = `
                 <div class="flex items-start gap-2.5">
                     <span class="mt-1 w-2 h-2 rounded-full ${severityConfig.dotClass} flex-shrink-0"></span>
                     <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-1.5 mb-1">
-                            <span class="text-[9px] font-semibold uppercase tracking-wide ${severityConfig.badgeClass}">${severity.toUpperCase()}</span>
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">${conflictType}</span>
-                        </div>
-                        <p class="text-xs font-semibold ${severityConfig.messageClass} leading-normal">${conflict.message}</p>
+                        ${metaHtml}
+                        <p class="text-xs font-semibold ${messageClass}">${conflict.message}</p>
                         ${detailHtml}
                     </div>
                 </div>
@@ -4195,7 +4212,9 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
     const recommendationsList = document.getElementById('aiRecommendationsList' + suffix);
     const basicHint = document.getElementById('aiBasicModeHint' + suffix);
     const recsHeader = document.getElementById('aiRecommendationsHeader' + suffix);
-    readOnly = readOnly === true;
+    const isDetailedMode = typeof isDetailedAssistantMode === 'function'
+        ? isDetailedAssistantMode()
+        : (typeof isAiToggleEnabled === 'function' ? isAiToggleEnabled() : false);
     
     // Clear list
     if (recommendationsList) recommendationsList.innerHTML = '';
@@ -4249,11 +4268,21 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
         const uniqueId = `${sectionId}_${recIndex}`;
         const isExpanded = recIndex === 0; // First section expanded by default
         const maxVisibleOptions = 3; // Show first 3 options, rest in "show more"
+        const cardClass = isDetailedMode
+            ? `bg-white dark:bg-gray-900/35 border ${config.border} rounded-xl overflow-hidden mb-2.5 last:mb-0 shadow-sm`
+            : `bg-white dark:bg-gray-900/25 border ${config.border} rounded-lg overflow-hidden mb-2 last:mb-0`;
+        const sectionButtonClass = isDetailedMode
+            ? 'w-full px-3.5 py-3 flex items-center justify-between hover:bg-purple-50/40 dark:hover:bg-purple-900/15 transition-colors'
+            : 'w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors';
+        const sectionBodyClass = isDetailedMode ? 'px-3.5 pb-3.5' : 'px-3 pb-3';
+        const showMoreClass = isDetailedMode
+            ? `mt-2 text-xs ${config.btnText} hover:underline flex items-center gap-1 mx-auto`
+            : 'mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1 mx-auto';
         
         // Desktop version - Enhanced collapsible cards with quick actions
         if (recommendationsList) {
             const recDiv = document.createElement('div');
-            recDiv.className = `bg-white dark:bg-gray-900/35 border ${config.border} rounded-xl overflow-hidden mb-2.5 last:mb-0 shadow-sm`;
+            recDiv.className = cardClass;
             
             // Generate options HTML with improved design
             const generateOptionsHTML = (options, type) => {
@@ -4263,7 +4292,7 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
                 let html = '<div class="grid grid-cols-1 gap-1.5">';
                 
                 visibleOptions.forEach((opt, idx) => {
-                    html += generateOptionButton(opt, idx, type, config, mode, readOnly);
+                    html += generateOptionButton(opt, idx, type, config, mode, false, isDetailedMode);
                 });
                 
                 html += '</div>';
@@ -4273,11 +4302,11 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
                     html += `
                         <div id="moreOptions_${uniqueId}" class="hidden mt-2">
                             <div class="grid grid-cols-1 gap-1.5">
-                                ${hiddenOptions.map((opt, idx) => generateOptionButton(opt, idx + maxVisibleOptions, type, config, mode, readOnly)).join('')}
+                                ${hiddenOptions.map((opt, idx) => generateOptionButton(opt, idx + maxVisibleOptions, type, config, mode, false, isDetailedMode)).join('')}
                             </div>
                         </div>
                         <button type="button" onclick="toggleMoreOptions('${uniqueId}', this)" data-more-count="${hiddenOptions.length}"
-                                class="mt-2 text-xs ${config.btnText} hover:underline flex items-center gap-1 mx-auto">
+                                class="${showMoreClass}">
                             <span class="toggle-text">Show ${hiddenOptions.length} more</span>
                             <svg class="w-3 h-3 transition-transform toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -4291,7 +4320,7 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
             
             recDiv.innerHTML = `
                 <button type="button" onclick="toggleRecommendationSection('${uniqueId}')" 
-                        class="w-full px-3.5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors">
+                        class="${sectionButtonClass}">
                     <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">${config.label}</span>
                     <div class="flex items-center gap-1.5">
                         <span class="text-[10px] font-semibold ${config.badgeBg} ${config.badgeText} px-1.5 py-0.5 rounded-full">${rec.options.length}</span>
@@ -4300,7 +4329,7 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
                         </svg>
                     </div>
                 </button>
-                <div id="content_${uniqueId}" class="px-3.5 pb-3.5 ${isExpanded ? '' : 'hidden'}">
+                <div id="content_${uniqueId}" class="${sectionBodyClass} ${isExpanded ? '' : 'hidden'}">
                     ${generateOptionsHTML(rec.options, rec.type)}
                 </div>
             `;
@@ -4311,22 +4340,18 @@ function displayAIRecommendations(recommendations, mode, readOnly) {
     
     if (recommendationsContainer) recommendationsContainer.classList.remove('hidden');
 
-    // Show/hide Basic Mode hint
+    // Show/hide Quick mode hint
     if (basicHint) {
-        if (readOnly) {
-            basicHint.classList.remove('hidden');
-        } else {
-            basicHint.classList.add('hidden');
-        }
+        basicHint.classList.toggle('hidden', isDetailedMode);
     }
 
     // Update recommendations header subtitle based on mode
     if (recsHeader) {
         const subtitle = recsHeader.querySelector('p');
         if (subtitle) {
-            subtitle.textContent = readOnly
-                ? 'View-only suggestions. Enable AI mode for one-click apply.'
-                : 'Click any suggestion to apply it instantly.';
+            subtitle.textContent = isDetailedMode
+                ? 'Apply actions with richer context and supporting rationale.'
+                : 'Apply actions directly with concise guidance.';
         }
     }
 }
@@ -4344,42 +4369,37 @@ function getConfidenceBadgeClass(confidence) {
 /**
  * Generate option button HTML based on type
  */
-function generateOptionButton(opt, idx, type, config, mode, readOnly) {
-    readOnly = readOnly === true;
-    const baseClasses = readOnly
-        ? `flex items-center gap-2 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 rounded-lg`
-        : `group flex items-center gap-2 px-3 py-2 text-xs ${config.btnBg} border ${config.btnBorder} rounded-lg transition-all cursor-pointer`;
-    const reasonHtml = opt.reason ? `<span class="text-[10px] text-gray-500 dark:text-gray-400 truncate"> · ${opt.reason}</span>` : '';
+function generateOptionButton(opt, idx, type, config, mode, readOnly, detailedMode = false) {
+    const baseClasses = detailedMode
+        ? `group flex items-start gap-2.5 px-3 py-2.5 text-xs ${config.btnBg} border ${config.btnBorder} rounded-lg transition-all cursor-pointer`
+        : `group flex items-center gap-2 px-2.5 py-1.5 text-[11px] ${config.btnBg} border ${config.btnBorder} rounded-md transition-all cursor-pointer`;
+    const labelClasses = detailedMode ? `font-semibold ${config.btnText}` : `font-medium ${config.btnText}`;
+    const reasonHtml = opt.reason
+        ? (detailedMode
+            ? `<span class="block text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">${opt.reason}</span>`
+            : `<span class="text-[10px] text-gray-500 dark:text-gray-400 truncate"> · ${opt.reason}</span>`)
+        : '';
+    const buildTextContent = (text) => detailedMode
+        ? `<span class="min-w-0 flex-1"><span class="${labelClasses}">${text}</span>${reasonHtml}</span>`
+        : `<span class="${labelClasses}">${text}</span>${reasonHtml}`;
     
     if (type === 'time_slot') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200">${opt.display}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyTimeSlot('${opt.start_time}', '${opt.end_time}', '${mode}')" class="${baseClasses}">
-            <span class="font-medium ${config.btnText}">${opt.display}</span>${reasonHtml}
+            ${buildTextContent(opt.display)}
         </button>`;
     } else if (type === 'day') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200">${opt.day}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyDay('${opt.day}', '${mode}')" class="${baseClasses}">
-            <span class="font-medium ${config.btnText}">${opt.day}</span>${reasonHtml}
+            ${buildTextContent(opt.day)}
         </button>`;
     } else if (type === 'room') {
         const roomName = opt.display.split(' (')[0];
         const building = opt.display.includes('(') ? ' (' + opt.display.split('(')[1] : '';
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200 truncate">${roomName}${building}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyRoom(${opt.room_id}, '${mode}', '${opt.display.replace(/'/g, "\\'")}')" class="${baseClasses} text-left">
-            <span class="font-medium ${config.btnText} truncate">${roomName}${building}</span>${reasonHtml}
+            ${buildTextContent(roomName + building)}
         </button>`;
     } else if (type === 'faculty') {
-        if (readOnly) {
-            return `<div class="${baseClasses}"><span class="font-medium text-gray-700 dark:text-gray-200 truncate">${opt.display}</span>${reasonHtml}</div>`;
-        }
         return `<button type="button" onclick="applyFaculty(${opt.faculty_id}, '${mode}', '${opt.display.replace(/'/g, "\\'")}')" class="${baseClasses}">
-            <span class="font-medium ${config.btnText} truncate">${opt.display}</span>${reasonHtml}
+            ${buildTextContent(opt.display)}
         </button>`;
     }
     return '';
@@ -4433,17 +4453,23 @@ function displayExplanation(suffix, text, isAiPowered) {
         return;
     }
 
-    const heading = isAiPowered ? 'AI Insight' : 'Conflict Summary';
+    const detailedMode = typeof isDetailedAssistantMode === 'function' ? isDetailedAssistantMode() : Boolean(isAiPowered);
+    const heading = detailedMode ? 'Detailed Analysis' : 'Quick Check';
+    const bodyClass = detailedMode
+        ? 'text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line'
+        : 'text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line';
 
-    wrapper.className = 'mb-3 rounded-xl border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900/30 px-3 py-2.5 shadow-sm';
+    wrapper.className = detailedMode
+        ? 'mb-3 rounded-xl border border-purple-300/90 dark:border-purple-700 bg-gradient-to-br from-purple-50/90 to-indigo-50/70 dark:from-purple-900/25 dark:to-indigo-900/20 px-3.5 py-3 shadow-sm'
+        : 'mb-2.5 rounded-lg border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900/25 px-3 py-2';
     wrapper.innerHTML = `
         <p class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">${heading}</p>
-        <div id="${textId}" class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">${text}</div>
+        <div id="${textId}" class="${bodyClass}">${text}</div>
     `;
     wrapper.classList.remove('hidden');
 }
 
-// Helper function to display workload summary in the drawer (AI-Powered only)
+// Helper function to display workload summary in the drawer (Detailed mode only)
 function displayWorkloadSummary(suffix, workloadData) {
     const elId = 'aiWorkloadSummary' + suffix;
     const el = document.getElementById(elId);
@@ -4459,14 +4485,27 @@ function displayWorkloadSummary(suffix, workloadData) {
     const pct = Math.min(Math.round((hours / maxHours) * 100), 100);
     const status = workloadData.status || 'balanced';
     const barColor = status === 'at_limit' ? 'bg-red-400' : status === 'heavy' ? 'bg-amber-400' : 'bg-emerald-400';
+    const statusLabel = status === 'at_limit' ? 'At limit' : status === 'heavy' ? 'Heavy load' : 'Balanced';
+    const statusTone = status === 'at_limit'
+        ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+        : status === 'heavy'
+            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
 
     el.innerHTML = `
-        <div class="flex items-center gap-2 py-2 px-2.5 rounded-md border border-gray-200/80 dark:border-gray-700 bg-white/80 dark:bg-gray-900/25">
-            <span class="text-[10px] font-medium text-gray-600 dark:text-gray-300 truncate max-w-[110px]">${workloadData.faculty_name}</span>
-            <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div class="h-full ${barColor} rounded-full transition-all" style="width:${pct}%"></div>
+        <div class="rounded-xl border border-purple-200/80 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-900/15 p-3 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Workload Context</p>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold ${statusTone}">${statusLabel}</span>
             </div>
-            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">${hours}/${maxHours}h</span>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-medium text-gray-600 dark:text-gray-300 truncate max-w-[110px]">${workloadData.faculty_name}</span>
+                <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full ${barColor} rounded-full transition-all" style="width:${pct}%"></div>
+                </div>
+                <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">${hours}/${maxHours}h</span>
+            </div>
+            <p class="mt-2 text-[10px] text-gray-500 dark:text-gray-400">${pct}% of weekly capacity in current plan.</p>
         </div>
     `;
     el.classList.remove('hidden');
@@ -4605,7 +4644,7 @@ function applyFaculty(facultyId, mode, displayText = '') {
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium text-gray-900 truncate">${displayText}</div>
-                <div class="text-xs text-gray-500">Applied from AI suggestion</div>
+                <div class="text-xs text-gray-500">Applied from assistant suggestion</div>
             </div>
         `;
     }

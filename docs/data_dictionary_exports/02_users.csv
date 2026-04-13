@@ -16,7 +16,7 @@ needs_password_change,Forces a password change on the user's next login,tinyint(
 two_factor_enabled,Whether TOTP two-factor authentication is enabled,tinyint(1),--,,Yes,0
 two_factor_secret,Base32 secret used for TOTP verification,varchar,64,,No,NULL
 two_factor_enabled_at,Timestamp when two-factor authentication was enabled,datetime,--,,No,NULL
-text_size,Text size preference as a percentage (range 70-150),int,11,,Yes,100
+text_size,Text size preference as a percentage (range 90-120),int,11,,Yes,100
 dark_mode,"UI preference: 0 = light mode, 1 = dark mode",tinyint(1),--,,Yes,0
 created_at,Timestamp when the record was created,datetime,--,,Yes,current_timestamp()
 updated_at,Timestamp of the last update; auto-updated on change,datetime,--,,No,NULL

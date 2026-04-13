@@ -43,6 +43,12 @@ class Config:
 
     # Session policy configuration
     SESSION_LOGOUT_POLICY = os.environ.get('SESSION_LOGOUT_POLICY', 'browser_close')
+
+    # Display preferences configuration
+    TEXT_SIZE_MIN = int(os.environ.get('TEXT_SIZE_MIN') or 90)
+    TEXT_SIZE_MAX = int(os.environ.get('TEXT_SIZE_MAX') or 120)
+    TEXT_SIZE_DEFAULT = int(os.environ.get('TEXT_SIZE_DEFAULT') or 100)
+    TEXT_SIZE_STEP = int(os.environ.get('TEXT_SIZE_STEP') or 5)
     
     # WTForms configuration
     WTF_CSRF_ENABLED = True

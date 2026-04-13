@@ -282,10 +282,9 @@ function performAutoExamConflictCheck(mode) {
         const modeSuffix = mode === 'add' ? 'Add' : 'Edit';
         const examModeSuffix = mode === 'add' ? 'ExamAdd' : 'ExamEdit';
 
-        showAutoCheckExamStatus(mode, 'warning', 'Complete all exam details to start AI conflict checking.');
+        showAutoCheckExamStatus(mode, 'warning', 'Complete all required exam details to start conflict checking.');
         updateExamConflictState(mode, false, true);
 
-        document.getElementById('aiConflictsExam' + modeSuffix)?.classList.add('hidden');
         document.getElementById('aiRecommendationsExam' + modeSuffix)?.classList.add('hidden');
         document.getElementById('aiExplanationWrapperExam' + modeSuffix)?.classList.add('hidden');
         document.getElementById('aiWorkloadSummaryExam' + modeSuffix)?.classList.add('hidden');
@@ -308,20 +307,20 @@ function performAutoExamConflictCheck(mode) {
     selectedDate.setHours(0, 0, 0, 0);
     
     if (selectedDate < today) {
-        showAutoCheckExamStatus(mode, 'error', '⚠️ Cannot schedule exams in the past. Please select a future date.');
+        showAutoCheckExamStatus(mode, 'error', 'Cannot schedule exams in the past. Please select a future date.');
         updateExamConflictState(mode, true, false);
         return;
     }
     
     // Validate time range
     if (startTime && endTime && startTime >= endTime) {
-        showAutoCheckExamStatus(mode, 'error', '⚠️ End time must be after start time');
+        showAutoCheckExamStatus(mode, 'error', 'End time must be after start time.');
         updateExamConflictState(mode, true, false);
         return;
     }
     
     // Show checking status
-    showAutoCheckExamStatus(mode, 'checking', '🔍 Checking for exam conflicts...');
+    showAutoCheckExamStatus(mode, 'checking', 'Checking for exam conflicts...');
     
     // Prepare request data
     const requestData = {
@@ -362,74 +361,62 @@ function performAutoExamConflictCheck(mode) {
         const fallbackMessage = typeof data.ai_fallback_message === 'string' ? data.ai_fallback_message.trim() : '';
         const fallbackReason = typeof data.ai_fallback_reason === 'string' ? data.ai_fallback_reason.trim() : '';
         if (typeof setAIFallbackNotice === 'function') {
-            setAIFallbackNotice(usingFallback ? (fallbackMessage || fallbackReason || 'AI guidance is currently unavailable. Running Manual Assist (Offline) so you can keep scheduling.') : '');
+            setAIFallbackNotice(usingFallback ? (fallbackMessage || fallbackReason || 'AI insights are currently unavailable. Running Quick mode checks (offline) so you can keep scheduling.') : '');
         }
 
         if (!data.ai_enabled) {
-            // Basic Mode — show conflicts + read-only recommendations + explanation
+            // Quick mode — concise info, full actions.
             const suffix = mode === 'add' ? 'ExamAdd' : 'ExamEdit';
-            if (data.has_conflicts && data.conflicts && data.conflicts.length > 0) {
-                const conflictCount = data.conflicts.length;
-                const modeLabel = usingFallback ? 'Fallback: Manual Assist' : 'Manual Assist';
-                showAutoCheckExamStatus(mode, 'error', `⚠️ ${conflictCount} conflict${conflictCount > 1 ? 's' : ''} detected (${modeLabel})`);
-                displayExamAIConflicts(data.conflicts, mode);
 
-                // Show explanation as Conflict Summary (gray card)
-                if (data.ai_explanation && typeof displayExplanation === 'function') {
-                    displayExplanation(suffix, data.ai_explanation, false);
+            if (data.has_conflicts && data.conflicts && data.conflicts.length > 0) {
+                showAutoCheckExamStatus(mode, 'error', 'Conflicts found. Review items below.');
+                displayExamConflicts(data.conflicts, mode);
+
+                if (typeof displayExplanation === 'function') {
+                    displayExplanation(suffix, data.ai_explanation || 'Conflicts detected. Make changes to auto-recheck.', false);
                 }
 
-                // Show recommendations in read-only mode
                 if (data.recommendations && data.recommendations.length > 0) {
-                    displayExamRecommendations(data.recommendations, mode, true);
+                    displayExamRecommendations(data.recommendations, mode, false);
                 } else {
                     document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
                 }
 
-                // Gate auto-resolve: show placeholder instead of button
-                const resolveBtn = document.getElementById('aiResolveAll' + suffix);
-                if (resolveBtn) {
-                    resolveBtn.innerHTML = `<div class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-400 bg-gray-50 border border-dashed border-gray-300 rounded-lg"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>Auto-Resolve available in AI-Powered mode</div>`;
-                    resolveBtn.classList.remove('hidden');
-                }
+                // Keep resolve plan available in Quick mode for parity.
+                showExamResolveAllOption(data.conflicts, mode);
 
-                // Hide workload summary in Basic Mode
+                // Workload remains Detailed-only.
                 document.getElementById('aiWorkloadSummary' + suffix)?.classList.add('hidden');
 
                 updateExamConflictState(mode, true, false);
                 if (typeof autoOpenDrawer === 'function') autoOpenDrawer();
             } else {
-                // No conflicts in Basic Mode
-                // Hide explanation and workload
                 const wrapperEl = document.getElementById('aiExplanationWrapper' + suffix);
                 if (wrapperEl) wrapperEl.classList.add('hidden');
                 document.getElementById('aiWorkloadSummary' + suffix)?.classList.add('hidden');
 
-                const modeLabel = usingFallback ? 'Fallback: Manual Assist' : 'Manual Assist';
-                if (!allFieldsFilled) {
-                    showAutoCheckExamStatus(mode, 'success', `✅ No conflicts detected (${modeLabel}) — Fill remaining fields to submit`);
-                    updateExamConflictState(mode, false, true);
-                } else {
-                    showAutoCheckExamStatus(mode, 'success', `✅ No conflicts detected (${modeLabel})`);
-                    updateExamConflictState(mode, false, false);
-                }
+                showAutoCheckExamStatus(mode, 'success', 'No conflicts found. You can proceed.');
+                updateExamConflictState(mode, false, false);
+                hideExamResolveAllOption(mode);
+
                 if (typeof autoCloseDrawer === 'function') autoCloseDrawer();
             }
-            
-            // Process faculty availability & schedule hours warnings even in offline mode
+
+            // Process faculty availability and schedule-hours warnings in Quick mode.
             displayExamFacultyAvailabilityWarning(mode, data.faculty_availability_warning || null);
             displayExamScheduleHoursWarning(mode, data.schedule_hours_warning || null);
-            
-            // Schedule hours violation blocks submit even in offline mode
+
+            // Schedule hours violation blocks submit even in Quick mode.
             if (data.schedule_hours_warning) {
-                showAutoCheckExamStatus(mode, 'error', `🚫 ${data.schedule_hours_warning}`);
+                showAutoCheckExamStatus(mode, 'error', data.schedule_hours_warning);
+                hideExamResolveAllOption(mode);
                 updateExamConflictState(mode, true, false);
             }
             return;
         }
         
         if (data.error) {
-            showAutoCheckExamStatus(mode, 'error', `❌ ${data.error}`);
+            showAutoCheckExamStatus(mode, 'error', data.error);
             updateExamConflictState(mode, true);
             return;
         }
@@ -445,18 +432,16 @@ function performAutoExamConflictCheck(mode) {
         // Check for schedule hours violation first (blocking)
         if (scheduleHoursWarning) {
             const suffix = mode === 'add' ? 'Add' : 'Edit';
-            showAutoCheckExamStatus(mode, 'error', `🚫 ${scheduleHoursWarning}`);
+            showAutoCheckExamStatus(mode, 'error', scheduleHoursWarning);
             hideExamResolveAllOption(mode);
             updateExamConflictState(mode, true);
             
             // Hide conflict/recommendation panels
-            document.getElementById('aiConflictsExam' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendationsExam' + suffix)?.classList.add('hidden');
         } else if (data.has_conflicts) {
-            // AI-Powered: Has conflicts - disable submit
-            const conflictCount = data.conflicts.length;
+            // Detailed mode: has conflicts - disable submit
             const suffix = mode === 'add' ? 'ExamAdd' : 'ExamEdit';
-            showAutoCheckExamStatus(mode, 'error', `⚠️ ${conflictCount} conflict${conflictCount > 1 ? 's' : ''} detected! Adjust schedule and conflicts will auto-recheck.`);
+            showAutoCheckExamStatus(mode, 'error', 'Conflicts found. Review items below.');
             displayExamConflicts(data.conflicts, mode);
             displayExamRecommendations(data.recommendations, mode, false);
             showExamResolveAllOption(data.conflicts, mode);
@@ -473,12 +458,11 @@ function performAutoExamConflictCheck(mode) {
         } else if (facultyWarning && facultyWarning.type === 'error') {
             // Faculty is explicitly unavailable - this is a hard block
             const suffix = mode === 'add' ? 'Add' : 'Edit';
-            showAutoCheckExamStatus(mode, 'error', `🚫 ${facultyWarning.message}`);
+            showAutoCheckExamStatus(mode, 'error', facultyWarning.message);
             hideExamResolveAllOption(mode);
             updateExamConflictState(mode, true);
             
             // Hide conflict/recommendation panels since this is an availability issue
-            document.getElementById('aiConflictsExam' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendationsExam' + suffix)?.classList.add('hidden');
         } else {
             // No conflicts - enable submit
@@ -487,9 +471,9 @@ function performAutoExamConflictCheck(mode) {
             
             // Check if there's a soft warning about faculty availability
             if (facultyWarning && facultyWarning.type === 'warning') {
-                showAutoCheckExamStatus(mode, 'warning', `✅ No conflicts, but: ${facultyWarning.message}`);
+                showAutoCheckExamStatus(mode, 'warning', `No scheduling conflicts, but ${facultyWarning.message}`);
             } else {
-                showAutoCheckExamStatus(mode, 'success', '✅ No conflicts detected! This exam schedule looks good.');
+                showAutoCheckExamStatus(mode, 'success', 'No conflicts found. This exam schedule looks good.');
             }
             // Only enable submit if all fields are filled
             if (!allFieldsFilled) {
@@ -499,7 +483,6 @@ function performAutoExamConflictCheck(mode) {
             }
             
             // Hide conflict/recommendation panels
-            document.getElementById('aiConflictsExam' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendationsExam' + suffix)?.classList.add('hidden');
             
             // Hide explanation and workload wrappers when no conflicts
@@ -520,14 +503,14 @@ function performAutoExamConflictCheck(mode) {
         });
         
         // Provide more specific error messages
-        let errorMessage = '❌ Network error - Please check your connection';
+        let errorMessage = 'Network error. Please check your connection.';
         if (error.message) {
             if (error.message.includes('Server error')) {
-                errorMessage = `❌ ${error.message}`;
+                errorMessage = error.message;
             } else if (error.message.includes('Failed to fetch')) {
-                errorMessage = '❌ Cannot connect to server - Please ensure the server is running';
+                errorMessage = 'Cannot connect to server. Please ensure the server is running.';
             } else if (error.message.includes('NetworkError')) {
-                errorMessage = '❌ Network error - Check your internet connection';
+                errorMessage = 'Network error. Check your internet connection.';
             }
         }
         
@@ -535,6 +518,43 @@ function performAutoExamConflictCheck(mode) {
         // Allow submission on network errors (don't block user)
         updateExamConflictState(mode, false, false);
     });
+}
+
+function renderAutoCheckExamInlineNotice(mode, type, message) {
+    const suffix = mode === 'add' ? 'Add' : 'Edit';
+    const conflictsContainer = document.getElementById('aiConflictsExam' + suffix);
+    const conflictsList = document.getElementById('aiConflictsListExam' + suffix);
+
+    if (!conflictsContainer || !conflictsList) {
+        return;
+    }
+
+    let toneClass = 'border-gray-200/90 dark:border-gray-700 text-gray-700 dark:text-gray-300';
+    let indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0"></span>';
+
+    if (type === 'checking') {
+        toneClass = 'border-blue-200/90 dark:border-blue-800 text-blue-700 dark:text-blue-300';
+        indicatorHtml = '<svg class="w-3 h-3 mt-0.5 text-blue-500 dark:text-blue-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    } else if (type === 'success') {
+        toneClass = 'border-emerald-200/90 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300';
+        indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 flex-shrink-0"></span>';
+    } else if (type === 'error') {
+        toneClass = 'border-red-200/90 dark:border-red-800 text-red-700 dark:text-red-300';
+        indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-red-500 dark:bg-red-400 flex-shrink-0"></span>';
+    } else if (type === 'warning') {
+        toneClass = 'border-amber-200/90 dark:border-amber-800 text-amber-700 dark:text-amber-300';
+        indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 flex-shrink-0"></span>';
+    }
+
+    conflictsList.innerHTML = `
+        <div class="mb-2 rounded-lg border ${toneClass} bg-white dark:bg-gray-900/25 p-2.5">
+            <div class="flex items-start gap-2">
+                ${indicatorHtml}
+                <p class="text-xs font-medium leading-relaxed">${message}</p>
+            </div>
+        </div>
+    `;
+    conflictsContainer.classList.remove('hidden');
 }
 
 /**
@@ -560,50 +580,15 @@ function showAutoCheckExamStatus(mode, type, message) {
         emptyState.classList.add('hidden');
     }
     
-    // Show AI panel for conflicts/recommendations
-    if (type === 'success' || type === 'error') {
-        if (aiPanel) aiPanel.classList.remove('hidden');
-    }
-    
-    // Lightweight inline status: colored dot + text
-    let dotColor = '';
-    let textColor = '';
-    let dotHtml = '';
-    
-    switch(type) {
-        case 'checking':
-            textColor = 'text-blue-600 dark:text-blue-400';
-            dotHtml = '<svg class="w-3 h-3 text-blue-500 dark:text-blue-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-            break;
-        case 'success':
-            dotColor = 'bg-emerald-400';
-            textColor = 'text-emerald-700 dark:text-emerald-300';
-            dotHtml = `<span class="w-2 h-2 rounded-full ${dotColor} flex-shrink-0"></span>`;
-            break;
-        case 'error':
-            dotColor = 'bg-red-400';
-            textColor = 'text-red-700 dark:text-red-300';
-            dotHtml = `<span class="w-2 h-2 rounded-full ${dotColor} flex-shrink-0"></span>`;
-            break;
-        case 'warning':
-            dotColor = 'bg-amber-400';
-            textColor = 'text-amber-700 dark:text-amber-300';
-            dotHtml = `<span class="w-2 h-2 rounded-full ${dotColor} flex-shrink-0"></span>`;
-            break;
-    }
-    
-    // Render status in drawer
+    // Keep assistant panel visible because status now renders inside conflict/result area.
+    if (aiPanel) aiPanel.classList.remove('hidden');
+
     if (statusContainer) {
-        statusContainer.innerHTML = `
-            <div class="flex items-start gap-2.5 py-2.5 px-3 mb-2.5 rounded-xl border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900/35 shadow-sm">
-                <div class="mt-0.5">${dotHtml}</div>
-                <div class="min-w-0">
-                    <p class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Live Conflict Check</p>
-                    <p class="text-xs font-medium ${textColor} leading-relaxed">${message}</p>
-                </div>
-            </div>
-        `;
+        statusContainer.innerHTML = '';
+        statusContainer.classList.add('hidden');
     }
+
+    renderAutoCheckExamInlineNotice(mode, type, message);
 }
 
 /**
@@ -875,6 +860,7 @@ function _gatherExamFormData(mode) {
     return {
         section_id: parseInt(document.getElementById('section_id_exam' + suffix)?.value) || null,
         subject_id: parseInt(document.getElementById('subject_id_exam' + suffix)?.value) || null,
+        schedule_type: document.getElementById('schedule_type_exam' + suffix)?.value || 'lecture',
         faculty_id: parseInt(document.getElementById('faculty_id_exam' + suffix)?.value) || null,
         room_id: parseInt(document.getElementById('room_id_exam' + suffix)?.value) || null,
         exam_date: document.getElementById('exam_date' + suffix)?.value || '',

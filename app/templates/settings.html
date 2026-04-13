@@ -2142,14 +2142,14 @@
                                     </svg>
                                 </button>
                                 <div class="flex-1 relative">
-                                    <input type="range" id="textSizeSlider" min="70" max="150" step="5" value="{{ user_text_size }}"
+                                    <input type="range" id="textSizeSlider" min="{{ text_size_min }}" max="{{ text_size_max }}" step="{{ text_size_step }}" value="{{ user_text_size }}" data-default="{{ text_size_default }}"
                                         class="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                         style="accent-color: #2563eb;">
                                     <!-- Scale markers -->
                                     <div class="relative mt-1 h-3 px-0.5">
-                                        <span class="absolute left-0 text-[10px] text-gray-400">70%</span>
-                                        <span class="absolute text-[10px] text-gray-400" style="left: 37.5%; transform: translateX(-50%);">100%</span>
-                                        <span class="absolute right-0 text-[10px] text-gray-400">150%</span>
+                                        <span class="absolute left-0 text-[10px] text-gray-400">{{ text_size_min }}%</span>
+                                        <span id="textSizeDefaultMarker" class="absolute text-[10px] text-gray-400" style="left: 50%; transform: translateX(-50%);">{{ text_size_default }}%</span>
+                                        <span class="absolute right-0 text-[10px] text-gray-400">{{ text_size_max }}%</span>
                                     </div>
                                 </div>
                                 <button type="button" id="textSizeIncrease" class="btn-secondary w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center p-0 flex-shrink-0 mobile-tap-btn" title="Increase text size">
@@ -2173,7 +2173,7 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                     </svg>
-                                    Reset to Default (100%)
+                                    Reset to Default ({{ text_size_default }}%)
                                 </button>
                             </div>
                         </div>
@@ -3390,9 +3390,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!slider) return;
     
-    const sliderMin = Number(slider.min) || 70;
-    const sliderMax = Number(slider.max) || 150;
+    const sliderMin = Number(slider.min) || 90;
+    const sliderMax = Number(slider.max) || 120;
     const sliderStep = Number(slider.step) || 5;
+    const sliderDefault = normalizeSliderValue(slider.dataset.default || 100);
+    const defaultMarker = document.getElementById('textSizeDefaultMarker');
+
+    if (defaultMarker) {
+        const defaultRatio = sliderMax === sliderMin
+            ? 0.5
+            : (sliderDefault - sliderMin) / (sliderMax - sliderMin);
+        const defaultPercent = Math.max(0, Math.min(100, defaultRatio * 100));
+        defaultMarker.style.left = defaultPercent + '%';
+        defaultMarker.textContent = sliderDefault + '%';
+    }
 
     let saveTimeout = null;
 
@@ -3415,6 +3426,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialRaw = stored !== null ? stored : slider.value;
     const initialValue = normalizeSliderValue(initialRaw);
     updateUI(initialValue);
+    const initialParsed = Number(initialRaw);
+    if (!Number.isFinite(initialParsed) || initialParsed !== initialValue) {
+        syncToServer(initialValue);
+    }
     
     function updateUI(val) {
         val = normalizeSliderValue(val);
@@ -3425,7 +3440,7 @@ document.addEventListener('DOMContentLoaded', function() {
         valueLabel.textContent = val + '%';
         
         // Color feedback: blue for default, orange for non-default
-        if (val === 100) {
+        if (val === sliderDefault) {
             valueLabel.className = 'text-sm font-semibold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30 px-2.5 py-1 rounded-full min-w-[3.5rem] text-center';
         } else {
             valueLabel.className = 'text-sm font-semibold text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2.5 py-1 rounded-full min-w-[3.5rem] text-center';
@@ -3509,10 +3524,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Reset button
     resetBtn.addEventListener('click', function() {
-        var val = normalizeSliderValue(100);
+        var val = normalizeSliderValue(sliderDefault);
         updateUI(val);
         syncToServer(val);
-        showToast('Text size reset to default (100%)', 'success');
+        showToast('Text size reset to default (' + sliderDefault + '%)', 'success');
     });
 })();
 

@@ -22,6 +22,16 @@ function initializeSocketIO() {
         console.warn('Socket.IO not loaded. Real-time updates disabled.');
         return;
     }
+
+    // Ensure only one active Socket.IO client exists per page.
+    if (socket) {
+        try {
+            socket.disconnect();
+        } catch (error) {
+            console.warn('Socket cleanup before re-init failed:', error);
+        }
+        socket = null;
+    }
     
     // Connect to Socket.IO server
     socket = io({
@@ -29,7 +39,8 @@ function initializeSocketIO() {
         transports: ['polling'],
         reconnection: true,
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
+        closeOnBeforeunload: true
     });
     
     // Connection established
@@ -44,6 +55,7 @@ function initializeSocketIO() {
     socket.on('disconnect', function() {
         isConnected = false;
         stopHeartbeat();
+        currentRoom = null;
     });
     
     // Connection error
@@ -212,6 +224,28 @@ function stopHeartbeat() {
         clearInterval(heartbeatInterval);
         heartbeatInterval = null;
     }
+}
+
+/**
+ * Cleanup socket resources during page navigation/unload.
+ */
+function cleanupSocketConnection() {
+    if (!socket) return;
+
+    if (currentEditLock) {
+        releaseScheduleLock(currentEditLock.schedule_id, currentEditLock.type);
+    } else {
+        stopHeartbeat();
+    }
+
+    leaveScheduleRoom();
+
+    if (socket.connected) {
+        socket.disconnect();
+    }
+
+    isConnected = false;
+    currentRoom = null;
 }
 
 /**
@@ -421,12 +455,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSocketIO();
     
     // Cleanup on page unload
-    window.addEventListener('beforeunload', function() {
-        if (currentEditLock) {
-            releaseScheduleLock(currentEditLock.schedule_id, currentEditLock.type);
-        }
-        leaveScheduleRoom();
-    });
+    window.addEventListener('beforeunload', cleanupSocketConnection);
+    window.addEventListener('pagehide', cleanupSocketConnection);
     
     // Add animation styles
     const realtimeAnimationStyle = document.createElement('style');

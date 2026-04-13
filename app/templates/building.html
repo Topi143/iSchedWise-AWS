@@ -183,6 +183,7 @@
     @media (hover: none) {
         .building-list-item:hover {
             background: inherit;
+            transform: none;
         }
         
         .building-list-item.selected:hover {
@@ -191,19 +192,7 @@
         
         .room-list-item:hover {
             background: inherit;
-        }
-    }
-    
-    /* Tablet optimizations */
-    @media (max-width: 768px) {
-        .page-header-icon {
-            width: 2.5rem !important;
-            height: 2.5rem !important;
-        }
-        
-        .page-header-icon svg {
-            width: 1.5rem !important;
-            height: 1.5rem !important;
+            transform: none;
         }
     }
     
@@ -220,53 +209,6 @@
         .toast {
             width: 100%;
             max-width: none;
-        }
-
-        /* Ultra-compact mobile layout */
-        .bg-gray-50 {
-            padding: 0.5rem !important;
-        }
-        
-        /* Page header compact */
-        .page-header {
-            padding: 0.75rem !important;
-        }
-        
-        .page-header h1 {
-            font-size: 1rem !important;
-            line-height: 1.25rem !important;
-        }
-        
-        .page-header p {
-            font-size: 0.625rem !important;
-            line-height: 1rem !important;
-        }
-        
-        .page-header .h-10,
-        .page-header .w-10 {
-            width: 2rem !important;
-            height: 2rem !important;
-        }
-        
-        .page-header .h-10 svg,
-        .page-header .w-10 svg {
-            width: 1rem !important;
-            height: 1rem !important;
-        }
-        
-        /* Compact building list items */
-        .building-list-item {
-            padding: 0.75rem !important;
-        }
-        
-        /* Stack room info vertically on very small screens */
-        .room-row {
-            font-size: 0.875rem;
-        }
-        
-        .building-card {
-            padding: 0.75rem !important;
-            margin-bottom: 0.5rem !important;
         }
 
         .modal-actions {
@@ -305,28 +247,6 @@
 
         .detail-action-btn .action-label {
             display: none;
-        }
-    }
-    
-    /* Disable hover effects on touch devices - Dashboard Design */
-    @media (hover: none) {
-        .building-list-item:hover {
-            background: transparent;
-            transform: none;
-        }
-        
-        .building-list-item.selected:hover {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        }
-        
-        .room-row:hover {
-            background: transparent;
-            transform: none;
-        }
-        
-        .building-card:hover {
-            border-color: #f1f5f9;
-            box-shadow: none;
         }
     }
     

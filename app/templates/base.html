@@ -11,16 +11,49 @@
     <script>
     // Apply text size immediately to prevent FOUC
     (function() {
+        var minSize = Number({{ text_size_min }});
+        var maxSize = Number({{ text_size_max }});
+        var defaultSize = Number({{ text_size_default }});
+        var stepSize = Number({{ text_size_step }});
+
+        if (!Number.isFinite(minSize)) minSize = 90;
+        if (!Number.isFinite(maxSize)) maxSize = 120;
+        if (!Number.isFinite(defaultSize)) defaultSize = 100;
+        if (!Number.isFinite(stepSize) || stepSize <= 0) stepSize = 5;
+
+        if (minSize > maxSize) {
+            var tempSize = minSize;
+            minSize = maxSize;
+            maxSize = tempSize;
+        }
+
+        defaultSize = Math.max(minSize, Math.min(maxSize, defaultSize));
+
+        function normalizeTextSize(rawValue) {
+            var parsed = parseInt(rawValue, 10);
+            if (isNaN(parsed)) parsed = defaultSize;
+
+            var clamped = Math.max(minSize, Math.min(maxSize, parsed));
+            var snapped = minSize + Math.round((clamped - minSize) / stepSize) * stepSize;
+            return Math.max(minSize, Math.min(maxSize, snapped));
+        }
+
         var stored = localStorage.getItem('ischedwise_text_size');
         var serverVal = {{ user_text_size }};
-        var size = stored ? parseInt(stored, 10) : serverVal;
-        if (size < 70 || size > 150 || isNaN(size)) size = 100;
-        if (size !== 100) {
+        var sourceValue = stored !== null ? stored : serverVal;
+        var size = normalizeTextSize(sourceValue);
+
+        if (size !== defaultSize) {
             document.documentElement.style.fontSize = size + '%';
         }
-        // Sync server value to localStorage on page load (server wins if no local val)
-        if (!stored && serverVal !== 100) {
-            localStorage.setItem('ischedwise_text_size', serverVal);
+
+        // Keep localStorage normalized so stale values don't re-trigger layout issues.
+        if (stored === null) {
+            if (size !== defaultSize) {
+                localStorage.setItem('ischedwise_text_size', String(size));
+            }
+        } else if (String(size) !== stored) {
+            localStorage.setItem('ischedwise_text_size', String(size));
         }
     })();
     // Apply dark mode immediately to prevent FOUC

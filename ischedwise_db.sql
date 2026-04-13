@@ -2144,7 +2144,7 @@ CREATE TABLE `users` (
   `two_factor_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether TOTP two-factor authentication is enabled',
   `two_factor_secret` varchar(64) DEFAULT NULL COMMENT 'Base32 secret used for TOTP verification',
   `two_factor_enabled_at` datetime DEFAULT NULL COMMENT 'When two-factor authentication was enabled',
-  `text_size` int(11) NOT NULL DEFAULT 100 COMMENT 'User preferred text size percentage (70-150)',
+  `text_size` int(11) NOT NULL DEFAULT 100 COMMENT 'User preferred text size percentage (90-120)',
   `dark_mode` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'User preferred dark mode (0=light, 1=dark)',
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),

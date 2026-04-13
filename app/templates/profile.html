@@ -1341,6 +1341,7 @@ function disableNewPasswordFields(clearValues = true) {
         confirmPasswordInput.value = '';
         updatePasswordStrength('');
         updatePasswordMatch();
+        updateProfileDirtyState();
     }
 }
 
@@ -1924,26 +1925,25 @@ function _isSameDocumentNavigation(link) {
     }
 }
 
-function showLeaveProfileConfirm(onLeave) {
+function showLeaveProfileConfirm() {
+    const leaveMessage = 'You have unsaved changes in your account settings. Leave this page without saving?';
+
     if (typeof window.showConfirm === 'function') {
-        window.showConfirm(
-            'Unsaved Changes',
-            'You have unsaved changes in your account settings. Leave this page without saving?',
-            'warning',
-            {
-                confirmText: 'Leave Without Saving',
-                cancelText: 'Stay on Page',
-                confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
-                onConfirm: onLeave,
-            }
-        );
-        return;
+        return Promise.resolve(window.showConfirm({
+            title: 'Unsaved Changes',
+            message: leaveMessage,
+            confirmText: 'Leave Without Saving',
+            cancelText: 'Stay on Page',
+            confirmColor: 'red'
+        })).then(function(confirmed) {
+            return Boolean(confirmed);
+        }).catch(function() {
+            return false;
+        });
     }
 
     // Fallback if global custom confirm is not available.
-    if (window.confirm('You have unsaved changes. Leave this page without saving?')) {
-        onLeave();
-    }
+    return Promise.resolve(window.confirm(leaveMessage));
 }
 
 function setActiveTab(tabId) {
@@ -1994,7 +1994,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const link = e.target.closest('a');
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+            return;
+        }
+
+        const link = e.target.closest('a[href]');
         if (!_isNavigableProfileLink(link)) {
             return;
         }
@@ -2007,15 +2011,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const destination = link.href;
         _profileNavigationConfirmActive = true;
 
-        showLeaveProfileConfirm(function() {
-            _profileNavigationBypassPrompt = true;
-            profileFormDirty = false;
-            window.location.href = destination;
-        });
-
-        setTimeout(() => {
-            _profileNavigationConfirmActive = false;
-        }, 250);
+        showLeaveProfileConfirm()
+            .then(function(confirmed) {
+                if (confirmed) {
+                    _profileNavigationBypassPrompt = true;
+                    profileFormDirty = false;
+                    window.location.href = destination;
+                }
+            })
+            .finally(function() {
+                _profileNavigationConfirmActive = false;
+            });
     });
 
     window.addEventListener('beforeunload', function(e) {

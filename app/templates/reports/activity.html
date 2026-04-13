@@ -143,8 +143,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3 reports-activity-container">
-    <div class="w-full flex flex-col h-full overflow-hidden">
+<div class="reports-page-shell bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden flex flex-col p-2 sm:p-3 reports-activity-container">
+    <div class="reports-page-inner w-full flex flex-col h-full overflow-hidden min-h-0">
 
         <div class="mb-2 sm:mb-3 flex-shrink-0">
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4">
@@ -179,27 +179,18 @@
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">User</label>
                         <select id="filterUser" class="filter-input w-full">
                             <option value="">All Users</option>
-                            {% for u in all_users %}
-                            <option value="{{ u.id }}">{{ u.full_name }}</option>
-                            {% endfor %}
                         </select>
                     </div>
                     <div class="reports-filter-field min-w-[110px]">
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Action</label>
                         <select id="filterAction" class="filter-input w-full">
                             <option value="">All Actions</option>
-                            {% for a in action_types %}
-                            <option value="{{ a }}">{{ a }}</option>
-                            {% endfor %}
                         </select>
                     </div>
                     <div class="reports-filter-field min-w-[110px]">
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Entity</label>
                         <select id="filterEntity" class="filter-input w-full">
                             <option value="">All Entities</option>
-                            {% for e in entity_types %}
-                            <option value="{{ e }}">{{ e }}</option>
-                            {% endfor %}
                         </select>
                     </div>
                     <div class="reports-filter-field min-w-[120px]">
@@ -275,6 +266,7 @@ const activityUtils = window.ISWActivityUtils;
 
 window._holdPageLoading = true;
 let _activityInitialLoad = true;
+let _activityFiltersHydrated = false;
 
 document.addEventListener('DOMContentLoaded', () => applyFilters(1));
 
@@ -303,6 +295,72 @@ function buildParams(page) {
     if (filters.ip_address) params.set('ip_address', filters.ip_address);
     if (filters.search) params.set('search', filters.search);
     return params;
+}
+
+function setSelectOptions(selectElement, defaultLabel, items, getValue, getLabel) {
+    if (!selectElement) return;
+
+    selectElement.innerHTML = '';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = defaultLabel;
+    selectElement.appendChild(defaultOption);
+
+    const seenValues = new Set();
+    (items || []).forEach((item) => {
+        const rawValue = getValue(item);
+        const value = rawValue == null ? '' : String(rawValue).trim();
+        if (!value || seenValues.has(value)) return;
+
+        seenValues.add(value);
+
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = String(getLabel(item) || value);
+        selectElement.appendChild(option);
+    });
+}
+
+function hydrateFilterOptions(filterOptions) {
+    if (_activityFiltersHydrated || !filterOptions) return;
+
+    const userSelect = document.getElementById('filterUser');
+    const actionSelect = document.getElementById('filterAction');
+    const entitySelect = document.getElementById('filterEntity');
+    if (!userSelect || !actionSelect || !entitySelect) return;
+
+    const selectedUser = userSelect.value;
+    const selectedAction = actionSelect.value;
+    const selectedEntity = entitySelect.value;
+
+    setSelectOptions(
+        userSelect,
+        'All Users',
+        Array.isArray(filterOptions.users) ? filterOptions.users : [],
+        (user) => user && user.id,
+        (user) => (user && user.name) || ''
+    );
+    setSelectOptions(
+        actionSelect,
+        'All Actions',
+        Array.isArray(filterOptions.actions) ? filterOptions.actions : [],
+        (action) => action,
+        (action) => action
+    );
+    setSelectOptions(
+        entitySelect,
+        'All Entities',
+        Array.isArray(filterOptions.entities) ? filterOptions.entities : [],
+        (entity) => entity,
+        (entity) => entity
+    );
+
+    if (selectedUser) userSelect.value = selectedUser;
+    if (selectedAction) actionSelect.value = selectedAction;
+    if (selectedEntity) entitySelect.value = selectedEntity;
+
+    _activityFiltersHydrated = true;
 }
 
 function applyFilters(page) {
@@ -335,6 +393,8 @@ function applyFilters(page) {
                 document.getElementById('logsContainer').innerHTML = `<div class="p-8 text-center text-red-500">${activityUtils.escapeHtml(data.error || data.message || 'Unknown error')}</div>`;
                 return;
             }
+
+            hydrateFilterOptions(data.filters);
 
             let pills = '';
             if (data.stats && data.stats.by_action) {

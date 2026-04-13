@@ -1160,6 +1160,7 @@ def resolve_exam_conflicts():
         subject_id = data.get('subject_id')
         faculty_id = data.get('faculty_id')
         room_id = data.get('room_id')
+        schedule_type = data.get('schedule_type', 'lecture')
         exam_date_str = data.get('exam_date')
         start_time_str = data.get('start_time')
         end_time_str = data.get('end_time')
@@ -1186,15 +1187,12 @@ def resolve_exam_conflicts():
             )
         existing_exams = existing_query.all()
 
-        subject_obj = None
-        if subject_id:
-            subject_obj = Subject.query.get(subject_id)
-
         exam_data = {
             'section_id': section_id,
             'subject_id': subject_id,
             'faculty_id': faculty_id,
             'room_id': room_id,
+            'schedule_type': schedule_type,
             'exam_date': exam_date,
             'start_time': start_time,
             'end_time': end_time
@@ -1206,7 +1204,6 @@ def resolve_exam_conflicts():
             exam_data=exam_data,
             conflicts=conflicts,
             existing_exams=existing_exams,
-            subject=subject_obj,
             exclude_exam_id=exclude_id
         )
 

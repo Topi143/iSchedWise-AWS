@@ -286,10 +286,9 @@ function performAutoConflictCheck(mode) {
     if (!allRequiredDetailsFilled) {
         const panelSuffix = mode === 'add' ? 'Add' : 'Edit';
 
-        showAutoCheckStatus(mode, 'warning', 'Complete all course details to start AI conflict checking.');
+        showAutoCheckStatus(mode, 'warning', 'Complete all required schedule details to start conflict checking.');
         updateConflictState(mode, false, true);
 
-        document.getElementById('aiConflicts' + panelSuffix)?.classList.add('hidden');
         document.getElementById('aiRecommendations' + panelSuffix)?.classList.add('hidden');
         document.getElementById('aiResolveAll' + panelSuffix)?.classList.add('hidden');
         document.getElementById('aiExplanationWrapper' + panelSuffix)?.classList.add('hidden');
@@ -304,13 +303,13 @@ function performAutoConflictCheck(mode) {
     
     // Validate time range
     if (startTime && endTime && startTime >= endTime) {
-        showAutoCheckStatus(mode, 'error', '⚠️ End time must be after start time');
+        showAutoCheckStatus(mode, 'error', 'End time must be after start time.');
         updateConflictState(mode, true);
         return;
     }
     
     // Show checking status
-    showAutoCheckStatus(mode, 'checking', '🔍 Checking for conflicts...');
+    showAutoCheckStatus(mode, 'checking', 'Checking for conflicts...');
     
     // Disable recommendation buttons while checking
     setRecommendationButtonsState(mode, true);
@@ -355,73 +354,68 @@ function performAutoConflictCheck(mode) {
         const fallbackMessage = typeof data.ai_fallback_message === 'string' ? data.ai_fallback_message.trim() : '';
         const fallbackReason = typeof data.ai_fallback_reason === 'string' ? data.ai_fallback_reason.trim() : '';
         if (typeof setAIFallbackNotice === 'function') {
-            setAIFallbackNotice(usingFallback ? (fallbackMessage || fallbackReason || 'AI guidance is currently unavailable. Running Manual Assist (Offline) so you can keep scheduling.') : '');
+            setAIFallbackNotice(usingFallback ? (fallbackMessage || fallbackReason || 'AI insights are currently unavailable. Running Quick mode checks (offline) so you can keep scheduling.') : '');
         }
         
         if (!data.ai_enabled) {
-            // ── Basic Mode ──────────────────────────────────────────
+            // ── Quick Mode (concise info, full actions) ─────────────────────
             const suffix = mode === 'add' ? 'Add' : 'Edit';
+
             if (data.has_conflicts && data.conflicts && data.conflicts.length > 0) {
-                const conflictCount = data.conflicts.length;
-                const modeLabel = usingFallback ? 'Fallback: Manual Assist' : 'Manual Assist';
-                showAutoCheckStatus(mode, 'error', `⚠️ ${conflictCount} conflict${conflictCount > 1 ? 's' : ''} detected (${modeLabel})`);
+                showAutoCheckStatus(mode, 'error', 'Conflicts found. Review items below.');
                 displayAIConflicts(data.conflicts, mode);
 
-                // Show rule-based explanation as "Conflict Summary" (gray card)
-                const explanationText = data.ai_explanation || '';
+                const explanationText = data.ai_explanation || 'Conflicts detected. Make changes to auto-recheck.';
                 displayExplanation(suffix, explanationText, false);
 
-                // Show recommendations as read-only (no apply buttons)
                 if (data.recommendations && data.recommendations.length > 0) {
-                    displayAIRecommendations(data.recommendations, mode, true); // readOnly=true
+                    displayAIRecommendations(data.recommendations, mode, false);
                 } else {
                     document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
                 }
 
-                // Gate auto-resolve to AI-Powered only
-                const resolveEl = document.getElementById('aiResolveAll' + suffix);
-                if (resolveEl) {
-                    resolveEl.classList.remove('hidden');
-                    resolveEl.innerHTML = '<div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-center"><p class="text-[10px] text-gray-500 dark:text-gray-400"><svg class="w-3.5 h-3.5 inline mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>Auto-Resolve available in <strong>AI-Powered</strong> mode</p></div>';
-                }
-                // Hide workload summary in basic mode
+                // Keep resolve plan available in Quick mode for parity.
+                showResolveAllOption(data.conflicts, mode);
+
+                // Workload panel remains Detailed-only.
                 const wlEl = document.getElementById('aiWorkloadSummary' + suffix);
                 if (wlEl) wlEl.classList.add('hidden');
 
                 updateConflictState(mode, true);
                 if (typeof autoOpenDrawer === 'function') autoOpenDrawer();
             } else {
-                const modeLabel = usingFallback ? 'Fallback: Manual Assist' : 'Manual Assist';
-                showAutoCheckStatus(mode, 'success', `✅ No conflicts detected (${modeLabel})`);
+                showAutoCheckStatus(mode, 'success', 'No conflicts found. You can proceed.');
                 updateConflictState(mode, false, false);
                 hideResolveAllOption(mode);
-                // Hide explanation & recommendations when no conflicts
+
                 document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
                 const expWrapper = document.getElementById('aiExplanationWrapper' + suffix);
                 if (expWrapper) expWrapper.classList.add('hidden');
                 const wlEl = document.getElementById('aiWorkloadSummary' + suffix);
                 if (wlEl) wlEl.classList.add('hidden');
+
                 if (typeof autoCloseDrawer === 'function') autoCloseDrawer();
             }
-            
-            // Process warnings even in basic mode
+
+            // Process warnings in Quick mode.
             displayFacultyAvailabilityWarning(mode, data.faculty_availability_warning || null);
             displayScheduleHoursWarning(mode, data.schedule_hours_warning || null);
-            
+
             if (data.schedule_hours_warning) {
-                showAutoCheckStatus(mode, 'error', `🚫 ${data.schedule_hours_warning}`);
+                showAutoCheckStatus(mode, 'error', data.schedule_hours_warning);
+                hideResolveAllOption(mode);
                 updateConflictState(mode, true);
             }
             return;
         }
         
         if (data.error) {
-            showAutoCheckStatus(mode, 'error', `❌ ${data.error}`);
+            showAutoCheckStatus(mode, 'error', data.error);
             updateConflictState(mode, true);
             return;
         }
         
-        // ── AI-Powered Mode ──────────────────────────────────────
+        // ── Detailed Mode ───────────────────────────────────────
         // Handle faculty availability warning (separate from conflicts)
         const facultyWarning = data.faculty_availability_warning;
         displayFacultyAvailabilityWarning(mode, facultyWarning);
@@ -433,22 +427,20 @@ function performAutoConflictCheck(mode) {
         // Check for schedule hours violation first (blocking)
         if (scheduleHoursWarning) {
             const suffix = mode === 'add' ? 'Add' : 'Edit';
-            showAutoCheckStatus(mode, 'error', `🚫 ${scheduleHoursWarning}`);
+            showAutoCheckStatus(mode, 'error', scheduleHoursWarning);
             updateConflictState(mode, true);
             
             // Hide conflict/recommendation panels
-            document.getElementById('aiConflicts' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
             const wlEl = document.getElementById('aiWorkloadSummary' + suffix);
             if (wlEl) wlEl.classList.add('hidden');
         } else if (data.has_conflicts) {
             // Has conflicts - disable submit
-            const conflictCount = data.conflicts.length;
             const suffix = mode === 'add' ? 'Add' : 'Edit';
-            showAutoCheckStatus(mode, 'error', `⚠️ ${conflictCount} conflict${conflictCount > 1 ? 's' : ''} detected! Adjust schedule and conflicts will auto-recheck.`);
+            showAutoCheckStatus(mode, 'error', 'Conflicts found. Review items below.');
             displayAIConflicts(data.conflicts, mode);
             displayAIRecommendations(data.recommendations, mode, false); // readOnly=false (interactive)
-            // Show auto-resolve option (D2 — AI-Powered only)
+            // Show auto-resolve option (available in Detailed mode and Quick mode)
             showResolveAllOption(data.conflicts, mode);
             updateConflictState(mode, true);
             
@@ -456,7 +448,7 @@ function performAutoConflictCheck(mode) {
             const explanationText = data.ai_explanation || 'Conflicts detected. Make changes to auto-recheck.';
             displayExplanation(suffix, explanationText, true);
 
-            // Show workload summary (AI-Powered only)
+            // Show workload summary (Detailed mode only)
             displayWorkloadSummary(suffix, data.workload_summary || null);
             
             // Auto-open AI drawer to show conflicts
@@ -464,11 +456,10 @@ function performAutoConflictCheck(mode) {
         } else if (facultyWarning && facultyWarning.type === 'error') {
             // Faculty is explicitly unavailable - this is a hard block
             const suffix = mode === 'add' ? 'Add' : 'Edit';
-            showAutoCheckStatus(mode, 'error', `🚫 ${facultyWarning.message}`);
+            showAutoCheckStatus(mode, 'error', facultyWarning.message);
             updateConflictState(mode, true);
             
             // Hide conflict/recommendation panels since this is an availability issue
-            document.getElementById('aiConflicts' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
         } else {
             // No conflicts - enable submit
@@ -476,14 +467,13 @@ function performAutoConflictCheck(mode) {
             
             // Check if there's a soft warning about faculty availability
             if (facultyWarning && facultyWarning.type === 'warning') {
-                showAutoCheckStatus(mode, 'warning', `✅ No conflicts, but: ${facultyWarning.message}`);
+                showAutoCheckStatus(mode, 'warning', `No scheduling conflicts, but ${facultyWarning.message}`);
             } else {
-                showAutoCheckStatus(mode, 'success', '✅ No conflicts detected! This schedule looks good.');
+                showAutoCheckStatus(mode, 'success', 'No conflicts found. This schedule looks good.');
             }
             updateConflictState(mode, false);
             
             // Hide conflict/recommendation/resolve panels
-            document.getElementById('aiConflicts' + suffix)?.classList.add('hidden');
             document.getElementById('aiRecommendations' + suffix)?.classList.add('hidden');
             hideResolveAllOption(mode);
             
@@ -504,14 +494,14 @@ function performAutoConflictCheck(mode) {
         setRecommendationButtonsState(mode, false);
         
         // Provide more specific error messages
-        let errorMessage = '❌ Network error - Please check your connection';
+        let errorMessage = 'Network error. Please check your connection.';
         if (error.message) {
             if (error.message.includes('Server error')) {
-                errorMessage = `❌ ${error.message}`;
+                errorMessage = error.message;
             } else if (error.message.includes('Failed to fetch')) {
-                errorMessage = '❌ Cannot connect to server - Please ensure the server is running';
+                errorMessage = 'Cannot connect to server. Please ensure the server is running.';
             } else if (error.message.includes('NetworkError')) {
-                errorMessage = '❌ Network error - Check your internet connection';
+                errorMessage = 'Network error. Check your internet connection.';
             }
         }
         
@@ -519,6 +509,43 @@ function performAutoConflictCheck(mode) {
         // Allow submission on network errors (don't block user)
         updateConflictState(mode, false, false);
     });
+}
+
+function renderAutoCheckInlineNotice(mode, type, message) {
+    const suffix = mode === 'add' ? 'Add' : 'Edit';
+    const conflictsContainer = document.getElementById('aiConflicts' + suffix);
+    const conflictsList = document.getElementById('aiConflictsList' + suffix);
+
+    if (!conflictsContainer || !conflictsList) {
+        return;
+    }
+
+    let toneClass = 'border-gray-200/90 dark:border-gray-700 text-gray-700 dark:text-gray-300';
+    let indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0"></span>';
+
+    if (type === 'checking') {
+        toneClass = 'border-blue-200/90 dark:border-blue-800 text-blue-700 dark:text-blue-300';
+        indicatorHtml = '<svg class="w-3 h-3 mt-0.5 text-blue-500 dark:text-blue-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    } else if (type === 'success') {
+        toneClass = 'border-emerald-200/90 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300';
+        indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 flex-shrink-0"></span>';
+    } else if (type === 'error') {
+        toneClass = 'border-red-200/90 dark:border-red-800 text-red-700 dark:text-red-300';
+        indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-red-500 dark:bg-red-400 flex-shrink-0"></span>';
+    } else if (type === 'warning') {
+        toneClass = 'border-amber-200/90 dark:border-amber-800 text-amber-700 dark:text-amber-300';
+        indicatorHtml = '<span class="mt-1 w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 flex-shrink-0"></span>';
+    }
+
+    conflictsList.innerHTML = `
+        <div class="mb-2 rounded-lg border ${toneClass} bg-white dark:bg-gray-900/25 p-2.5">
+            <div class="flex items-start gap-2">
+                ${indicatorHtml}
+                <p class="text-xs font-medium leading-relaxed">${message}</p>
+            </div>
+        </div>
+    `;
+    conflictsContainer.classList.remove('hidden');
 }
 
 /**
@@ -544,49 +571,15 @@ function showAutoCheckStatus(mode, type, message) {
         emptyState.classList.add('hidden');
     }
     
-    // Show AI panel for conflicts/recommendations
-    if (type === 'success' || type === 'error') {
-        if (aiPanel) aiPanel.classList.remove('hidden');
-    }
-    
-    // Lightweight inline status: colored dot + text
-    let dotColor = '';
-    let textColor = '';
-    let dotHtml = '';
-    
-    switch(type) {
-        case 'checking':
-            textColor = 'text-blue-700 dark:text-blue-300';
-            dotHtml = '<svg class="w-3 h-3 text-blue-500 dark:text-blue-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-            break;
-        case 'success':
-            dotColor = 'bg-emerald-400';
-            textColor = 'text-emerald-700 dark:text-emerald-300';
-            dotHtml = `<span class="w-2 h-2 rounded-full ${dotColor} flex-shrink-0"></span>`;
-            break;
-        case 'error':
-            dotColor = 'bg-red-400';
-            textColor = 'text-red-700 dark:text-red-300';
-            dotHtml = `<span class="w-2 h-2 rounded-full ${dotColor} flex-shrink-0"></span>`;
-            break;
-        case 'warning':
-            dotColor = 'bg-amber-400';
-            textColor = 'text-amber-700 dark:text-amber-300';
-            dotHtml = `<span class="w-2 h-2 rounded-full ${dotColor} flex-shrink-0"></span>`;
-            break;
-    }
-    
+    // Keep assistant panel visible because status now renders inside conflict/result area.
+    if (aiPanel) aiPanel.classList.remove('hidden');
+
     if (statusContainer) {
-        statusContainer.innerHTML = `
-            <div class="flex items-start gap-2.5 py-2.5 px-3 mb-2.5 rounded-xl border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900/35 shadow-sm">
-                <div class="mt-0.5">${dotHtml}</div>
-                <div class="min-w-0">
-                    <p class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Live Conflict Check</p>
-                    <p class="text-xs font-medium ${textColor} leading-relaxed">${message}</p>
-                </div>
-            </div>
-        `;
+        statusContainer.innerHTML = '';
+        statusContainer.classList.add('hidden');
     }
+
+    renderAutoCheckInlineNotice(mode, type, message);
 }
 
 /**

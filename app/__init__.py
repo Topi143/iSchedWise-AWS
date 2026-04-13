@@ -33,6 +33,34 @@ def _is_password_change_enforcement_exempt(endpoint):
     }
 
 
+def _get_text_size_config(app_config):
+    """Return sanitized text-size configuration values from app config."""
+    min_size = int(app_config.get('TEXT_SIZE_MIN', 90))
+    max_size = int(app_config.get('TEXT_SIZE_MAX', 120))
+    default_size = int(app_config.get('TEXT_SIZE_DEFAULT', 100))
+    step_size = int(app_config.get('TEXT_SIZE_STEP', 5))
+
+    if min_size > max_size:
+        min_size, max_size = max_size, min_size
+    if step_size <= 0:
+        step_size = 5
+
+    default_size = max(min_size, min(max_size, default_size))
+    return min_size, max_size, default_size, step_size
+
+
+def _normalize_text_size(raw_value, min_size, max_size, default_size, step_size):
+    """Normalize a raw text-size value into configured bounds and step."""
+    try:
+        parsed_value = int(raw_value)
+    except (TypeError, ValueError):
+        parsed_value = default_size
+
+    clamped_value = max(min_size, min(max_size, parsed_value))
+    snapped_value = min_size + round((clamped_value - min_size) / step_size) * step_size
+    return max(min_size, min(max_size, snapped_value))
+
+
 def create_app(config_name='default'):
     """
     Application factory pattern
@@ -56,7 +84,15 @@ def create_app(config_name='default'):
     
     # Initialize SocketIO for real-time updates
     # cors_allowed_origins allows connections from the same origin
-    socketio.init_app(app, cors_allowed_origins="*", async_mode='threading')
+    socketio.init_app(
+        app,
+        cors_allowed_origins="*",
+        async_mode='threading',
+        ping_interval=25,
+        ping_timeout=60,
+        logger=False,
+        engineio_logger=False
+    )
     
     # Configure login manager
     login_manager.login_view = app.config.get('LOGIN_VIEW', 'auth.login')
@@ -108,12 +144,32 @@ def create_app(config_name='default'):
     def inject_user_preferences():
         """Inject user display preferences (text_size, dark_mode) into all templates"""
         from flask_login import current_user
+
+        text_size_min, text_size_max, text_size_default, text_size_step = _get_text_size_config(app.config)
         if current_user.is_authenticated:
-            return dict(
-                user_text_size=current_user.text_size or 100,
-                user_dark_mode=current_user.dark_mode or False
+            normalized_text_size = _normalize_text_size(
+                current_user.text_size,
+                text_size_min,
+                text_size_max,
+                text_size_default,
+                text_size_step,
             )
-        return dict(user_text_size=100, user_dark_mode=False)
+            return dict(
+                user_text_size=normalized_text_size,
+                user_dark_mode=bool(current_user.dark_mode),
+                text_size_min=text_size_min,
+                text_size_max=text_size_max,
+                text_size_default=text_size_default,
+                text_size_step=text_size_step,
+            )
+        return dict(
+            user_text_size=text_size_default,
+            user_dark_mode=False,
+            text_size_min=text_size_min,
+            text_size_max=text_size_max,
+            text_size_default=text_size_default,
+            text_size_step=text_size_step,
+        )
 
     @app.context_processor
     def inject_system_timezone():
@@ -203,6 +259,36 @@ def create_app(config_name='default'):
 
         flash('You must change your password before continuing.', 'warning')
         return redirect(url_for('profile.index'))
+
+    @app.before_request
+    def enforce_text_size_bounds():
+        """Normalize persisted text-size preferences into configured safe bounds."""
+        from flask_login import current_user
+        from flask import request as req
+
+        if req.endpoint and req.endpoint == 'static':
+            return
+
+        if not current_user.is_authenticated:
+            return
+
+        text_size_min, text_size_max, text_size_default, text_size_step = _get_text_size_config(app.config)
+        normalized_text_size = _normalize_text_size(
+            current_user.text_size,
+            text_size_min,
+            text_size_max,
+            text_size_default,
+            text_size_step,
+        )
+
+        if current_user.text_size == normalized_text_size:
+            return
+
+        try:
+            current_user.text_size = normalized_text_size
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
     @app.before_request
     def check_inactivity_timeout():

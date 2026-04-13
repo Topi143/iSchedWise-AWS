@@ -601,6 +601,17 @@ def test_profile_template_hides_trusted_device_revoke_controls():
     assert 'async function verifyCurrentPasswordForGating(currentPassword)' in contents
     assert '/account/verify-current-password' in contents
     assert "currentPasswordInput.addEventListener('input', function()" in contents
+    assert 'function showLeaveProfileConfirm()' in contents
+    assert 'window.showConfirm({' in contents
+    assert "title: 'Unsaved Changes'" in contents
+    assert "confirmColor: 'red'" in contents
+    assert re.search(r"showLeaveProfileConfirm\(\)\s*\.then\(function\(confirmed\)", contents)
+    assert "if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)" in contents
+    assert 'onConfirm: onLeave' not in contents
+    assert re.search(
+        r"function disableNewPasswordFields\(clearValues = true\)[\s\S]*?updatePasswordMatch\(\);\s*updateProfileDirtyState\(\);",
+        contents,
+    )
 
 
 def test_reset_password_template_uses_live_feedback_regions():

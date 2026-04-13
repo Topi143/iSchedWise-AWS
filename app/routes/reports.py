@@ -241,20 +241,7 @@ def compare_report():
 @role_required('admin', 'super_admin')
 def activity_report():
     """Display user activity logs (admin only)"""
-    action_types = db.session.query(UserActivityLog.action)\
-        .filter(UserActivityLog.action.isnot(None), UserActivityLog.action != '')\
-        .distinct().order_by(UserActivityLog.action).all()
-    entity_types = db.session.query(UserActivityLog.entity_type)\
-        .filter(UserActivityLog.entity_type.isnot(None), UserActivityLog.entity_type != '')\
-        .distinct().order_by(UserActivityLog.entity_type).all()
-    users = User.query.filter_by(is_archived=False).order_by(User.full_name).all()
-
-    return render_template(
-        'reports/activity.html',
-        action_types=[a[0] for a in action_types],
-        entity_types=[e[0] for e in entity_types],
-        all_users=users,
-    )
+    return render_template('reports/activity.html')
 
 
 def _parse_user_activity_filters(args):
@@ -2246,6 +2233,11 @@ def _xl_zebra_row(ws, row, col_start, col_end, row_idx):
                 start_color=_XL_ZEBRA, end_color=_XL_ZEBRA, fill_type='solid')
 
 
+def _format_export_bullet(text):
+    """Return a stable ASCII-safe bullet prefix for exported insight lines."""
+    return f'-  {text}'
+
+
 def create_reports_excel_header(ws, report_title, program_name, semester, academic_year, last_col='E'):
     """Create an institutional header with dual logos for Excel report sheets."""
     import os
@@ -2436,7 +2428,7 @@ def create_executive_summary_sheet(ws, stats, academic_year, semester, program_n
 
     for ins in insights:
         ws.merge_cells(f'A{current_row}:E{current_row}')
-        c = ws.cell(row=current_row, column=1, value=f'â€¢  {ins}')
+        c = ws.cell(row=current_row, column=1, value=_format_export_bullet(ins))
         c.font = Font(name='Arial', size=9, color='333333')
         c.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
         ws.row_dimensions[current_row].height = 20
@@ -2691,7 +2683,7 @@ def create_enhanced_weekly_sheet(ws, stats, academic_year, semester, program_nam
 
     for ins in weekly_insights:
         ws.merge_cells(f'A{current_row}:D{current_row}')
-        c = ws.cell(row=current_row, column=1, value=f'â€¢  {ins}')
+        c = ws.cell(row=current_row, column=1, value=_format_export_bullet(ins))
         c.font = Font(name='Arial', size=9, color='333333')
         c.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
         ws.row_dimensions[current_row].height = 18
@@ -3010,7 +3002,7 @@ def export_pdf():
             insights.append("All metrics are within acceptable ranges — continue monitoring.")
 
         for ins in insights:
-            elements.append(Paragraph(f"â€¢  {ins}", insight_style))
+            elements.append(Paragraph(_format_export_bullet(ins), insight_style))
 
         elements.append(PageBreak())
 
@@ -3257,7 +3249,7 @@ def export_pdf():
                     f"Distribution is well-balanced (ratio {ratio:.1f}:1).")
 
         for wi in weekly_insights:
-            elements.append(Paragraph(f"â€¢  {wi}", insight_style))
+            elements.append(Paragraph(_format_export_bullet(wi), insight_style))
 
         # =====================================================================
         # BUILD PDF

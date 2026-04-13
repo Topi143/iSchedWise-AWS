@@ -1120,17 +1120,26 @@ def update_text_size():
         data = request.get_json()
         if not data or 'text_size' not in data:
             return jsonify({'success': False, 'error': 'Missing text_size parameter'}), 400
-        
+
         text_size = int(data['text_size'])
-        
-        # Validate range
-        if text_size < 70 or text_size > 150:
-            return jsonify({'success': False, 'error': 'Text size must be between 70 and 150'}), 400
-        
-        current_user.text_size = text_size
+
+        text_size_min = int(current_app.config.get('TEXT_SIZE_MIN', 90))
+        text_size_max = int(current_app.config.get('TEXT_SIZE_MAX', 120))
+        text_size_step = int(current_app.config.get('TEXT_SIZE_STEP', 5))
+
+        if text_size_min > text_size_max:
+            text_size_min, text_size_max = text_size_max, text_size_min
+        if text_size_step <= 0:
+            text_size_step = 5
+
+        clamped_value = max(text_size_min, min(text_size_max, text_size))
+        normalized_value = text_size_min + round((clamped_value - text_size_min) / text_size_step) * text_size_step
+        normalized_value = max(text_size_min, min(text_size_max, normalized_value))
+
+        current_user.text_size = normalized_value
         db.session.commit()
-        
-        return jsonify({'success': True, 'text_size': text_size}), 200
+
+        return jsonify({'success': True, 'text_size': normalized_value}), 200
         
     except (ValueError, TypeError):
         return jsonify({'success': False, 'error': 'Invalid text_size value'}), 400

@@ -285,3 +285,60 @@ def test_exam_ai_route_no_conflicts_ai_success_has_no_fallback(monkeypatch):
     assert data['ai_fallback'] is False
     assert data['ai_fallback_reason'] is None
     assert data['ai_fallback_message'] == ''
+
+
+def test_exam_resolve_route_calls_resolver_without_subject_kwarg(monkeypatch):
+    app = Flask(__name__)
+    _install_exam_stubs(monkeypatch)
+
+    captured = {}
+
+    class DummyResolver:
+        def generate_exam_resolution_plan(self, exam_data, conflicts, existing_exams, exclude_exam_id=None):
+            captured['exam_data'] = exam_data
+            captured['conflicts'] = conflicts
+            captured['existing_exams'] = existing_exams
+            captured['exclude_exam_id'] = exclude_exam_id
+            return {
+                'resolvable': [],
+                'unresolvable': [],
+                'form_changes': {},
+                'stats': {
+                    'total_conflicts': 1,
+                    'auto_resolvable': 0,
+                    'needs_manual': 1,
+                }
+            }
+
+    monkeypatch.setattr('app.services.conflict_resolver.conflict_resolver', DummyResolver())
+
+    payload = {
+        'section_id': 1,
+        'subject_id': 2,
+        'schedule_type': 'lab',
+        'faculty_id': 3,
+        'room_id': 4,
+        'exam_date': '2030-01-01',
+        'start_time': '08:00',
+        'end_time': '09:00',
+        'conflicts': [
+            {
+                'type': 'room',
+                'severity': 'high',
+                'message': 'Room overlap',
+                'details': {},
+                'conflicting_schedule_id': 10,
+            }
+        ],
+    }
+
+    with app.test_request_context('/exam-schedule/resolve-conflicts', method='POST', json=payload):
+        response = _unwrap(exam_routes.resolve_exam_conflicts)()
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data['stats']['total_conflicts'] == 1
+    assert captured['exam_data']['section_id'] == 1
+    assert captured['exam_data']['subject_id'] == 2
+    assert captured['exam_data']['schedule_type'] == 'lab'
+    assert captured['exclude_exam_id'] is None
