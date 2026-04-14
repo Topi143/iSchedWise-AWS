@@ -437,7 +437,7 @@ Generating Reports:
 2. Apply required filters.
 3. Export reports for audit and operational review.
 
-**Figure 25. Super Admin Operational Workflow**  
+**Figure 24. Super Admin Operational Workflow**  
 [Insert screenshot here: Sequence of monitoring, backup, and maintenance actions]
 
 ### 7.2 Admin User Guide

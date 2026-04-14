@@ -131,9 +131,9 @@ Use these as short on-screen subtitle lines for a dean-focused walkthrough.
 - Return to login and sign in with your updated password.
 
 ### 03. Dashboard
-- This Dean Dashboard shows insights for your assigned programs.
-- Track schedule completion, today’s classes, and quick priority actions.
-- Use the program filter when you manage multiple programs.
+This Dean Dashboard shows insights for your assigned programs.
+Track schedule completion, today’s classes, and quick priority actions.
+Use the program filter when you manage multiple programs.
 
 ### 04. Programs
 - Review your program list and section totals.

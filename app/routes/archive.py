@@ -1347,11 +1347,18 @@ def export_archives_excel():
         semester = request.args.get('semester', '')
         schedule_type = request.args.get('schedule_type', '')
         exam_period = request.args.get('exam_period', '')
+        section_id = request.args.get('section_id', type=int)
+        faculty_id = request.args.get('faculty_id', type=int)
+        room_id = request.args.get('room_id', type=int)
+        building_id = request.args.get('building_id', type=int)
+        building_name = request.args.get('building_name', '')
         section_name = request.args.get('section_name', '')
         faculty_name = request.args.get('faculty_name', '')
         room_number = request.args.get('room_number', '')
+        program_id = request.args.get('program_id', type=int)
         program = request.args.get('program', '')
         group_by = request.args.get('group_by', 'section')  # 'section', 'faculty', or 'room'
+        export_variant = request.args.get('export_variant', 'standard')
         
         # Get user's program access
         user_program_ids = current_user.get_program_ids()
@@ -1373,20 +1380,58 @@ def export_archives_excel():
                 query = query.filter(Archive.schedule_type == schedule_type)
         if exam_period:
             query = query.filter(Archive.exam_period == exam_period)
-        if section_name:
-            query = query.filter(Archive.section_name.ilike(f'%{section_name}%'))
-        if faculty_name:
+
+        # For exam batch exports, allow exporting all sections under active filters.
+        apply_section_filter = not (schedule_type == 'exam' and export_variant == 'exam_batch')
+
+        # Prefer ID-based filters for consistent behavior with live schedules export.
+        if apply_section_filter:
+            if section_id:
+                query = query.filter(Archive.section_id == section_id)
+            elif section_name:
+                query = query.filter(Archive.section_name.ilike(f'%{section_name}%'))
+
+        if faculty_id:
+            query = query.filter(Archive.faculty_id == faculty_id)
+        elif faculty_name:
             query = query.filter(Archive.faculty_name.ilike(f'%{faculty_name}%'))
-        if room_number:
+
+        if room_id:
+            query = query.filter(Archive.room_id == room_id)
+        elif room_number:
             query = query.filter(Archive.room_number.ilike(f'%{room_number}%'))
-        if program:
+
+        if building_id:
+            from app.models.building import Room
+            room_ids = db.session.query(Room.id).filter(Room.building_id == building_id).all()
+            room_ids = [rid[0] for rid in room_ids]
+            if room_ids:
+                query = query.filter(Archive.room_id.in_(room_ids))
+            else:
+                query = query.filter(Archive.id == -1)
+
+        if building_name:
+            query = query.filter(Archive.building_name.ilike(f'%{building_name}%'))
+
+        if program_id:
+            section_ids = db.session.query(Section.id).filter(Section.program_id == program_id).all()
+            section_ids = [sid[0] for sid in section_ids]
+            if section_ids:
+                query = query.filter(Archive.section_id.in_(section_ids))
+            else:
+                query = query.filter(Archive.id == -1)
+        # Apply text-based program filter only when no explicit program_id is provided.
+        if program and not program_id:
             query = query.filter(Archive.program_name.ilike(f'%{program}%'))
         
         # Filter by program access
         if user_program_ids is not None:
-            accessible_depts = Program.query.filter(Program.id.in_(user_program_ids)).all()
-            dept_names = [d.program_name for d in accessible_depts]
-            query = query.filter(Archive.program_name.in_(dept_names))
+            accessible_section_ids = db.session.query(Section.id)\
+                .filter(Section.program_id.in_(user_program_ids))\
+                .all()
+            accessible_section_ids = [sid[0] for sid in accessible_section_ids]
+            if accessible_section_ids:
+                query = query.filter(Archive.section_id.in_(accessible_section_ids))
         
         # Determine grouping field and order
         day_order = db.case(
@@ -1405,7 +1450,1143 @@ def export_archives_excel():
             order_col = Archive.section_name
             group_label = 'section'
         
-        archives = query.order_by(order_col, day_order, Archive.start_time).all()
+        if schedule_type == 'exam':
+            archives = query.order_by(Archive.section_name, Archive.exam_date, Archive.start_time).all()
+        else:
+            archives = query.order_by(order_col, day_order, Archive.start_time).all()
+
+        from app.models.settings import AcademicSettings
+        current_settings = AcademicSettings.query.order_by(AcademicSettings.id.desc()).first()
+        filter_info = {'academic_year': academic_year, 'semester': semester}
+
+        if not archives:
+            return jsonify({
+                'success': False,
+                'message': 'No archives found for the selected filters'
+            }), 404
+
+        if schedule_type == 'exam' and export_variant in ('exam_individual', 'exam_batch'):
+            from types import SimpleNamespace
+            from collections import defaultdict
+            from datetime import timedelta
+            from openpyxl.drawing.image import Image as ExcelImage
+            from openpyxl.worksheet.page import PageMargins
+            from app.routes.exam_schedule import _write_exam_export_time_rows
+            import os
+
+            def _make_program_stub(program_name):
+                display_name = program_name or 'DEPT'
+                return SimpleNamespace(
+                    program_code='',
+                    program_name=display_name,
+                    department=SimpleNamespace(department_name=display_name)
+                )
+
+            def _resolve_program_from_archive(archive):
+                if archive.section and getattr(archive.section, 'program', None):
+                    return archive.section.program
+                if program_id:
+                    program_obj = Program.query.get(program_id)
+                    if program_obj:
+                        return program_obj
+                if archive.program_name:
+                    program_obj = Program.query.filter_by(program_name=archive.program_name).first()
+                    if program_obj:
+                        return program_obj
+                return _make_program_stub(archive.program_name)
+
+            def _resolve_section_from_archive(archive, fallback_program):
+                if archive.section:
+                    return archive.section
+                if archive.section_id:
+                    section_obj = Section.query.get(archive.section_id)
+                    if section_obj:
+                        return section_obj
+                return SimpleNamespace(
+                    id=archive.section_id,
+                    full_section_name=archive.section_name or 'SECTION',
+                    section_name=archive.section_name or 'SECTION',
+                    year_level='',
+                    program=fallback_program
+                )
+
+            def _resolve_faculty_from_archive(archive):
+                if archive.faculty:
+                    return archive.faculty
+
+                raw_name = (archive.faculty_name or '').strip()
+                if not raw_name:
+                    return None
+
+                first_name = ''
+                last_name = ''
+                if ',' in raw_name:
+                    parts = [p.strip() for p in raw_name.split(',', 1)]
+                    last_name = parts[0] if parts else ''
+                    first_name = parts[1].split()[0] if len(parts) > 1 and parts[1] else ''
+                else:
+                    tokens = raw_name.split()
+                    if len(tokens) == 1:
+                        first_name = tokens[0]
+                        last_name = tokens[0]
+                    elif len(tokens) > 1:
+                        first_name = tokens[0]
+                        last_name = tokens[-1]
+
+                if not last_name:
+                    last_name = raw_name
+
+                return SimpleNamespace(
+                    first_name=first_name,
+                    last_name=last_name,
+                    gender='Male',
+                    full_name=raw_name
+                )
+
+            def _build_exam_like_record(archive, section_obj, seq):
+                subject_obj = archive.subject if archive.subject else SimpleNamespace(
+                    id=archive.subject_id or seq,
+                    subject_code=archive.subject_code or ''
+                )
+                room_obj = archive.room if archive.room else SimpleNamespace(
+                    room_number=archive.room_number or ''
+                )
+                faculty_obj = _resolve_faculty_from_archive(archive)
+
+                return SimpleNamespace(
+                    exam_date=archive.exam_date,
+                    start_time=archive.start_time,
+                    end_time=archive.end_time,
+                    subject=subject_obj,
+                    room=room_obj,
+                    faculty=faculty_obj,
+                    section=section_obj
+                )
+
+            valid_archives = [
+                a for a in archives
+                if a.exam_date and a.start_time and a.end_time
+            ]
+
+            if not valid_archives:
+                return jsonify({
+                    'success': False,
+                    'message': 'No valid archived exam schedules found for export.'
+                }), 404
+
+            # -----------------------------------------------------------------
+            # Individual exam export (same format as Exam page Excel export)
+            # -----------------------------------------------------------------
+            if export_variant == 'exam_individual':
+                selected_archives = valid_archives
+                if section_id:
+                    selected_archives = [a for a in selected_archives if a.section_id == section_id]
+                elif section_name:
+                    selected_archives = [
+                        a for a in selected_archives
+                        if (a.section_name or '').strip().lower() == section_name.strip().lower()
+                    ]
+
+                if not selected_archives:
+                    return jsonify({
+                        'success': False,
+                        'message': 'No archived exam schedules found for the selected section.'
+                    }), 404
+
+                unique_sections = {
+                    (a.section_id, (a.section_name or '').strip().lower())
+                    for a in selected_archives
+                }
+                if len(unique_sections) > 1:
+                    return jsonify({
+                        'success': False,
+                        'message': 'Select a single section before exporting individual exam schedules.'
+                    }), 400
+
+                selected_archives = sorted(
+                    selected_archives,
+                    key=lambda a: (a.exam_date, a.start_time)
+                )
+
+                ref_archive = selected_archives[0]
+                section_obj = None
+                if section_id:
+                    section_obj = Section.query.get(section_id)
+                elif ref_archive.section_id:
+                    section_obj = Section.query.get(ref_archive.section_id)
+                if not section_obj:
+                    fallback_program = _resolve_program_from_archive(ref_archive)
+                    section_obj = _resolve_section_from_archive(ref_archive, fallback_program)
+
+                program_obj = getattr(section_obj, 'program', None) or _resolve_program_from_archive(ref_archive)
+                dept_code = getattr(program_obj, 'program_code', '') or 'ARCHIVED'
+                dept_display_name = (
+                    getattr(getattr(program_obj, 'department', None), 'department_name', None)
+                    or getattr(program_obj, 'program_name', None)
+                    or 'DEPT'
+                )
+
+                exam_schedules = [
+                    _build_exam_like_record(archive, section_obj, idx)
+                    for idx, archive in enumerate(selected_archives, start=1)
+                ]
+
+                wb = Workbook()
+                ws = wb.active
+                ws.title = 'Exam Schedule'
+
+                ws.page_setup.paperSize = ws.PAPERSIZE_LEGAL
+                ws.page_setup.orientation = 'landscape'
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToWidth = 1
+                ws.page_setup.fitToHeight = 0
+                ws.page_margins = PageMargins(left=0.25, right=0.25, top=0.5, bottom=0.5)
+                ws.print_options.horizontalCentered = True
+
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                images_dir = os.path.join(base_dir, 'static', 'images')
+
+                ws.column_dimensions['A'].width = 12
+
+                logo_left_path = os.path.join(images_dir, 'norzagaray-college-logo.png')
+                if os.path.exists(logo_left_path):
+                    img_left = ExcelImage(logo_left_path)
+                    img_left.width = 75
+                    img_left.height = 75
+                    ws.add_image(img_left, 'A1')
+
+                logo_right_path = os.path.join(images_dir, 'bagong-pilipinas.png')
+                if os.path.exists(logo_right_path):
+                    img_right = ExcelImage(logo_right_path)
+                    img_right.width = 80
+                    img_right.height = 80
+                    ws.add_image(img_right, 'M1')
+
+                ws['B1'] = 'Republic of the Philippines'
+                ws['B1'].font = Font(size=11)
+                ws['B1'].alignment = Alignment(horizontal='left', vertical='center')
+
+                ws['B2'] = 'Municipality of Norzagaray'
+                ws['B2'].font = Font(size=11)
+                ws['B2'].alignment = Alignment(horizontal='left', vertical='center')
+
+                ws['B3'] = 'NORZAGARAY COLLEGE'
+                ws['B3'].font = Font(bold=True, size=11)
+                ws['B3'].alignment = Alignment(horizontal='left', vertical='center')
+
+                ws['B4'] = dept_display_name
+                ws['B4'].font = Font(bold=True, size=11)
+                ws['B4'].alignment = Alignment(horizontal='left', vertical='center')
+
+                ws.row_dimensions[1].height = 18
+                ws.row_dimensions[2].height = 15
+                ws.row_dimensions[3].height = 15
+                ws.row_dimensions[4].height = 15
+                ws.row_dimensions[5].height = 8
+
+                exam_period_value = exam_period or (current_settings.exam_period if current_settings and current_settings.exam_period else '')
+                exam_period_title = f"{exam_period_value.upper()} EXAMINATION" if exam_period_value else 'EXAMINATION'
+                ws.merge_cells('A6:M6')
+                ws.cell(row=6, column=1, value=exam_period_title)
+                ws.cell(row=6, column=1).font = Font(bold=True, size=12)
+                ws.cell(row=6, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+                thin_border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                yellow_fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+                header_fill = PatternFill(start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
+
+                ws.column_dimensions['B'].width = 10
+                ws.column_dimensions['C'].width = 10
+                ws.column_dimensions['D'].width = 10
+                ws.column_dimensions['E'].width = 10
+                ws.column_dimensions['F'].width = 10
+                ws.column_dimensions['G'].width = 10
+                ws.column_dimensions['H'].width = 10
+                ws.column_dimensions['I'].width = 10
+                ws.column_dimensions['J'].width = 10
+                ws.column_dimensions['K'].width = 10
+                ws.column_dimensions['L'].width = 10
+                ws.column_dimensions['M'].width = 12
+
+                days_order = AcademicSettings.get_active_operation_days()
+                day_start_col = {day: 2 + idx * 2 for idx, day in enumerate(days_order)}
+
+                exam_period_start = getattr(current_settings, 'exam_period_start', None) if current_settings else None
+                exam_period_end = getattr(current_settings, 'exam_period_end', None) if current_settings else None
+
+                if exam_period_start and exam_period_end:
+                    date_range_str = f"{exam_period_start.strftime('%B %d')}-{exam_period_end.strftime('%d, %Y')}"
+                    date_by_day = {}
+                    current_date = exam_period_start
+                    while current_date <= exam_period_end:
+                        day_name = current_date.strftime('%A')
+                        if day_name != 'Sunday':
+                            date_by_day[day_name] = current_date
+                        current_date += timedelta(days=1)
+                else:
+                    all_dates = sorted({exam.exam_date for exam in exam_schedules if exam.exam_date})
+                    date_by_day = {}
+                    for date_value in all_dates:
+                        date_by_day[date_value.strftime('%A')] = date_value
+                    if all_dates:
+                        date_range_str = f"{all_dates[0].strftime('%B %d')}-{all_dates[-1].strftime('%d, %Y')}"
+                    else:
+                        date_range_str = ''
+
+                ws.merge_cells('A7:M7')
+                ws.cell(row=7, column=1, value=date_range_str)
+                ws.cell(row=7, column=1).font = Font(size=11)
+                ws.cell(row=7, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+                section_display = (
+                    getattr(section_obj, 'full_section_name', None)
+                    or f"{dept_code}-{getattr(section_obj, 'year_level', '')}{getattr(section_obj, 'section_name', '')}"
+                )
+
+                current_row = 8
+
+                ws.merge_cells(f'A{current_row}:M{current_row}')
+                ws.cell(row=current_row, column=1, value=section_display)
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=11)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='left', vertical='center')
+                ws.cell(row=current_row, column=1).fill = yellow_fill
+                for col in range(1, 14):
+                    ws.cell(row=current_row, column=col).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Day')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.merge_cells(start_row=current_row, start_column=col, end_row=current_row, end_column=col + 1)
+                    ws.cell(row=current_row, column=col, value=day)
+                    ws.cell(row=current_row, column=col).font = Font(bold=True, size=9)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Date')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.merge_cells(start_row=current_row, start_column=col, end_row=current_row, end_column=col + 1)
+                    date_value = date_by_day.get(day)
+                    ws.cell(row=current_row, column=col, value=date_value.strftime('%B %d') if date_value else '')
+                    ws.cell(row=current_row, column=col).font = Font(size=9)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Room')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                rooms_by_day = defaultdict(set)
+                for exam in exam_schedules:
+                    day_name = exam.exam_date.strftime('%A')
+                    room_name = exam.room.room_number if exam.room else ''
+                    if room_name:
+                        rooms_by_day[day_name].add(room_name)
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.merge_cells(start_row=current_row, start_column=col, end_row=current_row, end_column=col + 1)
+                    ws.cell(row=current_row, column=col, value=', '.join(sorted(rooms_by_day[day])) if rooms_by_day[day] else '')
+                    ws.cell(row=current_row, column=col).font = Font(size=9)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Time')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.cell(row=current_row, column=col, value='Subject')
+                    ws.cell(row=current_row, column=col).font = Font(bold=True, size=8)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col).fill = header_fill
+                    ws.cell(row=current_row, column=col + 1, value='Proctor')
+                    ws.cell(row=current_row, column=col + 1).font = Font(bold=True, size=8)
+                    ws.cell(row=current_row, column=col + 1).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).fill = header_fill
+                current_row += 1
+
+                current_row = _write_exam_export_time_rows(
+                    ws=ws,
+                    exam_schedules=exam_schedules,
+                    days_order=days_order,
+                    day_start_col=day_start_col,
+                    current_row=current_row,
+                    thin_border=thin_border,
+                    current_settings=current_settings
+                )
+
+                sig_start_row = current_row + 1
+                ws.cell(row=sig_start_row, column=1, value='Prepared by:')
+                ws.cell(row=sig_start_row, column=1).font = Font(size=10)
+
+                dean_name = (current_user.full_name if current_user else 'Name of the Dean').upper()
+                ws.merge_cells(f'A{sig_start_row + 2}:D{sig_start_row + 2}')
+                ws.cell(row=sig_start_row + 2, column=1, value=dean_name)
+                ws.cell(row=sig_start_row + 2, column=1).font = Font(bold=True, size=10, underline='single')
+                ws.cell(row=sig_start_row + 2, column=1).alignment = Alignment(horizontal='left')
+
+                ws.merge_cells(f'A{sig_start_row + 3}:D{sig_start_row + 3}')
+                ws.cell(row=sig_start_row + 3, column=1, value=f'Dean, {dept_display_name}')
+                ws.cell(row=sig_start_row + 3, column=1).font = Font(size=10)
+                ws.cell(row=sig_start_row + 3, column=1).alignment = Alignment(horizontal='left')
+
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+
+                year_level = str(getattr(section_obj, 'year_level', '') or '')
+                section_slug = (getattr(section_obj, 'section_name', None) or ref_archive.section_name or 'section').replace(' ', '_')
+                filename = f"{dept_code}_{year_level}{section_slug}_Exam_Schedule.xlsx".replace(' ', '_')
+
+                return send_file(
+                    output,
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    as_attachment=True,
+                    download_name=filename
+                )
+
+            # -----------------------------------------------------------------
+            # Batch exam export (same format as Exam page batch export)
+            # -----------------------------------------------------------------
+            section_groups = {}
+            for archive in valid_archives:
+                key = archive.section_id if archive.section_id else f"name::{(archive.section_name or '').strip().lower()}"
+                if key not in section_groups:
+                    fallback_program = _resolve_program_from_archive(archive)
+                    section_obj = _resolve_section_from_archive(archive, fallback_program)
+                    section_groups[key] = {
+                        'section': section_obj,
+                        'archives': []
+                    }
+                section_groups[key]['archives'].append(archive)
+
+            if not section_groups:
+                return jsonify({
+                    'success': False,
+                    'message': 'No archived exam schedules found for batch export.'
+                }), 404
+
+            section_entries = list(section_groups.values())
+            section_entries.sort(
+                key=lambda entry: (
+                    int(getattr(entry['section'], 'year_level', 0) or 0) if str(getattr(entry['section'], 'year_level', '') or '').isdigit() else 0,
+                    str(getattr(entry['section'], 'section_name', '') or getattr(entry['section'], 'full_section_name', '')).lower()
+                )
+            )
+
+            first_section = section_entries[0]['section']
+            program_obj = getattr(first_section, 'program', None)
+            if not program_obj:
+                if program_id:
+                    program_obj = Program.query.get(program_id)
+                if not program_obj and section_entries[0]['archives']:
+                    program_obj = _resolve_program_from_archive(section_entries[0]['archives'][0])
+            if not program_obj:
+                program_obj = _make_program_stub(section_entries[0]['archives'][0].program_name if section_entries[0]['archives'] else 'DEPT')
+
+            dept_code = getattr(program_obj, 'program_code', '') or 'ARCHIVED'
+            dept_display_name = (
+                getattr(getattr(program_obj, 'department', None), 'department_name', None)
+                or getattr(program_obj, 'program_name', None)
+                or 'DEPT'
+            )
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = 'Exam Schedule'
+
+            ws.page_setup.paperSize = ws.PAPERSIZE_LEGAL
+            ws.page_setup.orientation = 'landscape'
+            ws.page_setup.fitToPage = True
+            ws.page_setup.fitToWidth = 1
+            ws.page_setup.fitToHeight = 0
+            ws.page_margins = PageMargins(left=0.25, right=0.25, top=0.5, bottom=0.5)
+            ws.print_options.horizontalCentered = True
+
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            images_dir = os.path.join(base_dir, 'static', 'images')
+
+            ws.column_dimensions['A'].width = 12
+
+            logo_left_path = os.path.join(images_dir, 'norzagaray-college-logo.png')
+            if os.path.exists(logo_left_path):
+                img_left = ExcelImage(logo_left_path)
+                img_left.width = 75
+                img_left.height = 75
+                ws.add_image(img_left, 'A1')
+
+            logo_right_path = os.path.join(images_dir, 'bagong-pilipinas.png')
+            if os.path.exists(logo_right_path):
+                img_right = ExcelImage(logo_right_path)
+                img_right.width = 80
+                img_right.height = 80
+                ws.add_image(img_right, 'M1')
+
+            ws['B1'] = 'Republic of the Philippines'
+            ws['B1'].font = Font(size=11)
+            ws['B1'].alignment = Alignment(horizontal='left', vertical='center')
+
+            ws['B2'] = 'Municipality of Norzagaray'
+            ws['B2'].font = Font(size=11)
+            ws['B2'].alignment = Alignment(horizontal='left', vertical='center')
+
+            ws['B3'] = 'NORZAGARAY COLLEGE'
+            ws['B3'].font = Font(bold=True, size=11)
+            ws['B3'].alignment = Alignment(horizontal='left', vertical='center')
+
+            ws['B4'] = dept_display_name
+            ws['B4'].font = Font(bold=True, size=11)
+            ws['B4'].alignment = Alignment(horizontal='left', vertical='center')
+
+            ws.row_dimensions[1].height = 18
+            ws.row_dimensions[2].height = 15
+            ws.row_dimensions[3].height = 15
+            ws.row_dimensions[4].height = 15
+            ws.row_dimensions[5].height = 8
+
+            exam_period_value = exam_period or (current_settings.exam_period if current_settings and current_settings.exam_period else '')
+            exam_period_title = f"{exam_period_value.upper()} EXAMINATION" if exam_period_value else 'EXAMINATION'
+            ws.merge_cells('A6:M6')
+            ws.cell(row=6, column=1, value=exam_period_title)
+            ws.cell(row=6, column=1).font = Font(bold=True, size=12)
+            ws.cell(row=6, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            yellow_fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+            header_fill = PatternFill(start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
+
+            ws.column_dimensions['B'].width = 10
+            ws.column_dimensions['C'].width = 10
+            ws.column_dimensions['D'].width = 10
+            ws.column_dimensions['E'].width = 10
+            ws.column_dimensions['F'].width = 10
+            ws.column_dimensions['G'].width = 10
+            ws.column_dimensions['H'].width = 10
+            ws.column_dimensions['I'].width = 10
+            ws.column_dimensions['J'].width = 10
+            ws.column_dimensions['K'].width = 10
+            ws.column_dimensions['L'].width = 10
+            ws.column_dimensions['M'].width = 12
+
+            days_order = AcademicSettings.get_active_operation_days()
+            day_start_col = {day: 2 + idx * 2 for idx, day in enumerate(days_order)}
+
+            exam_period_start = getattr(current_settings, 'exam_period_start', None) if current_settings else None
+            exam_period_end = getattr(current_settings, 'exam_period_end', None) if current_settings else None
+
+            if exam_period_start and exam_period_end:
+                date_range_str = f"{exam_period_start.strftime('%B %d')}-{exam_period_end.strftime('%d, %Y')}"
+                configured_date_by_day = {}
+                current_date = exam_period_start
+                while current_date <= exam_period_end:
+                    day_name = current_date.strftime('%A')
+                    if day_name != 'Sunday':
+                        configured_date_by_day[day_name] = current_date
+                    current_date += timedelta(days=1)
+            else:
+                all_dates = sorted({a.exam_date for a in valid_archives if a.exam_date})
+                if all_dates:
+                    date_range_str = f"{all_dates[0].strftime('%B %d')}-{all_dates[-1].strftime('%d, %Y')}"
+                else:
+                    date_range_str = ''
+                configured_date_by_day = {}
+
+            current_row = 8
+            for entry in section_entries:
+                section_obj = entry['section']
+                section_archives = sorted(
+                    entry['archives'],
+                    key=lambda a: (a.exam_date, a.start_time)
+                )
+
+                exam_schedules = [
+                    _build_exam_like_record(archive, section_obj, idx)
+                    for idx, archive in enumerate(section_archives, start=1)
+                ]
+                if not exam_schedules:
+                    continue
+
+                if configured_date_by_day:
+                    date_by_day = configured_date_by_day.copy()
+                else:
+                    date_by_day = {}
+                    for exam in exam_schedules:
+                        date_by_day[exam.exam_date.strftime('%A')] = exam.exam_date
+
+                section_display = (
+                    getattr(section_obj, 'full_section_name', None)
+                    or f"{dept_code}-{getattr(section_obj, 'year_level', '')}{getattr(section_obj, 'section_name', '')}"
+                )
+
+                if current_row == 8:
+                    ws.merge_cells('A7:M7')
+                    ws.cell(row=7, column=1, value=date_range_str)
+                    ws.cell(row=7, column=1).font = Font(size=11)
+                    ws.cell(row=7, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+                ws.merge_cells(f'A{current_row}:M{current_row}')
+                ws.cell(row=current_row, column=1, value=section_display)
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=11)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='left', vertical='center')
+                ws.cell(row=current_row, column=1).fill = yellow_fill
+                for col in range(1, 14):
+                    ws.cell(row=current_row, column=col).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Day')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.merge_cells(start_row=current_row, start_column=col, end_row=current_row, end_column=col + 1)
+                    ws.cell(row=current_row, column=col, value=day)
+                    ws.cell(row=current_row, column=col).font = Font(bold=True, size=9)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Date')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.merge_cells(start_row=current_row, start_column=col, end_row=current_row, end_column=col + 1)
+                    date_value = date_by_day.get(day)
+                    ws.cell(row=current_row, column=col, value=date_value.strftime('%B %d') if date_value else '')
+                    ws.cell(row=current_row, column=col).font = Font(size=9)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Room')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                rooms_by_day = defaultdict(set)
+                for exam in exam_schedules:
+                    day_name = exam.exam_date.strftime('%A')
+                    room_name = exam.room.room_number if exam.room else ''
+                    if room_name:
+                        rooms_by_day[day_name].add(room_name)
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.merge_cells(start_row=current_row, start_column=col, end_row=current_row, end_column=col + 1)
+                    ws.cell(row=current_row, column=col, value=', '.join(sorted(rooms_by_day[day])) if rooms_by_day[day] else '')
+                    ws.cell(row=current_row, column=col).font = Font(size=9)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                current_row += 1
+
+                ws.cell(row=current_row, column=1, value='Time')
+                ws.cell(row=current_row, column=1).font = Font(bold=True, size=9)
+                ws.cell(row=current_row, column=1).alignment = Alignment(horizontal='center', vertical='center')
+                ws.cell(row=current_row, column=1).border = thin_border
+                ws.cell(row=current_row, column=1).fill = header_fill
+
+                for day in days_order:
+                    col = day_start_col[day]
+                    ws.cell(row=current_row, column=col, value='Subject')
+                    ws.cell(row=current_row, column=col).font = Font(bold=True, size=8)
+                    ws.cell(row=current_row, column=col).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col).fill = header_fill
+                    ws.cell(row=current_row, column=col + 1, value='Proctor')
+                    ws.cell(row=current_row, column=col + 1).font = Font(bold=True, size=8)
+                    ws.cell(row=current_row, column=col + 1).alignment = Alignment(horizontal='center', vertical='center')
+                    ws.cell(row=current_row, column=col + 1).border = thin_border
+                    ws.cell(row=current_row, column=col + 1).fill = header_fill
+                current_row += 1
+
+                current_row = _write_exam_export_time_rows(
+                    ws=ws,
+                    exam_schedules=exam_schedules,
+                    days_order=days_order,
+                    day_start_col=day_start_col,
+                    current_row=current_row,
+                    thin_border=thin_border,
+                    current_settings=current_settings
+                )
+                current_row += 1
+
+            sig_start_row = current_row
+            ws.cell(row=sig_start_row, column=1, value='Prepared by:')
+            ws.cell(row=sig_start_row, column=1).font = Font(size=10)
+
+            dean_name = (current_user.full_name if current_user else 'Name of the Dean').upper()
+            ws.merge_cells(f'A{sig_start_row + 2}:D{sig_start_row + 2}')
+            ws.cell(row=sig_start_row + 2, column=1, value=dean_name)
+            ws.cell(row=sig_start_row + 2, column=1).font = Font(bold=True, size=10, underline='single')
+            ws.cell(row=sig_start_row + 2, column=1).alignment = Alignment(horizontal='left')
+
+            ws.merge_cells(f'A{sig_start_row + 3}:D{sig_start_row + 3}')
+            ws.cell(row=sig_start_row + 3, column=1, value=f'Dean, {dept_display_name}')
+            ws.cell(row=sig_start_row + 3, column=1).font = Font(size=10)
+            ws.cell(row=sig_start_row + 3, column=1).alignment = Alignment(horizontal='left')
+
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            filename = f"{dept_code}_Exam_Schedule_Batch_Export.xlsx".replace(' ', '_')
+
+            return send_file(
+                output,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        if export_variant == 'for_posting':
+            from types import SimpleNamespace
+            from app.services.export_service import generate_class_schedule_excel_for_posting
+
+            if group_by != 'section':
+                return jsonify({
+                    'success': False,
+                    'message': 'For Posting template is only available for class section exports.'
+                }), 400
+
+            selected_archives = archives
+            if section_id:
+                selected_archives = [a for a in archives if a.section_id == section_id]
+            elif section_name:
+                selected_archives = [
+                    a for a in archives
+                    if (a.section_name or '').strip().lower() == section_name.strip().lower()
+                ]
+
+            if not selected_archives:
+                return jsonify({
+                    'success': False,
+                    'message': 'No section archives found for the selected For Posting export.'
+                }), 404
+
+            unique_sections = {(a.section_id, (a.section_name or '').strip().lower()) for a in selected_archives}
+            if len(unique_sections) > 1:
+                return jsonify({
+                    'success': False,
+                    'message': 'Select a single section before exporting the For Posting template.'
+                }), 400
+
+            ref_archive = selected_archives[0]
+            section_obj = None
+            if section_id:
+                section_obj = Section.query.get(section_id)
+            elif ref_archive.section_id:
+                section_obj = Section.query.get(ref_archive.section_id)
+
+            if not section_obj:
+                fallback_program = None
+                if program_id:
+                    fallback_program = Program.query.get(program_id)
+                if not fallback_program and ref_archive.program_name:
+                    fallback_program = Program.query.filter(
+                        Program.program_name == ref_archive.program_name
+                    ).first()
+                if not fallback_program:
+                    fallback_program = SimpleNamespace(
+                        program_code='',
+                        program_name=ref_archive.program_name or 'Program',
+                        department_id=None,
+                        department=None
+                    )
+
+                section_obj = SimpleNamespace(
+                    program=fallback_program,
+                    full_section_name=ref_archive.section_name or 'Section',
+                    year_level='',
+                    section_name=ref_archive.section_name or 'Section'
+                )
+
+            day_rank = {
+                'Monday': 1,
+                'Tuesday': 2,
+                'Wednesday': 3,
+                'Thursday': 4,
+                'Friday': 5,
+                'Saturday': 6,
+                'Sunday': 7
+            }
+
+            schedule_rows = []
+            sorted_archives = sorted(
+                selected_archives,
+                key=lambda a: (
+                    day_rank.get(a.day_of_week, 99),
+                    a.start_time or datetime.min.time(),
+                    a.subject_code or ''
+                )
+            )
+
+            for idx, archive in enumerate(sorted_archives, start=1):
+                subject_obj = archive.subject if archive.subject else SimpleNamespace(
+                    id=archive.subject_id or idx,
+                    subject_code=archive.subject_code or '',
+                    course_description=archive.course_description or '',
+                    lec_units='',
+                    lab_units=''
+                )
+                room_obj = archive.room if archive.room else SimpleNamespace(room_number=archive.room_number or 'TBA')
+                faculty_obj = archive.faculty if archive.faculty else SimpleNamespace(full_name=archive.faculty_name or 'TBA')
+
+                schedule_rows.append(SimpleNamespace(
+                    subject=subject_obj,
+                    schedule_type=archive.schedule_type or 'lecture',
+                    day_of_week=archive.day_of_week or '',
+                    start_time=archive.start_time,
+                    end_time=archive.end_time,
+                    room=room_obj,
+                    faculty=faculty_obj
+                ))
+
+            export_settings = current_settings
+            if not export_settings:
+                export_settings = SimpleNamespace(
+                    academic_year=academic_year or '',
+                    semester=semester or ''
+                )
+
+            output, filename = generate_class_schedule_excel_for_posting(
+                section_obj,
+                schedule_rows,
+                export_settings,
+                current_user
+            )
+
+            return send_file(
+                output,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        if export_variant in ('faculty_template', 'faculty_excel'):
+            from types import SimpleNamespace
+            from app.services.export_service import generate_faculty_schedule_excel
+
+            if group_by != 'faculty':
+                return jsonify({
+                    'success': False,
+                    'message': 'Faculty export is only available on the faculty archives tab.'
+                }), 400
+
+            selected_archives = archives
+            if faculty_id:
+                selected_archives = [a for a in archives if a.faculty_id == faculty_id]
+            elif faculty_name:
+                selected_archives = [
+                    a for a in archives
+                    if (a.faculty_name or '').strip().lower() == faculty_name.strip().lower()
+                ]
+
+            if not selected_archives:
+                return jsonify({
+                    'success': False,
+                    'message': 'No faculty archives found for the selected export.'
+                }), 404
+
+            unique_faculties = {(a.faculty_id, (a.faculty_name or '').strip().lower()) for a in selected_archives}
+            if len(unique_faculties) > 1:
+                return jsonify({
+                    'success': False,
+                    'message': 'Select a single faculty before exporting this format.'
+                }), 400
+
+            ref_archive = selected_archives[0]
+            faculty_obj = None
+            if faculty_id:
+                faculty_obj = Faculty.query.get(faculty_id)
+            elif ref_archive.faculty_id:
+                faculty_obj = Faculty.query.get(ref_archive.faculty_id)
+
+            if not faculty_obj:
+                fallback_full_name = (ref_archive.faculty_name or 'Archived Faculty').strip()
+                if ',' in fallback_full_name:
+                    parts = [p.strip() for p in fallback_full_name.split(',', 1)]
+                    last_name = parts[0] if parts and parts[0] else 'Archived'
+                    first_name = parts[1].split()[0] if len(parts) > 1 and parts[1] else 'Faculty'
+                else:
+                    name_parts = fallback_full_name.split()
+                    first_name = name_parts[0] if name_parts else 'Faculty'
+                    last_name = name_parts[-1] if len(name_parts) > 1 else 'Archived'
+
+                fallback_department = SimpleNamespace(
+                    department_name=ref_archive.program_name or 'Department'
+                )
+                faculty_obj = SimpleNamespace(
+                    full_name=fallback_full_name,
+                    first_name=first_name,
+                    last_name=last_name,
+                    department=fallback_department
+                )
+
+            day_rank = {
+                'Monday': 1,
+                'Tuesday': 2,
+                'Wednesday': 3,
+                'Thursday': 4,
+                'Friday': 5,
+                'Saturday': 6,
+                'Sunday': 7
+            }
+
+            schedule_rows = []
+            for idx, archive in enumerate(sorted(
+                selected_archives,
+                key=lambda a: (
+                    day_rank.get(a.day_of_week, 99),
+                    a.start_time or datetime.min.time(),
+                    a.subject_code or ''
+                )
+            ), start=1):
+                if not archive.day_of_week or not archive.start_time or not archive.end_time:
+                    continue
+
+                subject_obj = archive.subject if archive.subject else SimpleNamespace(
+                    id=archive.subject_id or idx,
+                    subject_code=archive.subject_code or 'TBA'
+                )
+                room_obj = archive.room if archive.room else SimpleNamespace(room_number=archive.room_number or 'TBA')
+
+                if archive.section:
+                    section_obj = archive.section
+                else:
+                    fallback_program = SimpleNamespace(
+                        program_code='',
+                        program_name=archive.program_name or 'Program',
+                        department_id=None,
+                        department=None
+                    )
+                    section_obj = SimpleNamespace(
+                        full_section_name=archive.section_name or 'TBA',
+                        program=fallback_program,
+                        year_level='',
+                        section_name=archive.section_name or 'TBA'
+                    )
+
+                schedule_rows.append(SimpleNamespace(
+                    day_of_week=archive.day_of_week,
+                    start_time=archive.start_time,
+                    end_time=archive.end_time,
+                    subject=subject_obj,
+                    room=room_obj,
+                    section=section_obj,
+                    faculty=faculty_obj
+                ))
+
+            if not schedule_rows:
+                return jsonify({
+                    'success': False,
+                    'message': 'No valid faculty schedule rows found for export.'
+                }), 404
+
+            export_settings = current_settings or SimpleNamespace(
+                academic_year=academic_year or '',
+                semester=semester or '',
+                schedule_start_time=None,
+                schedule_end_time=None
+            )
+
+            output, filename = generate_faculty_schedule_excel(
+                faculty_obj,
+                schedule_rows,
+                export_settings,
+                current_user
+            )
+
+            return send_file(
+                output,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        if export_variant in ('room_template', 'room_excel'):
+            from types import SimpleNamespace
+            from app.services.export_service import generate_room_schedule_excel
+
+            if group_by != 'room':
+                return jsonify({
+                    'success': False,
+                    'message': 'Room export is only available on the rooms archives tab.'
+                }), 400
+
+            selected_archives = archives
+            if room_id:
+                selected_archives = [a for a in archives if a.room_id == room_id]
+            elif room_number:
+                selected_archives = [
+                    a for a in archives
+                    if (a.room_number or '').strip().lower() == room_number.strip().lower()
+                ]
+                if building_name:
+                    selected_archives = [
+                        a for a in selected_archives
+                        if (a.building_name or '').strip().lower() == building_name.strip().lower()
+                    ]
+
+            if not selected_archives:
+                return jsonify({
+                    'success': False,
+                    'message': 'No room archives found for the selected export.'
+                }), 404
+
+            unique_rooms = {
+                (
+                    a.room_id,
+                    (a.room_number or '').strip().lower(),
+                    (a.building_name or '').strip().lower()
+                )
+                for a in selected_archives
+            }
+            if len(unique_rooms) > 1:
+                return jsonify({
+                    'success': False,
+                    'message': 'Select a single room before exporting this format.'
+                }), 400
+
+            ref_archive = selected_archives[0]
+            room_obj = None
+            if room_id:
+                from app.models.building import Room
+                room_obj = Room.query.get(room_id)
+            elif ref_archive.room_id:
+                from app.models.building import Room
+                room_obj = Room.query.get(ref_archive.room_id)
+
+            if not room_obj:
+                room_obj = SimpleNamespace(room_number=ref_archive.room_number or 'TBA')
+
+            day_rank = {
+                'Monday': 1,
+                'Tuesday': 2,
+                'Wednesday': 3,
+                'Thursday': 4,
+                'Friday': 5,
+                'Saturday': 6,
+                'Sunday': 7
+            }
+
+            schedule_rows = []
+            for idx, archive in enumerate(sorted(
+                selected_archives,
+                key=lambda a: (
+                    day_rank.get(a.day_of_week, 99),
+                    a.start_time or datetime.min.time(),
+                    a.subject_code or ''
+                )
+            ), start=1):
+                if not archive.day_of_week or not archive.start_time or not archive.end_time:
+                    continue
+
+                subject_obj = archive.subject if archive.subject else SimpleNamespace(
+                    id=archive.subject_id or idx,
+                    subject_code=archive.subject_code or 'TBA'
+                )
+
+                if archive.section:
+                    section_obj = archive.section
+                else:
+                    fallback_program = SimpleNamespace(
+                        program_code='',
+                        program_name=archive.program_name or 'Program',
+                        department_id=None,
+                        department=None
+                    )
+                    section_obj = SimpleNamespace(
+                        full_section_name=archive.section_name or 'TBA',
+                        program=fallback_program,
+                        year_level='',
+                        section_name=archive.section_name or 'TBA'
+                    )
+
+                faculty_obj = archive.faculty if archive.faculty else SimpleNamespace(
+                    full_name=archive.faculty_name or 'TBA'
+                )
+
+                schedule_rows.append(SimpleNamespace(
+                    day_of_week=archive.day_of_week,
+                    start_time=archive.start_time,
+                    end_time=archive.end_time,
+                    subject=subject_obj,
+                    section=section_obj,
+                    faculty=faculty_obj,
+                    room=room_obj
+                ))
+
+            if not schedule_rows:
+                return jsonify({
+                    'success': False,
+                    'message': 'No valid room schedule rows found for export.'
+                }), 404
+
+            export_settings = current_settings or SimpleNamespace(
+                academic_year=academic_year or '',
+                semester=semester or '',
+                schedule_start_time=None,
+                schedule_end_time=None
+            )
+
+            output, filename = generate_room_schedule_excel(
+                room_obj,
+                schedule_rows,
+                export_settings,
+                current_user
+            )
+
+            return send_file(
+                output,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=filename
+            )
         
         # Group archives dynamically
         from collections import OrderedDict
@@ -1423,9 +2604,6 @@ def export_archives_excel():
         
         # Generate grid-format Excel (same layout as regular schedule export)
         from app.services.export_service import generate_archive_schedule_excel
-        from app.models.settings import AcademicSettings
-        current_settings = AcademicSettings.query.order_by(AcademicSettings.id.desc()).first()
-        filter_info = {'academic_year': academic_year, 'semester': semester}
 
         output, filename = generate_archive_schedule_excel(
             groups=groups,
@@ -1468,9 +2646,15 @@ def export_archives_pdf():
         semester = request.args.get('semester', '')
         schedule_type = request.args.get('schedule_type', '')
         exam_period = request.args.get('exam_period', '')
+        section_id = request.args.get('section_id', type=int)
+        faculty_id = request.args.get('faculty_id', type=int)
+        room_id = request.args.get('room_id', type=int)
+        building_id = request.args.get('building_id', type=int)
+        building_name = request.args.get('building_name', '')
         section_name = request.args.get('section_name', '')
         faculty_name = request.args.get('faculty_name', '')
         room_number = request.args.get('room_number', '')
+        program_id = request.args.get('program_id', type=int)
         program = request.args.get('program', '')
         group_by = request.args.get('group_by', 'section')  # 'section', 'faculty', or 'room'
         
@@ -1493,20 +2677,54 @@ def export_archives_pdf():
                 query = query.filter(Archive.schedule_type == schedule_type)
         if exam_period:
             query = query.filter(Archive.exam_period == exam_period)
-        if section_name:
+
+        # Prefer ID-based filters for consistent behavior with live schedules export.
+        if section_id:
+            query = query.filter(Archive.section_id == section_id)
+        elif section_name:
             query = query.filter(Archive.section_name.ilike(f'%{section_name}%'))
-        if faculty_name:
+
+        if faculty_id:
+            query = query.filter(Archive.faculty_id == faculty_id)
+        elif faculty_name:
             query = query.filter(Archive.faculty_name.ilike(f'%{faculty_name}%'))
-        if room_number:
+
+        if room_id:
+            query = query.filter(Archive.room_id == room_id)
+        elif room_number:
             query = query.filter(Archive.room_number.ilike(f'%{room_number}%'))
-        if program:
+
+        if building_id:
+            from app.models.building import Room
+            room_ids = db.session.query(Room.id).filter(Room.building_id == building_id).all()
+            room_ids = [rid[0] for rid in room_ids]
+            if room_ids:
+                query = query.filter(Archive.room_id.in_(room_ids))
+            else:
+                query = query.filter(Archive.id == -1)
+
+        if building_name:
+            query = query.filter(Archive.building_name.ilike(f'%{building_name}%'))
+
+        if program_id:
+            section_ids = db.session.query(Section.id).filter(Section.program_id == program_id).all()
+            section_ids = [sid[0] for sid in section_ids]
+            if section_ids:
+                query = query.filter(Archive.section_id.in_(section_ids))
+            else:
+                query = query.filter(Archive.id == -1)
+        # Apply text-based program filter only when no explicit program_id is provided.
+        if program and not program_id:
             query = query.filter(Archive.program_name.ilike(f'%{program}%'))
         
         # Filter by program access
         if user_program_ids is not None:
-            accessible_depts = Program.query.filter(Program.id.in_(user_program_ids)).all()
-            dept_names = [d.program_name for d in accessible_depts]
-            query = query.filter(Archive.program_name.in_(dept_names))
+            accessible_section_ids = db.session.query(Section.id)\
+                .filter(Section.program_id.in_(user_program_ids))\
+                .all()
+            accessible_section_ids = [sid[0] for sid in accessible_section_ids]
+            if accessible_section_ids:
+                query = query.filter(Archive.section_id.in_(accessible_section_ids))
         
         # Determine grouping and ordering
         day_order = db.case(
@@ -1526,6 +2744,12 @@ def export_archives_pdf():
             group_label = 'section'
         
         archives = query.order_by(order_col, day_order, Archive.start_time).all()
+
+        if not archives:
+            return jsonify({
+                'success': False,
+                'message': 'No archives found for the selected filters'
+            }), 404
         
         # Group archives dynamically
         from collections import OrderedDict

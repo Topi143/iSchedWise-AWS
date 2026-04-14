@@ -69,6 +69,8 @@ class Archive(db.Model):
         return {
             'id': self.id,
             'section_id': self.section_id,
+            'faculty_id': self.faculty_id,
+            'room_id': self.room_id,
             'program_id': program_id,
             'faculty_department_id': faculty_department_id,
             'faculty_department_name': faculty_department_name,

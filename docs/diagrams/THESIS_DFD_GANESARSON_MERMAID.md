@@ -21,7 +21,7 @@ flowchart LR
     EXT4[Google Gemini API]
     EXT5[Email Server]
 
-    P0[[0.0 iSchedWise V4 Integrated Scheduling System]]
+    P0[[0.0 iSchedWise Integrated Scheduling System]]
 
     EXT1 -->|System configuration and governance requests| P0
     EXT2 -->|Scheduling, faculty, curriculum, and report requests| P0
