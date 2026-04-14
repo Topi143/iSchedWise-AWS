@@ -1,11 +1,11 @@
-# AWS Manual Deployment Guide - iSchedWise V4
+# AWS Manual Deployment Guide - iSchedWise V4 (RDS MariaDB)
 
-Complete step-by-step guide to manually deploy iSchedWise V4 Flask application with MySQL database on AWS.
+Complete step-by-step guide to manually deploy iSchedWise V4 Flask application with Amazon RDS for MariaDB on AWS.
 
 ## 📋 Table of Contents
 1. [Prerequisites](#prerequisites)
 2. [AWS Account Setup](#aws-account-setup)
-3. [Database Setup (RDS)](#database-setup-rds)
+3. [Database Setup (RDS MariaDB)](#database-setup-rds-mariadb)
 4. [Web Server Setup (EC2)](#web-server-setup-ec2)
 5. [Application Deployment](#application-deployment)
 6. [Domain & SSL Configuration](#domain--ssl-configuration)
@@ -24,11 +24,12 @@ Complete step-by-step guide to manually deploy iSchedWise V4 Flask application w
 - Basic command line knowledge
 
 ### Estimated Costs (Monthly)
-- **EC2 t2.micro**: ~$8-10/month (Free tier: 750 hours/month for 12 months)
-- **RDS db.t3.micro**: ~$15-20/month (Free tier: 750 hours/month for 12 months)
+- **EC2 t3.micro**: ~$8-12/month (pricing varies by region)
+- **RDS db.t3.micro (MariaDB)**: ~$15-25/month (pricing varies by region)
 - **Data Transfer**: ~$1-5/month (depends on traffic)
-- **Elastic IP**: Free while attached to running instance
-- **Total**: ~$24-35/month (or ~$0-5 with free tier)
+- **Elastic IP**: Free while attached to a running instance
+- **Total**: ~$24-42/month (verify with AWS Pricing Calculator)
+- **Note**: AWS free-tier and free-plan benefits change over time and by account type. Confirm eligibility in your AWS Billing console.
 
 ---
 
@@ -86,7 +87,7 @@ Complete step-by-step guide to manually deploy iSchedWise V4 Flask application w
 
 ---
 
-## Database Setup (RDS)
+## Database Setup (RDS MariaDB)
 
 ### Step 1: Create Security Group for Database
 1. Go to **EC2** service: https://console.aws.amazon.com/ec2/
@@ -94,102 +95,77 @@ Complete step-by-step guide to manually deploy iSchedWise V4 Flask application w
 3. Click **"Create security group"**
 4. Configure:
    - **Security group name**: `ischedwise-db-sg`
-   - **Description**: `Security group for iSchedWise MySQL database`
-   - **VPC**: Select default VPC
+   - **Description**: `Security group for iSchedWise MariaDB database`
+   - **VPC**: Select the same VPC you will use for EC2
 5. Inbound rules - Click **"Add rule"**:
-   - **Type**: MySQL/Aurora
+   - **Type**: MySQL/Aurora (used for MariaDB on port 3306)
    - **Protocol**: TCP
    - **Port Range**: 3306
-   - **Source**: Custom → `0.0.0.0/0` (We'll restrict this later to EC2 only)
-   - **Description**: `Allow MySQL from anywhere (temp)`
+   - **Source**: **My IP** (temporary, for setup only)
+   - **Description**: `Temporary MariaDB admin access`
 6. Outbound rules: Leave default (All traffic)
 7. Click **"Create security group"**
 
-### Step 2: Create RDS MySQL Database
+### Step 2: Create RDS MariaDB Database
 1. Go to **RDS** service: https://console.aws.amazon.com/rds/
 2. Click **"Create database"**
 3. Database creation method: **"Standard create"**
 4. Engine options:
-   - **Engine type**: MySQL
-   - **Version**: MySQL 8.0.35 (latest stable)
-5. Templates: **"Free tier"** (or **"Production"** if you need more resources)
+   - **Engine type**: MariaDB
+   - **Version**: Choose the latest MariaDB version available in your region (prefer latest LTS-compatible option)
+5. Templates:
+   - **Free tier** if your account is eligible
+   - Otherwise choose **Dev/Test** (or **Production** for stricter defaults)
 6. Settings:
    - **DB instance identifier**: `ischedwise-db`
    - **Master username**: `admin`
-   - **Master password**: Create strong password (e.g., `ISchedWise2025!SecureDB`)
+   - **Master password**: Create a strong password
    - **Confirm password**: Re-enter password
    - **SAVE THIS PASSWORD SECURELY!**
-7. Instance configuration (Free tier):
-   - **DB instance class**: db.t3.micro (2 vCPU, 1 GB RAM)
+7. Instance configuration:
+   - **DB instance class**: `db.t3.micro` (good low-cost baseline)
 8. Storage:
    - **Storage type**: General Purpose SSD (gp3)
    - **Allocated storage**: 20 GB (minimum)
-   - **Enable storage autoscaling**: Check (max 100 GB)
+   - **Enable storage autoscaling**: Check (for example max 100 GB)
 9. Connectivity:
-   - **VPC**: Default VPC
-   - **Public access**: **Yes** (for initial setup and maintenance)
+   - **VPC**: Same VPC as EC2
+   - **Public access**: **No** (recommended)
    - **VPC security group**: Choose existing → `ischedwise-db-sg`
    - **Availability Zone**: No preference
-10. Database authentication: **"Password authentication"**
-11. Additional configuration - Click **"Additional configuration"**:
+10. Database authentication: **Password authentication**
+11. Additional configuration:
     - **Initial database name**: `ischedwise_db`
-    - **Backup retention period**: 7 days
+    - **Backup retention period**: 7 days (or per policy)
     - **Enable encryption**: Check (recommended)
-    - **Enable Enhanced monitoring**: Uncheck (to save costs)
+    - **Enable Enhanced monitoring**: Optional
     - **Enable auto minor version upgrade**: Check
 12. Review all settings
 13. Click **"Create database"**
-14. **Wait 5-10 minutes** for database to be created (Status: Available)
+14. **Wait 5-10 minutes** for database status to become **Available**
 
 ### Step 3: Note Database Endpoint
-1. Once status shows **"Available"**, click on database name `ischedwise-db`
-2. Find **"Endpoint & port"** section
-3. **Copy the endpoint** (looks like: `ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com`)
-4. **Save this endpoint** - you'll need it for application configuration
+1. Once status shows **"Available"**, click database `ischedwise-db`
+2. Find **"Endpoint & port"**
+3. Copy the endpoint (looks like `ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com`)
+4. Save endpoint and port (`3306`) for app configuration
 
-### Step 4: Connect to Database and Import Schema
-1. **Option A: Using MySQL Workbench** (Recommended)
-   - Download MySQL Workbench: https://dev.mysql.com/downloads/workbench/
-   - Open MySQL Workbench
-   - Click **"+"** to create new connection
-   - Connection settings:
-     - **Connection Name**: AWS iSchedWise DB
-     - **Hostname**: Paste RDS endpoint (without :3306)
-     - **Port**: 3306
-     - **Username**: admin
-     - **Password**: Click "Store in Vault" → Enter master password
-   - Click **"Test Connection"** (should succeed)
-   - Click **"OK"**
-   - Double-click connection to open
-   - Go to **"File"** → **"Run SQL Script"**
-   - Select `database.sql` from your project
-   - Click **"Run"**
-   - Repeat for `sample_data.sql`
+### Step 4: Import the Project Database Dump
+This repository uses **`ischedwise_db.sql`** as the primary database dump.
 
-2. **Option B: Using Command Line**
-   ```bash
-   # Install MySQL client if not installed
-   # Windows: Download from https://dev.mysql.com/downloads/mysql/
-   
-   # Connect to RDS
-   mysql -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com -u admin -p
-   
-   # Enter password when prompted
-   # You should see: mysql>
-   
-   # Import database schema
-   mysql> source C:/Users/Topi/Downloads/Thesis/iSchedWise V4/database.sql
-   
-   # Import sample data
-   mysql> source C:/Users/Topi/Downloads/Thesis/iSchedWise V4/sample_data.sql
-   
-   # Verify tables
-   mysql> USE ischedwise_db;
-   mysql> SHOW TABLES;
-   
-   # Exit
-   mysql> exit;
-   ```
+1. On your EC2 server (after completing EC2 setup below), install MariaDB client tools.
+2. Copy the SQL dump to the EC2 host (or keep it in your deployed project directory).
+3. Import the dump into RDS:
+
+```bash
+# Run from EC2
+mariadb -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com -u admin -p < /var/www/ischedwise/ischedwise_db.sql
+
+# Verify key tables exist
+mariadb -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com -u admin -p -e "USE ischedwise_db; SHOW TABLES;"
+```
+
+Optional (local machine): if you temporarily enable public access and allow your IP in `ischedwise-db-sg`, you can run the same `mariadb` import command from your local machine. Disable public access again after setup.
 
 ---
 
@@ -209,7 +185,7 @@ Complete step-by-step guide to manually deploy iSchedWise V4 Flask application w
    | SSH | TCP | 22 | My IP | SSH access from your IP |
    | HTTP | TCP | 80 | 0.0.0.0/0 | HTTP web traffic |
    | HTTPS | TCP | 443 | 0.0.0.0/0 | HTTPS web traffic |
-   | Custom TCP | TCP | 5000 | 0.0.0.0/0 | Flask dev server (temp) |
+   | Custom TCP | TCP | 5000 | My IP | Optional temporary Flask test access |
 
 5. Outbound rules: Leave default (All traffic)
 6. Click **"Create security group"**
@@ -224,7 +200,7 @@ Complete step-by-step guide to manually deploy iSchedWise V4 Flask application w
    - **AMI**: Ubuntu Server 24.04 LTS (Free tier eligible)
    - **Architecture**: 64-bit (x86)
 5. Instance type:
-   - **Instance type**: t2.micro (1 vCPU, 1 GB RAM) - Free tier eligible
+   - **Instance type**: t3.micro (x86) for broad compatibility, or t4g.micro (ARM) if your stack supports ARM
 6. Key pair (login):
    - Click **"Create new key pair"**
    - **Key pair name**: `ischedwise-keypair`
@@ -262,15 +238,15 @@ Now that we have the EC2 instance, let's restrict database access:
 1. Go to **EC2** → **"Security Groups"**
 2. Click on `ischedwise-db-sg`
 3. Click **"Inbound rules"** → **"Edit inbound rules"**
-4. Delete the `0.0.0.0/0` rule
+4. Remove any temporary broad rule and keep only required sources (`ischedwise-web-sg` and optionally your current IP)
 5. Click **"Add rule"**:
-   - **Type**: MySQL/Aurora
+   - **Type**: MySQL/Aurora (MariaDB uses port 3306)
    - **Source**: Custom → Search and select `ischedwise-web-sg`
-   - **Description**: `Allow MySQL from web server`
+   - **Description**: `Allow MariaDB from web server`
 6. Click **"Add rule"** (for your local access):
    - **Type**: MySQL/Aurora
    - **Source**: My IP
-   - **Description**: `MySQL access from my IP`
+   - **Description**: `Temporary MariaDB access from my IP`
 7. Click **"Save rules"**
 
 ### Step 5: Connect to EC2 Instance
@@ -314,15 +290,11 @@ Once connected via SSH:
 sudo apt update
 sudo apt upgrade -y
 
-# Add deadsnakes PPA (required for Python 3.11)
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt update
+# Install Python and pip (Ubuntu 24.04 default)
+sudo apt install -y python3 python3-venv python3-pip
 
-# Install Python 3.11 and pip
-sudo apt install -y python3.11 python3.11-venv python3-pip
-
-# Install MySQL client
-sudo apt install -y mysql-client
+# Install MariaDB client tools
+sudo apt install -y mariadb-client
 
 # Install Nginx (web server)
 sudo apt install -y nginx
@@ -331,8 +303,8 @@ sudo apt install -y nginx
 sudo apt install -y git curl wget nano
 
 # Verify installations
-python3.11 --version
-mysql --version
+python3 --version
+mariadb --version
 nginx -v
 ```
 
@@ -344,7 +316,7 @@ nginx -v
 **Option A: Using SCP (from your local machine)**
 ```powershell
 # From Windows PowerShell
-cd "C:\Users\Topi\Downloads\Thesis\iSchedWise V4"
+cd "C:\Users\Topi\Downloads\thesis\iSchedWise V4 - AWS"
 
 # Create tar archive (requires tar on Windows)
 tar -czf ischedwise.tar.gz --exclude=venv --exclude=__pycache__ --exclude=*.pyc .
@@ -414,6 +386,8 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 #### Step 3b: Prepare Your Database Connection String
 Format: `mysql+pymysql://USERNAME:PASSWORD@ENDPOINT/DATABASE_NAME`
 
+If your password contains special URL characters (for example `@`, `:`, `/`, `?`, `#`), URL-encode it before placing it in `DATABASE_URL`.
+
 Example with your values:
 - Username: `admin`
 - Password: (your RDS password from Database Setup)
@@ -422,7 +396,7 @@ Example with your values:
 
 Final string looks like:
 ```
-mysql+pymysql://admin:ISchedWise2025!SecureDB@ischedwise-db.c9a8b7c6d5e4.us-east-1.rds.amazonaws.com/ischedwise_db
+mysql+pymysql://admin:YOUR_RDS_PASSWORD@ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com/ischedwise_db
 ```
 
 #### Step 3c: Create and Edit .env File
@@ -441,10 +415,10 @@ When nano opens, **type or paste** this content:
 # Flask Configuration
 FLASK_APP=run.py
 FLASK_ENV=production
-SECRET_KEY=64cc9009f2edacac016997a313c193a6b7ba0767e1fa346a6792bb39046321e0
+SECRET_KEY=PASTE_YOUR_GENERATED_SECRET_KEY_HERE
 
 # Database Configuration
-DATABASE_URL=mysql+pymysql://admin:12345678@ischedwise-db.cw3g6si0u96s.us-east-1.rds.amazonaws.com/ischedwise_db
+DATABASE_URL=mysql+pymysql://admin:YOUR_RDS_PASSWORD@YOUR_RDS_ENDPOINT/ischedwise_db
 
 # Email Configuration (Optional - for password reset feature)
 MAIL_SERVER=smtp.gmail.com
@@ -480,7 +454,7 @@ FLASK_ENV=production
 SECRET_KEY=a1b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef0123456789
 
 # Database Configuration
-DATABASE_URL=mysql+pymysql://admin:ISchedWise2025!SecureDB@ischedwise-db.c9a8b7c6d5e4.us-east-1.rds.amazonaws.com/ischedwise_db
+DATABASE_URL=mysql+pymysql://admin:Str0ngPasswordHere@ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com/ischedwise_db
 
 # Email Configuration (Optional)
 MAIL_SERVER=smtp.gmail.com
@@ -520,8 +494,8 @@ chmod 600 .env
 ```bash
 cd /var/www/ischedwise
 
-# Create virtual environment using Python 3.11
-python3.11 -m venv venv
+# Create virtual environment using system Python
+python3 -m venv venv
 
 # Activate virtual environment
 source venv/bin/activate
@@ -544,27 +518,18 @@ pip list
 ./venv/bin/pip install -r requirements.txt
 ```
 
-### Step 5: Update Configuration for Production
-Edit `config/config.py`:
+### Step 5: Validate Production Configuration
+No code edits are required for the current project state.
+
+Validate that your environment is loaded correctly:
 ```bash
-nano config/config.py
-```
+cd /var/www/ischedwise
 
-Ensure ProductionConfig uses environment variables:
-```python
-class ProductionConfig(Config):
-    """Production configuration"""
-    DEBUG = False
-    TESTING = False
+# Confirm critical values are available (do not print secrets)
+grep -E "^(FLASK_ENV|DATABASE_URL|SECRET_KEY)=" .env
 
-    # Remove the @property decorator - SECRET_KEY must be a class attribute
-    # Override the parent class SECRET_KEY
-    def __init__(self):
-        super().__init__()
-        secret_key = os.environ.get('SECRET_KEY')
-        if not secret_key:
-            raise ValueError("SECRET_KEY must be set in production environment")
-        self.SECRET_KEY = secret_key
+# Validate production config can initialize
+./venv/bin/python -c "from config.config import ProductionConfig; ProductionConfig(); print('Production config OK')"
 ```
 
 ### Step 6: Test Application
@@ -598,7 +563,7 @@ cd /var/www/ischedwise
 
 # Test Gunicorn
 source venv/bin/activate
-gunicorn --bind 0.0.0.0:5000 run:app
+gunicorn --worker-class gthread --threads 4 --workers 2 --bind 0.0.0.0:5000 run:app
 
 # Should start without errors
 # Ctrl+C to stop
@@ -622,7 +587,7 @@ WorkingDirectory=/var/www/ischedwise
 Environment="PATH=/var/www/ischedwise/venv/bin"
 Environment="FLASK_ENV=production"
 EnvironmentFile=/var/www/ischedwise/.env
-ExecStart=/var/www/ischedwise/venv/bin/gunicorn --workers 3 --bind unix:/var/www/ischedwise/ischedwise.sock --timeout 120 run:app
+ExecStart=/var/www/ischedwise/venv/bin/gunicorn --worker-class gthread --threads 4 --workers 2 --bind unix:/var/www/ischedwise/ischedwise.sock --timeout 120 run:app
 
 [Install]
 WantedBy=multi-user.target
@@ -953,10 +918,10 @@ Restart application:
 sudo systemctl restart ischedwise
 ```
 
-### Step 3: Remove Sample Data (Production)
+### Step 3: Optional - Remove Seed/Test Data
 ```bash
 # Connect to RDS database
-mysql -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com -u admin -p
+mariadb -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com -u admin -p
 
 # Delete sample data
 USE ischedwise_db;
@@ -983,8 +948,8 @@ BACKUP_DIR="/home/ubuntu/backups"
 mkdir -p $BACKUP_DIR
 
 # Backup database
-mysqldump -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com \
-  -u admin -pYOUR_DB_PASSWORD \
+mariadb-dump -h ischedwise-db.xxxxx.us-east-1.rds.amazonaws.com \
+   -u admin --password='YOUR_DB_PASSWORD' \
   ischedwise_db > $BACKUP_DIR/ischedwise_db_$DATE.sql
 
 # Compress
@@ -1166,7 +1131,7 @@ cd /var/www/ischedwise
 ### Can't Connect to Database
 ```bash
 # Test from EC2
-mysql -h YOUR_RDS_ENDPOINT -u admin -p
+mariadb -h YOUR_RDS_ENDPOINT -u admin -p
 
 # Check security groups:
 # - RDS security group allows EC2 security group
@@ -1190,7 +1155,7 @@ sudo tail -f /var/log/nginx/error.log
 # Reduce Gunicorn workers
 sudo nano /etc/systemd/system/ischedwise.service
 
-# Change: --workers 3 to --workers 2
+# Example: reduce from --workers 2 --threads 4 to --workers 1 --threads 2
 
 # Reload and restart
 sudo systemctl daemon-reload
@@ -1201,7 +1166,7 @@ sudo systemctl restart ischedwise
 
 ## Cost Optimization Tips
 
-1. **Use Free Tier**: First 12 months free for t2.micro EC2 and db.t3.micro RDS
+1. **Use Free Benefits Wisely**: Check your current AWS free-plan/free-tier eligibility before provisioning
 2. **Stop EC2 when not needed**: Stops charges (RDS continues)
 3. **Use Reserved Instances**: 30-70% savings if running 24/7
 4. **Delete old snapshots**: RDS automated backups count towards storage
@@ -1227,7 +1192,7 @@ sudo journalctl -u ischedwise -f
 cd /var/www/ischedwise && git pull && sudo systemctl restart ischedwise
 
 # Database backup
-mysqldump -h RDS_ENDPOINT -u admin -p ischedwise_db > backup.sql
+mariadb-dump -h RDS_ENDPOINT -u admin -p ischedwise_db > backup.sql
 
 # Check system resources
 htop

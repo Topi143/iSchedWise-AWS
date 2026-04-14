@@ -905,13 +905,13 @@
                                             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
                                             <input type="date" name="exam_period_start" id="examPeriodStart"
                                                    value="{{ active_settings.exam_period_start.strftime('%Y-%m-%d') if active_settings and active_settings.exam_period_start else '' }}"
-                                                   class="form-input" onchange="autoCalculateExamEndDate()">
+                                                   class="form-input" onchange="autoCalculateExamEndDate(); saveCurrentExamPeriodDatesToMemory()">
                                         </div>
                                         <div>
                                             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date <span class="text-purple-500 text-xs">(auto-filled to Saturday)</span></label>
                                             <input type="date" name="exam_period_end" id="examPeriodEnd"
                                                    value="{{ active_settings.exam_period_end.strftime('%Y-%m-%d') if active_settings and active_settings.exam_period_end else '' }}"
-                                                   class="form-input" onchange="updateExamPeriodPreview()">
+                                                   class="form-input" onchange="updateExamPeriodPreview(); saveCurrentExamPeriodDatesToMemory()">
                                         </div>
                                     </div>
                                     <div id="examPeriodPreview" class="mt-3 p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800 hidden">
@@ -2343,6 +2343,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-xs sm:max-w-md w-full px-2 sm:px-0"></div>
 
+<script id="settingsExamPeriodDateMemory" type="application/json">{{ exam_period_date_memory|tojson }}</script>
 <div
     id="settingsRouteData"
     data-dept-add-url="{{ url_for('settings.add_department') }}"
@@ -2482,6 +2483,165 @@ function updateExamLunchPreview() {
 }
 
 // ========================================
+// EXAM PERIOD DATE MEMORY (TERM + PERIOD)
+// ========================================
+const EXAM_PERIOD_DATE_DEFAULTS = {
+    Prelim: { start: '', end: '' },
+    Midterm: { start: '', end: '' },
+    Final: { start: '', end: '' }
+};
+
+let examPeriodDateMemoryMap = {};
+let _lastExamTermKey = null;
+let _lastExamPeriod = null;
+
+function _cloneExamPeriodDefaults() {
+    return {
+        Prelim: { start: '', end: '' },
+        Midterm: { start: '', end: '' },
+        Final: { start: '', end: '' }
+    };
+}
+
+function _safeParseSettingsJson(elementId, fallback) {
+    const node = document.getElementById(elementId);
+    if (!node) return fallback;
+
+    try {
+        const parsed = JSON.parse(node.textContent || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : fallback;
+    } catch (err) {
+        console.error('Failed to parse settings JSON payload:', err);
+        return fallback;
+    }
+}
+
+function _buildExamTermKey(academicYear, semester) {
+    if (!academicYear || !semester) return null;
+    return `${academicYear}|${semester}`;
+}
+
+function getSelectedExamTermKey() {
+    const academicYear = document.getElementById('fieldAcademicYear')?.value || '';
+    const semester = document.getElementById('currentSemesterSelect')?.value || '';
+    return _buildExamTermKey(academicYear, semester);
+}
+
+function getSelectedExamPeriod() {
+    const selected = (document.getElementById('fieldExamPeriod')?.value || '').trim();
+    if (Object.prototype.hasOwnProperty.call(EXAM_PERIOD_DATE_DEFAULTS, selected)) {
+        return selected;
+    }
+    return 'Prelim';
+}
+
+function _ensureExamTermMemory(termKey) {
+    if (!termKey) {
+        return _cloneExamPeriodDefaults();
+    }
+
+    const rawTermData = examPeriodDateMemoryMap[termKey];
+    const termData = rawTermData && typeof rawTermData === 'object' ? rawTermData : {};
+    const normalized = _cloneExamPeriodDefaults();
+
+    Object.keys(normalized).forEach((period) => {
+        const periodData = termData[period];
+        if (periodData && typeof periodData === 'object') {
+            normalized[period] = {
+                start: String(periodData.start || ''),
+                end: String(periodData.end || '')
+            };
+        }
+    });
+
+    examPeriodDateMemoryMap[termKey] = normalized;
+    return normalized;
+}
+
+function _setExamDateInputs(start, end) {
+    const startInput = document.getElementById('examPeriodStart');
+    const endInput = document.getElementById('examPeriodEnd');
+    if (!startInput || !endInput) return;
+
+    startInput.value = start || '';
+    endInput.value = end || '';
+}
+
+function saveCurrentExamPeriodDatesToMemory(termKeyOverride, periodOverride) {
+    const startInput = document.getElementById('examPeriodStart');
+    const endInput = document.getElementById('examPeriodEnd');
+    if (!startInput || !endInput) return;
+
+    const termKey = termKeyOverride || getSelectedExamTermKey();
+    const period = periodOverride || getSelectedExamPeriod();
+    if (!termKey || !period) return;
+
+    const termData = _ensureExamTermMemory(termKey);
+    termData[period] = {
+        start: startInput.value || '',
+        end: endInput.value || ''
+    };
+}
+
+function loadExamPeriodDatesFromMemory(termKey, period) {
+    if (!termKey || !period) return;
+
+    const termData = _ensureExamTermMemory(termKey);
+    const periodData = termData[period] || { start: '', end: '' };
+
+    _setExamDateInputs(periodData.start, periodData.end);
+    updateExamPeriodPreview();
+}
+
+function snapshotExamPeriodSelectionState() {
+    _lastExamTermKey = getSelectedExamTermKey();
+    _lastExamPeriod = getSelectedExamPeriod();
+}
+
+function handleExamPeriodTermSelectionChange() {
+    if (_lastExamTermKey && _lastExamPeriod) {
+        saveCurrentExamPeriodDatesToMemory(_lastExamTermKey, _lastExamPeriod);
+    }
+
+    const nextTermKey = getSelectedExamTermKey();
+    const nextPeriod = getSelectedExamPeriod();
+    loadExamPeriodDatesFromMemory(nextTermKey, nextPeriod);
+    snapshotExamPeriodSelectionState();
+}
+
+function handleExamPeriodSelectionChange() {
+    if (_lastExamTermKey && _lastExamPeriod) {
+        saveCurrentExamPeriodDatesToMemory(_lastExamTermKey, _lastExamPeriod);
+    }
+
+    const nextTermKey = getSelectedExamTermKey();
+    const nextPeriod = getSelectedExamPeriod();
+    loadExamPeriodDatesFromMemory(nextTermKey, nextPeriod);
+    snapshotExamPeriodSelectionState();
+}
+
+function initializeExamPeriodDateMemory() {
+    examPeriodDateMemoryMap = _safeParseSettingsJson('settingsExamPeriodDateMemory', {});
+
+    const termKey = getSelectedExamTermKey();
+    const period = getSelectedExamPeriod();
+    if (!termKey || !period) return;
+
+    const startInput = document.getElementById('examPeriodStart');
+    const endInput = document.getElementById('examPeriodEnd');
+    const termData = _ensureExamTermMemory(termKey);
+    const existingPeriodData = termData[period] || { start: '', end: '' };
+
+    // Preserve initial server-rendered values if history payload has no value for current period.
+    if (!(existingPeriodData.start || existingPeriodData.end) && ((startInput && startInput.value) || (endInput && endInput.value))) {
+        saveCurrentExamPeriodDatesToMemory(termKey, period);
+    }
+
+    loadExamPeriodDatesFromMemory(termKey, period);
+    snapshotExamPeriodSelectionState();
+}
+
+// ========================================
 // OPERATION DAYS PILL TOGGLE
 // ========================================
 function updateDayPill(checkbox) {
@@ -2534,13 +2694,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const examPeriodSelect = document.getElementById('fieldExamPeriod');
 
     if (academicYearSelect) {
-        academicYearSelect.addEventListener('change', clearExamPeriodDatesForTermChange);
+        academicYearSelect.addEventListener('change', handleExamPeriodTermSelectionChange);
     }
     if (currentSemesterSelect) {
-        currentSemesterSelect.addEventListener('change', clearExamPeriodDatesForTermChange);
+        currentSemesterSelect.addEventListener('change', handleExamPeriodTermSelectionChange);
     }
     if (examPeriodSelect) {
-        examPeriodSelect.addEventListener('change', clearExamPeriodDatesForTermChange);
+        examPeriodSelect.addEventListener('change', handleExamPeriodSelectionChange);
     }
 
     // Add event listeners to operation days checkboxes
@@ -2557,6 +2717,7 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', validateSemesters);
     });
     updateCurrentSemesterOptions();
+    initializeExamPeriodDateMemory();
 
     // Restore accordion state for advanced exam settings
     ['acad-exam-sched'].forEach(function(id) {
@@ -2727,21 +2888,14 @@ function autoCalculateExamEndDate() {
     
     // Update preview
     updateExamPeriodPreview();
+    saveCurrentExamPeriodDatesToMemory();
 }
 
 // ========================================
 // EXAM PERIOD DATE RANGE PREVIEW
 // ========================================
 function clearExamPeriodDatesForTermChange() {
-    const startInput = document.getElementById('examPeriodStart');
-    const endInput = document.getElementById('examPeriodEnd');
-    if (!startInput || !endInput) return;
-
-    if (!startInput.value && !endInput.value) return;
-
-    startInput.value = '';
-    endInput.value = '';
-    updateExamPeriodPreview();
+    handleExamPeriodTermSelectionChange();
 }
 
 function updateExamPeriodPreview() {

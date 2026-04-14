@@ -9,6 +9,7 @@
 let _examBatchData = null;           // Full response from backend
 let _examBatchSectionId = null;      // Current section ID
 let _examBatchCurriculumId = null;   // Selected curriculum ID
+let _examBatchCurricula = [];        // Available curricula for selected section
 let _examBatchModeActive = false;    // Whether inline batch panel is visible
 let _examFacultyCache = {};          // Cache faculty lists per subject_id
 let _examAvailableSubjects = null;   // Unscheduled subjects for "Add Subject"
@@ -20,6 +21,7 @@ let _examConflictCheckTimer = null;  // Debounce timer
 let _examConflictCheckInFlight = false;
 const EXAM_CONFLICT_CHECK_DEBOUNCE_MS = 800;
 const EXAM_BATCH_STATE_KEY = 'ischedwise_batch_mode';
+const EXAM_BATCH_CURRICULUM_MEMORY_KEY = 'ischedwise_curriculum_by_year';
 
 function syncExamBatchCalendarAlignment() {
     if (typeof queueWeekCalendarHeaderAlignmentSync === 'function') {
@@ -127,6 +129,7 @@ function enterExamBatchMode() {
     _examBatchData = null;
     _examBatchSectionId = sectionId;
     _examBatchCurriculumId = null;
+    _examBatchCurricula = [];
     _examBatchModeActive = true;
     _examFacultyCache = {};
     _examAvailableSubjects = null;
@@ -135,11 +138,11 @@ function enterExamBatchMode() {
     _examConflictCheckInFlight = false;
     if (_examConflictCheckTimer) { clearTimeout(_examConflictCheckTimer); _examConflictCheckTimer = null; }
 
-    // Reset batch panel UI — show curriculum step first
+    // Reset batch panel UI
     document.getElementById('examBatchSectionName').textContent = 'Section: ' + sectionName;
-    document.getElementById('examBatchCurriculumStep').classList.remove('hidden');
-    document.getElementById('examBatchLoading').classList.add('hidden');
+    document.getElementById('examBatchLoading').classList.remove('hidden');
     document.getElementById('examBatchError').classList.add('hidden');
+    document.getElementById('examBatchCurriculumPrompt')?.classList.add('hidden');
     document.getElementById('examBatchAllDone').classList.add('hidden');
     document.getElementById('examBatchResults').classList.add('hidden');
     document.getElementById('examBatchStats').classList.add('hidden');
@@ -200,12 +203,6 @@ function enterExamBatchMode() {
         iconEdit.classList.add('hidden');
     }
 
-    // Load curricula for selection step
-    loadExamBatchCurricula(sectionId);
-
-    // Load buildings for preferred building dropdown
-    loadExamBuildingsForBatch();
-
     // Reset calendar view state
     _examBatchCurrentView = 'table';
 
@@ -225,9 +222,20 @@ function enterExamBatchMode() {
 
     // Activate step 1 indicator
     _updateExamBatchStep(1);
+
+    // Load curricula first; preview starts only after explicit curriculum selection.
+    if (document.getElementById('examBatchCurriculumSelect')) {
+        _loadExamBatchCurriculaIntoSelector(sectionId);
+    } else {
+        // Legacy fallback when selector UI is unavailable.
+        _startExamBatchPreview(sectionId);
+    }
 }
 
 function exitExamBatchMode(silent) {
+    const exitSectionId = _examBatchSectionId;
+    const exitCurriculumId = _examBatchCurriculumId;
+
     // Clear persisted batch mode state
     sessionStorage.removeItem(EXAM_BATCH_STATE_KEY);
 
@@ -235,11 +243,17 @@ function exitExamBatchMode(silent) {
     _examBatchData = null;
     _examBatchSectionId = null;
     _examBatchCurriculumId = null;
+    _examBatchCurricula = [];
     _examActiveDropdown = null;
     _examBatchConflicts = {};
     _examPreferredBuildingId = null;
     _examConflictCheckInFlight = false;
     if (_examConflictCheckTimer) { clearTimeout(_examConflictCheckTimer); _examConflictCheckTimer = null; }
+
+    const curriculumSelect = document.getElementById('examBatchCurriculumSelect');
+    if (curriculumSelect) {
+        curriculumSelect.value = '';
+    }
 
     // Remove any open tooltip
     const tooltip = document.getElementById('examBatchConflictTooltip');
@@ -298,67 +312,344 @@ function exitExamBatchMode(silent) {
         const aiBadge = document.getElementById('aiBadge');
         if (aiBadge) { aiBadge.classList.remove('hidden'); aiBadge.classList.add('flex'); }
     }
+
+    _syncExamBatchCurriculumToDetails(exitSectionId, exitCurriculumId);
 }
 
-// ─── Curriculum Selection Step ──────────────────────────────────────
+// ─── Curriculum Selection & Preview Gating ────────────────────────
 
-async function loadExamBatchCurricula(sectionId) {
-    const select = document.getElementById('examBatchCurriculumSelect');
-    const btn = document.getElementById('examBatchCurriculumConfirmBtn');
-    if (!select) return;
+function _getExamBatchSectionOption(sectionId) {
+    if (!sectionId) return null;
 
-    select.innerHTML = '<option value="">Loading curricula...</option>';
-    if (btn) btn.disabled = true;
+    const sectionIdStr = String(sectionId);
+    const switcherIds = [
+        'examModalSectionSwitcher',
+        'section_id_exam_add',
+        'section_id_exam_edit',
+        'section_id_exam',
+        'modalSectionSwitcher'
+    ];
+
+    for (const switcherId of switcherIds) {
+        const switcher = document.getElementById(switcherId);
+        if (!switcher) continue;
+
+        const option = Array.from(switcher.options || []).find((candidate) => String(candidate.value) === sectionIdStr);
+        if (option) return option;
+    }
+
+    return null;
+}
+
+function _getExamBatchCurriculumMemoryKey(sectionId) {
+    const sectionOption = _getExamBatchSectionOption(sectionId);
+    if (!sectionOption) return '';
+
+    const yearLevel = String(sectionOption.dataset.yearLevel || '').trim();
+    if (!yearLevel) return '';
+
+    const programId = String(sectionOption.dataset.programId || '').trim() || '0';
+    return `exam:${programId}:${yearLevel}`;
+}
+
+function _readExamBatchCurriculumMemoryMap() {
+    try {
+        const raw = sessionStorage.getItem(EXAM_BATCH_CURRICULUM_MEMORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function _writeExamBatchCurriculumMemoryMap(memoryMap) {
+    try {
+        sessionStorage.setItem(EXAM_BATCH_CURRICULUM_MEMORY_KEY, JSON.stringify(memoryMap));
+    } catch (error) {
+        // Ignore storage write failures and keep flow working.
+    }
+}
+
+function _rememberExamBatchCurriculumId(sectionId, curriculumId) {
+    if (!sectionId || !curriculumId) return;
+
+    const memoryKey = _getExamBatchCurriculumMemoryKey(sectionId);
+    if (!memoryKey) return;
+
+    const memoryMap = _readExamBatchCurriculumMemoryMap();
+    memoryMap[memoryKey] = String(curriculumId);
+    _writeExamBatchCurriculumMemoryMap(memoryMap);
+}
+
+function _syncExamBatchCurriculumToDetails(sectionId, curriculumId) {
+    if (!sectionId || !curriculumId) return;
+
+    const sectionIdStr = String(sectionId);
+    const curriculumIdStr = String(curriculumId);
+
+    const sectionInput = document.getElementById('section_id_exam_add');
+    if (sectionInput) {
+        sectionInput.value = sectionIdStr;
+    }
+
+    const sectionSwitcher = document.getElementById('examModalSectionSwitcher');
+    if (sectionSwitcher) {
+        sectionSwitcher.value = sectionIdStr;
+    }
+
+    if (typeof window.loadCurriculaForSection === 'function') {
+        window.loadCurriculaForSection(sectionIdStr, 'exam_add');
+    }
+
+    const applyCurriculumSelection = () => {
+        const curriculumSelect = document.getElementById('curriculum_id_exam_add');
+        if (!curriculumSelect) return false;
+
+        const hasMatchingOption = Array.from(curriculumSelect.options || []).some(
+            (option) => String(option.value) === curriculumIdStr
+        );
+        if (!hasMatchingOption) return false;
+
+        curriculumSelect.value = curriculumIdStr;
+        if (typeof window.loadSubjectsForCurriculum === 'function') {
+            window.loadSubjectsForCurriculum('exam_add');
+        } else {
+            curriculumSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        return true;
+    };
+
+    if (applyCurriculumSelection()) {
+        return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 20;
+    const timer = setInterval(() => {
+        attempts += 1;
+        if (applyCurriculumSelection() || attempts >= maxAttempts) {
+            clearInterval(timer);
+        }
+    }, 100);
+}
+
+function _showExamBatchLoadingState(title, hint) {
+    const loading = document.getElementById('examBatchLoading');
+    const error = document.getElementById('examBatchError');
+    const prompt = document.getElementById('examBatchCurriculumPrompt');
+    const allDone = document.getElementById('examBatchAllDone');
+    const results = document.getElementById('examBatchResults');
+    const stats = document.getElementById('examBatchStats');
+    const footer = document.getElementById('examBatchFooter');
+    const addPanel = document.getElementById('examBatchAddSubjectPanel');
+    const addBtn = document.getElementById('examBatchAddSubjectBtn');
+    const viewToggle = document.getElementById('examBatchInlineViewToggle');
+    const titleEl = document.getElementById('examBatchLoadingTitle');
+    const hintEl = document.getElementById('examBatchLoadingHint');
+
+    if (titleEl && title) titleEl.textContent = title;
+    if (hintEl && hint) hintEl.textContent = hint;
+
+    loading?.classList.remove('hidden');
+    error?.classList.add('hidden');
+    prompt?.classList.add('hidden');
+    allDone?.classList.add('hidden');
+    results?.classList.add('hidden');
+    stats?.classList.add('hidden');
+    footer?.classList.add('hidden');
+    addPanel?.classList.add('hidden');
+    addBtn?.classList.add('hidden');
+    viewToggle?.classList.add('hidden');
+}
+
+function _showExamBatchCurriculumPrompt() {
+    const loading = document.getElementById('examBatchLoading');
+    const error = document.getElementById('examBatchError');
+    const prompt = document.getElementById('examBatchCurriculumPrompt');
+    const allDone = document.getElementById('examBatchAllDone');
+    const results = document.getElementById('examBatchResults');
+    const stats = document.getElementById('examBatchStats');
+    const footer = document.getElementById('examBatchFooter');
+    const addPanel = document.getElementById('examBatchAddSubjectPanel');
+    const addBtn = document.getElementById('examBatchAddSubjectBtn');
+    const viewToggle = document.getElementById('examBatchInlineViewToggle');
+
+    loading?.classList.add('hidden');
+    error?.classList.add('hidden');
+    prompt?.classList.remove('hidden');
+    allDone?.classList.add('hidden');
+    results?.classList.add('hidden');
+    stats?.classList.add('hidden');
+    footer?.classList.add('hidden');
+    addPanel?.classList.add('hidden');
+    addBtn?.classList.add('hidden');
+    viewToggle?.classList.add('hidden');
+}
+
+async function _loadExamBatchCurriculaIntoSelector(sectionId) {
+    const curriculumSelect = document.getElementById('examBatchCurriculumSelect');
+    const hint = document.getElementById('examBatchCurriculumHint');
+    if (!curriculumSelect) return;
+
+    _examBatchCurriculumId = null;
+    _examBatchCurricula = [];
+    curriculumSelect.disabled = true;
+    curriculumSelect.innerHTML = '<option value="">Loading curricula...</option>';
+
+    _showExamBatchLoadingState('Loading curricula...', 'Fetching available curricula for this section');
 
     try {
-        const res = await fetch(`/schedule/get-curricula/${sectionId}`);
-        const data = await parseExamBatchApiJson(res, 'Unable to load curricula');
-        const curricula = data.curricula || [];
+        const response = await fetch(`/schedule/get-curricula/${sectionId}`);
+        const data = await parseExamBatchApiJson(response, 'Unable to load curricula');
+        const curricula = Array.isArray(data.curricula) ? data.curricula : [];
+        _examBatchCurricula = curricula;
 
-        if (curricula.length === 0) {
-            select.innerHTML = '<option value="">No curricula found for this program</option>';
+        if (!curricula.length) {
+            curriculumSelect.innerHTML = '<option value="">No curricula available</option>';
+            curriculumSelect.disabled = true;
+            if (hint) hint.textContent = 'No curricula are available for this section.';
+            showExamBatchError('No curricula are available for this section.');
             return;
         }
 
-        select.innerHTML = '<option value="">Select a curriculum...</option>';
-        curricula.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = `${c.curriculum_code} — ${c.degree_program}`;
-            select.appendChild(opt);
+        const memoryKey = _getExamBatchCurriculumMemoryKey(sectionId);
+        const memoryMap = _readExamBatchCurriculumMemoryMap();
+        const rememberedCurriculumId = memoryKey ? String(memoryMap[memoryKey] || '') : '';
+        const hasRememberedCurriculum = rememberedCurriculumId
+            && curricula.some((curriculum) => String(curriculum.id) === rememberedCurriculumId);
+
+        curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
+        curricula.forEach((curriculum) => {
+            const option = document.createElement('option');
+            option.value = curriculum.id;
+            option.textContent = curriculum.display;
+            curriculumSelect.appendChild(option);
         });
 
-        // Auto-select and proceed if only one curriculum
-        if (curricula.length === 1) {
-            select.value = curricula[0].id;
-            if (btn) btn.disabled = false;
-            confirmExamBatchCurriculum();
+        curriculumSelect.disabled = false;
+
+        if (hasRememberedCurriculum) {
+            curriculumSelect.value = rememberedCurriculumId;
+            if (hint) {
+                hint.textContent = 'Select a curriculum to load exam schedule preview.';
+            }
+            await onExamBatchCurriculumSelectionChange(curriculumSelect);
             return;
         }
 
-        select.onchange = function() {
-            if (btn) btn.disabled = !this.value;
-        };
-    } catch (e) {
-        console.error('[EXAM BATCH] Failed to load curricula:', e);
-        select.innerHTML = '<option value="">Error loading curricula</option>';
+        curriculumSelect.value = '';
+        if (hint) {
+            hint.textContent = 'Select a curriculum to load exam schedule preview.';
+        }
+
+        _showExamBatchCurriculumPrompt();
+    } catch (error) {
+        console.error('[EXAM BATCH] Failed to load curricula:', error);
+        curriculumSelect.innerHTML = '<option value="">Error loading curricula</option>';
+        curriculumSelect.disabled = false;
+        if (hint) hint.textContent = 'Unable to load curricula. Retry and select a curriculum.';
+        showExamBatchError(error.message || 'Unable to load curricula for this section.');
         if (typeof showToast === 'function') {
-            showToast(e.message || 'Error loading curricula', 'error');
+            showToast(error.message || 'Unable to load curricula for this section.', 'error');
         }
     }
 }
 
-function confirmExamBatchCurriculum() {
-    const select = document.getElementById('examBatchCurriculumSelect');
-    const curriculumId = select ? select.value : null;
-    if (!curriculumId || !_examBatchSectionId) return;
+async function onExamBatchCurriculumSelectionChange(selectElement) {
+    if (!_examBatchSectionId) return;
 
-    _examBatchCurriculumId = parseInt(curriculumId);
+    const selectedValue = String(selectElement?.value || '').trim();
+    if (!selectedValue) {
+        _examBatchCurriculumId = null;
+        _showExamBatchCurriculumPrompt();
+        return;
+    }
 
-    document.getElementById('examBatchCurriculumStep').classList.add('hidden');
-    document.getElementById('examBatchLoading').classList.remove('hidden');
+    _examBatchCurriculumId = parseInt(selectedValue, 10);
+    if (!Number.isInteger(_examBatchCurriculumId) || _examBatchCurriculumId <= 0) {
+        _examBatchCurriculumId = null;
+        showExamBatchError('Invalid curriculum selection. Please choose a valid curriculum.');
+        return;
+    }
 
-    generateExamBatchPreview(_examBatchSectionId);
+    _rememberExamBatchCurriculumId(_examBatchSectionId, _examBatchCurriculumId);
+    await _startExamBatchPreview(_examBatchSectionId);
+}
+
+window.onExamBatchCurriculumSelectionChange = onExamBatchCurriculumSelectionChange;
+
+async function _resolveExamBatchCurriculumId(sectionId) {
+    const response = await fetch(`/schedule/get-curricula/${sectionId}`);
+    const data = await parseExamBatchApiJson(response, 'Unable to load curricula');
+    const curricula = data.curricula || [];
+
+    if (!curricula.length) {
+        throw new Error('No curricula are available for this section.');
+    }
+
+    const memoryKey = _getExamBatchCurriculumMemoryKey(sectionId);
+    if (!memoryKey) {
+        throw new Error('Cannot auto-resolve curriculum for this section. Select a curriculum first in regular scheduling.');
+    }
+
+    const memoryMap = _readExamBatchCurriculumMemoryMap();
+    const rememberedCurriculumId = String(memoryMap[memoryKey] || '');
+    if (!rememberedCurriculumId) {
+        throw new Error('No remembered curriculum for this year level. Select a curriculum first in regular scheduling.');
+    }
+
+    const isRememberedCurriculumAvailable = curricula.some((curriculum) => String(curriculum.id) === rememberedCurriculumId);
+    if (!isRememberedCurriculumAvailable) {
+        throw new Error('Remembered curriculum is no longer available. Re-select curriculum in regular scheduling first.');
+    }
+
+    return parseInt(rememberedCurriculumId, 10);
+}
+
+async function _startExamBatchPreview(sectionId) {
+    const hasSelector = !!document.getElementById('examBatchCurriculumSelect');
+
+    try {
+        if (!_examBatchCurriculumId) {
+            if (hasSelector) {
+                _showExamBatchCurriculumPrompt();
+                return;
+            }
+
+            // Legacy fallback for old flows without selector UI.
+            _examBatchCurriculumId = await _resolveExamBatchCurriculumId(sectionId);
+        }
+
+        _showExamBatchLoadingState(
+            'Building exam schedule preview...',
+            'Finding optimal dates, times, and rooms'
+        );
+
+        await generateExamBatchPreview(sectionId);
+    } catch (error) {
+        console.error('[EXAM BATCH] Curriculum preview bootstrap failed:', error);
+        document.getElementById('examBatchLoading').classList.add('hidden');
+        showExamBatchError(error.message || 'Unable to load exam preview for the selected curriculum.');
+        if (typeof showToast === 'function') {
+            showToast(error.message || 'Unable to load exam preview for the selected curriculum.', 'error');
+        }
+    }
+}
+
+function retryExamBatchPreview() {
+    if (!_examBatchSectionId) return;
+
+    if (document.getElementById('examBatchCurriculumSelect') && !_examBatchCurriculumId) {
+        _showExamBatchCurriculumPrompt();
+        if (typeof showToast === 'function') {
+            showToast('Select a curriculum first to load exam preview.', 'error');
+        }
+        return;
+    }
+
+    document.getElementById('examBatchError').classList.add('hidden');
+    _startExamBatchPreview(_examBatchSectionId);
 }
 
 // ─── API: Generate Preview ────────────────────────────────────────
@@ -367,7 +658,6 @@ async function generateExamBatchPreview(sectionId) {
     try {
         const body = { section_id: sectionId };
         if (_examBatchCurriculumId) body.curriculum_id = _examBatchCurriculumId;
-        if (_examPreferredBuildingId) body.preferred_building_id = _examPreferredBuildingId;
 
         const response = await fetch('/exam-schedule/batch-generate', {
             method: 'POST',
@@ -383,13 +673,25 @@ async function generateExamBatchPreview(sectionId) {
             return;
         }
 
-        if (data.proposed.length === 0 && (!data.unplaceable || data.unplaceable.length === 0)) {
+        const proposedItems = Array.isArray(data.proposed) ? data.proposed : [];
+        const existingItems = Array.isArray(data.existing) ? data.existing : [];
+        const unplaceableItems = Array.isArray(data.unplaceable) ? data.unplaceable : [];
+
+        const existingRows = existingItems.map(item => ({ ...item, is_existing: true }));
+        const unplaceableRows = unplaceableItems.map(mapExamUnplaceableToRowItem);
+        data.proposed = existingRows.concat(proposedItems, unplaceableRows);
+        // Keep unplaceable count in stats, but render all subjects directly in table rows.
+        data.unplaceable = [];
+        data.stats = data.stats || {};
+        data.stats.already_examined = data.stats.already_examined || existingItems.length;
+
+        const noNewProposals = proposedItems.length === 0;
+        const noUnplaceable = unplaceableItems.length === 0;
+
+        if (noNewProposals && noUnplaceable) {
             // If backend returned existing exams, render them as editable rows
-            if (data.existing && data.existing.length > 0) {
-                data.proposed = data.existing.map(item => ({ ...item, is_existing: true }));
-                data.stats = data.stats || {};
+            if (existingRows.length > 0) {
                 data.stats.scheduled = data.stats.scheduled || 0;
-                data.stats.already_examined = data.stats.already_examined || data.existing.length;
                 _examBatchData = data;
                 renderExamBatchResults(data);
                 // Mark existing rows with green border
@@ -414,13 +716,33 @@ async function generateExamBatchPreview(sectionId) {
     }
 }
 
+function mapExamUnplaceableToRowItem(item) {
+    const scheduleType = (item?.schedule_type || 'lecture').toLowerCase();
+    return {
+        subject_id: item?.subject_id || null,
+        subject_code: item?.subject_code || '',
+        course_description: item?.course_description || '',
+        schedule_type: scheduleType,
+        faculty_id: null,
+        faculty_name: '',
+        room_id: null,
+        room_name: '',
+        building_name: '',
+        exam_date: '',
+        start_time: '',
+        end_time: '',
+        is_existing: false,
+        unplaceable_reason: item?.reason || ''
+    };
+}
+
 // ─── Render Results ───────────────────────────────────────────────
 
 function renderExamBatchResults(data) {
     const stats = data.stats || {};
 
     // Step indicator & progress bar
-    _updateExamBatchStep(2);
+    _updateExamBatchStep(1);
     _updateExamBatchProgressBar();
 
     // Stats
@@ -637,27 +959,8 @@ function buildExamBatchRow(item, idx) {
 function renderExamUnplaceableItems(items) {
     const section = document.getElementById('examBatchUnplaceableSection');
     const list = document.getElementById('examBatchUnplaceableList');
-    list.innerHTML = '';
-
-    if (items && items.length > 0) {
-        section.classList.remove('hidden');
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-lg';
-            div.innerHTML = `
-                <svg class="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
-                <div>
-                    <span class="font-semibold text-red-700 text-[11px]">${examEscapeHtml(item.subject_code)}</span>
-                    <p class="text-[10px] text-red-400 mt-0.5">${examEscapeHtml(item.reason)}</p>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    } else {
-        section.classList.add('hidden');
-    }
+    if (list) list.innerHTML = '';
+    if (section) section.classList.add('hidden');
 }
 
 // ─── Proctor (Faculty) Dropdown ───────────────────────────────────
@@ -1278,9 +1581,12 @@ function examValidateAllRows() {
     if (hasFormIssues || hasConflicts) {
         confirmBtn.disabled = true;
         const allIssues = [...formIssues];
-        if (hasConflicts) allIssues.push(`${conflictRows} conflict(s)`);
-        msgText.textContent = allIssues.join(', ');
-        msgEl.classList.remove('hidden');
+        if (allIssues.length > 0) {
+            msgText.textContent = allIssues.join(', ');
+            msgEl.classList.remove('hidden');
+        } else {
+            msgEl.classList.add('hidden');
+        }
     } else {
         confirmBtn.disabled = false;
         msgEl.classList.add('hidden');
@@ -1328,7 +1634,7 @@ async function confirmExamBatchSchedule() {
     const conflictRows = Object.entries(_examBatchConflicts)
         .filter(([idx, r]) => r.status === 'conflict' && _isExamBatchRowSaveable(allRows[parseInt(idx, 10)]));
     if (conflictRows.length > 0) {
-        if (typeof showToast === 'function') showToast(`${conflictRows.length} row(s) have conflicts. Resolve them before saving.`, 'error');
+        if (typeof showToast === 'function') showToast('Some rows still need review before saving.', 'error');
         return;
     }
 
@@ -1360,7 +1666,7 @@ async function confirmExamBatchSchedule() {
             const updated = result.updated || 0;
             const skipped = result.skipped || 0;
             if (rowErrors.length > 0) {
-                let msg = `Saved ${result.created + updated} exam(s) (${result.created} created, ${updated} updated). ${rowErrors.length} row(s) had conflicts.`;
+                let msg = `Saved ${result.created + updated} exam(s) (${result.created} created, ${updated} updated). ${rowErrors.length} row(s) were skipped.`;
                 if (skipped > 0) msg += ` ${skipped} already scheduled.`;
                 if (typeof showToast === 'function') {
                     showToast(msg, 'error');
@@ -1380,7 +1686,7 @@ async function confirmExamBatchSchedule() {
             // Clear batch state before redirect
             sessionStorage.removeItem(EXAM_BATCH_STATE_KEY);
 
-            _updateExamBatchStep(3);
+            _updateExamBatchStep(2);
 
             exitExamBatchMode();
             if (typeof showToast === 'function') {
@@ -1565,7 +1871,7 @@ function renderExamRowConflictStatus(row, idx, result) {
         row.classList.add('bg-red-50/50', 'dark:bg-red-900/20');
         const count = result.conflicts.length;
         statusCell.innerHTML = `
-            <button type="button" onclick="showExamRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/60 focus-visible:ring-2 focus-visible:ring-red-400/60 transition-colors cursor-pointer" title="${count} conflict(s) — click for details">
+            <button type="button" onclick="showExamRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/60 focus-visible:ring-2 focus-visible:ring-red-400/60 transition-colors cursor-pointer" title="${count} issue(s) — click for details">
                 <svg class="w-3 h-3 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </button>`;
     } else if (result.status === 'warning') {
@@ -1714,10 +2020,7 @@ function updateExamFooterBanner(status, count) {
     banner.className = 'px-4 sm:px-5 py-1.5 text-[11px] font-medium flex items-center gap-2 border-b border-gray-100 dark:border-gray-700';
 
     if (status === 'conflict') {
-        banner.classList.remove('hidden');
-        banner.classList.add('bg-red-50', 'dark:bg-red-900/20', 'text-red-700', 'dark:text-red-300');
-        icon.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
-        text.textContent = `${count} row(s) have conflicts — resolve before saving`;
+        banner.classList.add('hidden');
     } else if (status === 'warning') {
         banner.classList.remove('hidden');
         banner.classList.add('bg-amber-50', 'dark:bg-amber-900/20', 'text-amber-700', 'dark:text-amber-300');
@@ -1848,6 +2151,14 @@ document.addEventListener('click', function(e) {
 
 function showExamBatchError(message) {
     document.getElementById('examBatchErrorMsg').textContent = message;
+    document.getElementById('examBatchLoading').classList.add('hidden');
+    document.getElementById('examBatchCurriculumPrompt')?.classList.add('hidden');
+    document.getElementById('examBatchResults').classList.add('hidden');
+    document.getElementById('examBatchStats').classList.add('hidden');
+    document.getElementById('examBatchFooter').classList.add('hidden');
+    document.getElementById('examBatchAddSubjectPanel').classList.add('hidden');
+    document.getElementById('examBatchAddSubjectBtn').classList.add('hidden');
+    document.getElementById('examBatchInlineViewToggle')?.classList.add('hidden');
     document.getElementById('examBatchError').classList.remove('hidden');
 }
 
@@ -1861,42 +2172,6 @@ function examEscapeHtml(text) {
 // ─── Preferred Building ───────────────────────────────────────────
 
 let _examPreferredBuildingId = null;
-
-async function loadExamBuildingsForBatch() {
-    const select = document.getElementById('examBatchBuildingSelect');
-    if (!select) return;
-
-    try {
-        const res = await fetch('/schedule/get-buildings');
-        const data = await res.json();
-        const buildings = data.buildings || [];
-
-        select.innerHTML = '<option value="">All Buildings</option>';
-        buildings.forEach(b => {
-            const opt = document.createElement('option');
-            opt.value = b.id;
-            opt.textContent = b.building_name;
-            select.appendChild(opt);
-        });
-
-        if (_examPreferredBuildingId) {
-            select.value = _examPreferredBuildingId;
-        }
-    } catch (e) {
-        console.warn('Could not load buildings for exam batch:', e);
-    }
-}
-
-function onExamBatchBuildingChange(value) {
-    _examPreferredBuildingId = value ? parseInt(value) : null;
-    // If data already rendered, regenerate with building preference
-    if (_examBatchData && _examBatchSectionId) {
-        document.getElementById('examBatchLoading').classList.remove('hidden');
-        document.getElementById('examBatchResults').classList.add('hidden');
-        document.getElementById('examBatchInlineViewToggle')?.classList.add('hidden');
-        generateExamBatchPreview(_examBatchSectionId);
-    }
-}
 
 // ─── Batch Exam Calendar View ─────────────────────────────────────
 

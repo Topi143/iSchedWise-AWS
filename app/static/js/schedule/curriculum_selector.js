@@ -10,6 +10,95 @@ window.loadCurriculaForEdit = loadCurriculaForEdit;
 window.loadSubjectsForEditWithCurriculum = loadSubjectsForEditWithCurriculum;
 
 const _curriculaToastState = { message: '', at: 0 };
+const _curriculumYearPrefState = {
+    storageKey: 'ischedwise_curriculum_by_year',
+    cache: null
+};
+
+function _getCurriculumScope(mode = 'add') {
+    return String(mode || '').startsWith('exam') ? 'exam' : 'class';
+}
+
+function _getSectionSwitcher(mode = 'add') {
+    return String(mode || '').startsWith('exam')
+        ? document.getElementById('examModalSectionSwitcher')
+        : document.getElementById('modalSectionSwitcher');
+}
+
+function _getSectionOptionById(sectionId, mode = 'add') {
+    if (!sectionId) return null;
+
+    const primary = _getSectionSwitcher(mode);
+    const sectionIdStr = String(sectionId);
+    const primaryMatch = primary
+        ? Array.from(primary.options || []).find((option) => String(option.value) === sectionIdStr)
+        : null;
+    if (primaryMatch) return primaryMatch;
+
+    const alternate = String(mode || '').startsWith('exam')
+        ? document.getElementById('modalSectionSwitcher')
+        : document.getElementById('examModalSectionSwitcher');
+    if (!alternate) return null;
+
+    return Array.from(alternate.options || []).find((option) => String(option.value) === sectionIdStr) || null;
+}
+
+function _getYearLevelPreferenceKey(sectionId, mode = 'add') {
+    const option = _getSectionOptionById(sectionId, mode);
+    if (!option) return null;
+
+    const yearLevel = String(option.dataset.yearLevel || '').trim();
+    if (!yearLevel) return null;
+
+    const programId = String(option.dataset.programId || '').trim() || '0';
+    const scope = _getCurriculumScope(mode);
+    return `${scope}:${programId}:${yearLevel}`;
+}
+
+function _readCurriculumYearPreferences() {
+    if (_curriculumYearPrefState.cache) {
+        return _curriculumYearPrefState.cache;
+    }
+
+    try {
+        const raw = sessionStorage.getItem(_curriculumYearPrefState.storageKey);
+        const parsed = raw ? JSON.parse(raw) : {};
+        _curriculumYearPrefState.cache = parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        _curriculumYearPrefState.cache = {};
+    }
+
+    return _curriculumYearPrefState.cache;
+}
+
+function _writeCurriculumYearPreferences(preferences) {
+    _curriculumYearPrefState.cache = preferences;
+
+    try {
+        sessionStorage.setItem(_curriculumYearPrefState.storageKey, JSON.stringify(preferences));
+    } catch (error) {
+        // Ignore storage failures and keep behavior functional.
+    }
+}
+
+function _rememberCurriculumForYear(sectionId, curriculumId, mode = 'add') {
+    if (!sectionId || !curriculumId) return;
+
+    const key = _getYearLevelPreferenceKey(sectionId, mode);
+    if (!key) return;
+
+    const preferences = _readCurriculumYearPreferences();
+    preferences[key] = String(curriculumId);
+    _writeCurriculumYearPreferences(preferences);
+}
+
+function _getRememberedCurriculumForYear(sectionId, mode = 'add') {
+    const key = _getYearLevelPreferenceKey(sectionId, mode);
+    if (!key) return '';
+
+    const preferences = _readCurriculumYearPreferences();
+    return String(preferences[key] || '');
+}
 
 function parseScheduleApiJson(response, fallbackMessage) {
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
@@ -60,6 +149,8 @@ function loadCurriculaForSection(sectionId, mode = 'add') {
     const curriculumSelect = document.getElementById(`curriculum_id_${mode}`);
     const subjectSelect = document.getElementById(`subject_id_${mode}`);
 
+    if (!curriculumSelect || !subjectSelect) return;
+
     // Show loading state
     curriculumSelect.innerHTML = '<option value="">Loading curricula...</option>';
     curriculumSelect.disabled = true;
@@ -79,9 +170,18 @@ function loadCurriculaForSection(sectionId, mode = 'add') {
                     option.textContent = curriculum.display;
                     curriculumSelect.appendChild(option);
                 });
+
+                const rememberedCurriculumId = _getRememberedCurriculumForYear(sectionId, mode);
+                const hasRememberedCurriculum = rememberedCurriculumId
+                    && Array.from(curriculumSelect.options).some((option) => String(option.value) === rememberedCurriculumId);
+
+                if (hasRememberedCurriculum) {
+                    curriculumSelect.value = rememberedCurriculumId;
+                    loadSubjectsForCurriculum(mode);
+                }
                 
                 // Auto-select if only one curriculum
-                if (data.curricula.length === 1) {
+                if (!hasRememberedCurriculum && data.curricula.length === 1) {
                     curriculumSelect.value = data.curricula[0].id;
                     loadSubjectsForCurriculum(mode);
                 }
@@ -105,14 +205,22 @@ function loadCurriculaForSection(sectionId, mode = 'add') {
  */
 function loadSubjectsForCurriculum(mode = 'add') {
     const curriculumId = document.getElementById(`curriculum_id_${mode}`).value;
-    const sectionId = document.getElementById(`section_id_${mode}`).value;
+    const sectionIdInput = document.getElementById(`section_id_${mode}`);
+    const sectionSwitcher = _getSectionSwitcher(mode);
+    const sectionId = (sectionIdInput && sectionIdInput.value)
+        || (sectionSwitcher && sectionSwitcher.value)
+        || '';
     const subjectSelect = document.getElementById(`subject_id_${mode}`);
+
+    if (!subjectSelect) return;
 
     if (!curriculumId) {
         subjectSelect.innerHTML = '<option value="">Select curriculum first...</option>';
         subjectSelect.disabled = true;
         return;
     }
+
+    _rememberCurriculumForYear(sectionId, curriculumId, mode);
     
     // Show loading state
     subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';

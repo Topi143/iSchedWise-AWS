@@ -1834,7 +1834,7 @@ function loadFacultyForSubject(subjectId, mode = 'add', selectedFacultyId = null
                     // Otherwise, keep faculty unset so users select explicitly.
                     const assignedFaculty = data.faculty.filter(f => f.is_assigned);
                     if (assignedFaculty.length === 1) {
-                        selectFacultyFromDropdown(mode, assignedFaculty[0].id);
+                        selectFacultyFromDropdown(mode, assignedFaculty[0].id, { silent: true });
                     } else {
                         clearFacultySelection(mode);
                     }
@@ -2043,24 +2043,34 @@ window.filterFacultyList = function(mode) {
 };
 
 // Select a faculty from the modal dropdown (for add/edit schedule forms)
-window.selectFacultyFromDropdown = function(mode, facultyId) {
+window.selectFacultyFromDropdown = function(mode, facultyId, options = {}) {
     const suffix = mode === 'add' ? 'Add' : 'Edit';
     const facultySelect = document.getElementById(`faculty_id_${mode}`);
     const dropdown = document.getElementById(`facultyDropdown${suffix}`);
     const chevron = document.getElementById(`facultyChevron${suffix}`);
+    const silent = Boolean(options && options.silent);
+
+    if (!facultySelect) {
+        return;
+    }
     
     // Update hidden select
     facultySelect.value = facultyId;
     
     // Find faculty data
-    const faculty = window.facultyDataCache[mode].find(f => f.id == facultyId);
+    const facultyCache = Array.isArray(window.facultyDataCache[mode]) ? window.facultyDataCache[mode] : [];
+    const faculty = facultyCache.find(f => f.id == facultyId);
     if (faculty) {
         updateFacultyDisplay(mode, faculty);
     }
     
     // Close dropdown
-    dropdown.classList.add('hidden');
-    chevron.classList.remove('rotate-180');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
+    if (chevron) {
+        chevron.classList.remove('rotate-180');
+    }
     
     // Trigger change event for auto-conflict check
     const event = new Event('change', { bubbles: true });
@@ -2071,7 +2081,9 @@ window.selectFacultyFromDropdown = function(mode, facultyId) {
         scheduleAutoConflictCheck(mode);
     }
     
-    showToast(`Selected: ${faculty.full_name}`, 'success');
+    if (!silent && faculty && typeof showToast === 'function') {
+        showToast(`Selected: ${faculty.full_name}`, 'success');
+    }
 };
 
 // Update the faculty display button

@@ -786,6 +786,10 @@ function generateAISummary() {
         .then(data => {
             aiSummaryAbortController = null;
             loading.classList.add('hidden');
+
+            if (scopeElement && data.scope && data.scope.scope_label) {
+                scopeElement.textContent = data.scope.scope_label;
+            }
             
             if (regenerateBtn) {
                 regenerateBtn.disabled = false;
@@ -800,7 +804,7 @@ function generateAISummary() {
                 document.getElementById('modal-ai-error-message').textContent = data.error || 'AI summary is not available.';
             } else {
                 content.classList.remove('hidden');
-                if (data.metrics) updateAIMetricsDashboard(data.metrics);
+                if (data.metrics) updateAIMetricsDashboard(data.metrics, data.scope || null);
                 document.getElementById('modal-ai-summary-text').textContent = data.summary;
                 
                 const insightsContainer = document.getElementById('modal-ai-insights-container');
@@ -876,11 +880,18 @@ function generateAISummary() {
         });
 }
 
-function updateAIMetricsDashboard(metrics) {
+function updateAIMetricsDashboard(metrics, scope) {
+    const unassignedLabel = (scope && scope.unassigned_label) ? scope.unassigned_label : 'Unassigned Faculty';
+    const allAssignedLabel = (scope && scope.all_assigned_label) ? scope.all_assigned_label : 'All faculty assigned';
+    const unassignedTitleEl = document.getElementById('metric-unassigned-title');
+    if (unassignedTitleEl) {
+        unassignedTitleEl.textContent = unassignedLabel;
+    }
+
     if (metrics.schedule_progress) {
         const sp = metrics.schedule_progress;
         document.getElementById('metric-schedule-pct').textContent = sp.percentage + '%';
-        document.getElementById('metric-schedule-detail').textContent = sp.scheduled + '/' + sp.total + ' subjects';
+        document.getElementById('metric-schedule-detail').textContent = sp.scheduled + '/' + sp.total + ' sections';
         document.getElementById('metric-schedule-bar').style.width = Math.min(sp.percentage, 100) + '%';
     }
     if (metrics.faculty_load) {
@@ -909,7 +920,7 @@ function updateAIMetricsDashboard(metrics) {
         if (previewNames && uf.count > 0) {
             previewEl.textContent = previewNames + (uf.count > 3 ? '...' : '');
         } else {
-            previewEl.textContent = uf.count === 0 ? 'All faculty assigned' : '';
+            previewEl.textContent = uf.count === 0 ? allAssignedLabel : '';
         }
     }
     if (metrics.unused_rooms) {

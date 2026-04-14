@@ -20,6 +20,66 @@ from datetime import datetime
 
 settings_bp = Blueprint('settings', __name__)
 
+EXAM_PERIOD_OPTIONS = ('Prelim', 'Midterm', 'Final')
+
+
+def _empty_exam_period_dates():
+    """Return a normalized empty period/date mapping."""
+    return {period: {'start': '', 'end': ''} for period in EXAM_PERIOD_OPTIONS}
+
+
+def _normalize_exam_period(period):
+    """Normalize exam period labels to Settings-supported values."""
+    if not period:
+        return None
+    value = str(period).strip()
+    mapping = {
+        'Prelim': 'Prelim',
+        'Midterm': 'Midterm',
+        'Final': 'Final',
+        'Finals': 'Final',
+    }
+    return mapping.get(value)
+
+
+def _build_exam_period_date_memory_map(settings_rows):
+    """
+    Build a term-keyed map of saved exam period date ranges from settings history.
+
+    For each academic_year+semester+period, keep the latest non-empty range,
+    allowing older rows with valid dates to backfill entries that were reset.
+    """
+    memory_map = {}
+
+    for row in settings_rows:
+        if not getattr(row, 'academic_year', None) or not getattr(row, 'semester', None):
+            continue
+
+        period = _normalize_exam_period(getattr(row, 'exam_period', None))
+        if not period:
+            continue
+
+        term_key = f'{row.academic_year}|{row.semester}'
+        term_periods = memory_map.setdefault(term_key, _empty_exam_period_dates())
+        current_period_data = term_periods[period]
+
+        start_date = row.exam_period_start.strftime('%Y-%m-%d') if getattr(row, 'exam_period_start', None) else ''
+        end_date = row.exam_period_end.strftime('%Y-%m-%d') if getattr(row, 'exam_period_end', None) else ''
+
+        # Preserve the first non-empty pair encountered because rows are newest-first.
+        if (start_date or end_date) and not (current_period_data['start'] or current_period_data['end']):
+            term_periods[period] = {
+                'start': start_date,
+                'end': end_date,
+            }
+
+    return memory_map
+
+
+def _should_reset_exam_period_dates(settings_changed):
+    """Reset exam period date range only when the academic term changes."""
+    return bool(settings_changed)
+
 
 def archive_current_schedules(reason, user_id):
     """
@@ -446,6 +506,11 @@ def index():
     
     # Get all settings history
     all_settings = AcademicSettings.query.order_by(AcademicSettings.created_at.desc()).all()
+    exam_period_date_memory = _build_exam_period_date_memory_map(all_settings)
+
+    if active_settings and active_settings.academic_year and active_settings.semester:
+        current_term_key = f'{active_settings.academic_year}|{active_settings.semester}'
+        exam_period_date_memory.setdefault(current_term_key, _empty_exam_period_dates())
     
     # Get institution settings (admin only feature, but pass to template for display)
     institution_settings = InstitutionSettings.get_settings()
@@ -501,6 +566,7 @@ def index():
                          user=current_user,
                          active_settings=active_settings,
                          all_settings=all_settings,
+                         exam_period_date_memory=exam_period_date_memory,
                          institution_settings=institution_settings,
                          branding_settings=branding_settings,
                          departments=departments,
@@ -524,9 +590,10 @@ def update():
         return t.hour * 60 + t.minute
     
     try:
-        academic_year = request.form.get('academic_year')
-        semester = request.form.get('semester')
-        exam_period = request.form.get('exam_period')
+        academic_year = (request.form.get('academic_year') or '').strip()
+        semester = (request.form.get('semester') or '').strip()
+        submitted_exam_period = request.form.get('exam_period')
+        exam_period = _normalize_exam_period(submitted_exam_period) or (submitted_exam_period or '').strip()
         available_semesters = request.form.getlist('available_semesters')  # Checkboxes return list
         operation_days = request.form.getlist('operation_days')  # Checkboxes return list
         default_faculty_max_units = request.form.get('default_faculty_max_units', type=int)
@@ -538,9 +605,6 @@ def update():
                 current_settings.academic_year != academic_year or
                 current_settings.semester != semester
             )
-        )
-        exam_period_changed_preparse = bool(
-            current_settings and current_settings.exam_period != exam_period
         )
         
         # Get exam period date range
@@ -562,7 +626,7 @@ def update():
                 exam_period_end = None
         
         # Validate exam period dates
-        if exam_period_start and exam_period_end and exam_period_end < exam_period_start and not (term_changed or exam_period_changed_preparse):
+        if exam_period_start and exam_period_end and exam_period_end < exam_period_start and not term_changed:
             flash('Exam period end date must be after start date.', 'error')
             return redirect(url_for('settings.index'))
         
@@ -619,6 +683,10 @@ def update():
         if not all([academic_year, semester, exam_period]):
             flash('Academic year, semester, and exam period are required.', 'error')
             return redirect(url_for('settings.index'))
+
+        if exam_period not in EXAM_PERIOD_OPTIONS:
+            flash('Invalid exam period selected.', 'error')
+            return redirect(url_for('settings.index'))
         
         
         # Validate class schedule time range
@@ -652,15 +720,13 @@ def update():
             default_faculty_max_units = 24  # Default fallback
         
         # Check if academic year or semester is changing
-        settings_changed = False
+        settings_changed = term_changed
         exam_period_changed = False
         exam_period_dates_cleared = False
         
         if current_settings:
-            if (current_settings.academic_year != academic_year or 
-                current_settings.semester != semester):
-                settings_changed = True
-            if current_settings.exam_period != exam_period:
+            current_exam_period = _normalize_exam_period(current_settings.exam_period) or str(current_settings.exam_period or '').strip()
+            if current_exam_period != exam_period:
                 exam_period_changed = True
         
         # Archive current schedules if academic year or semester is changing
@@ -674,8 +740,8 @@ def update():
         print(f"Settings changed: {settings_changed}")
         print(f"Exam period changed: {exam_period_changed}")
 
-        # Never carry exam period date range across a new academic term or exam period change.
-        if settings_changed or exam_period_changed:
+        # Never carry exam period date range across a new academic term.
+        if _should_reset_exam_period_dates(settings_changed):
             exam_period_start = None
             exam_period_end = None
             exam_period_dates_cleared = True

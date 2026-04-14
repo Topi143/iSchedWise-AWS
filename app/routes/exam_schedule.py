@@ -45,6 +45,185 @@ def _fmt_setting_time(t):
     return t.strftime('%I:%M %p').lstrip('0')
 
 
+def _format_exam_export_time_range(start_time, end_time):
+    """Format export time range as H:MM-H:MM using 12-hour style without leading zero."""
+    start_str = start_time.strftime('%I:%M').lstrip('0')
+    end_str = end_time.strftime('%I:%M').lstrip('0')
+    return f"{start_str}-{end_str}"
+
+
+def _format_exam_export_proctor_name(faculty):
+    """Format proctor display as Mr./Ms. F. Surname for export cells."""
+    if not faculty or not faculty.last_name:
+        return ''
+
+    salutation = "Ms." if faculty.gender == "Female" else "Mr."
+    first_initial = faculty.first_name[0].upper() if faculty.first_name else ''
+    surname = faculty.last_name
+    return f"{salutation} {first_initial}. {surname}" if first_initial else f"{salutation} {surname}"
+
+
+def _select_exam_export_base_slots(exam_schedules):
+    """
+    Build a canonical non-overlapping time-row baseline from section exams.
+
+    This keeps the export compact by avoiding extra rows for custom/off-grid slots.
+    """
+    unique_slots = sorted(
+        {(exam.start_time, exam.end_time) for exam in exam_schedules},
+        key=lambda slot: (slot[1], slot[0])
+    )
+
+    selected = []
+    last_end = None
+    for start_time, end_time in unique_slots:
+        if last_end is None or start_time >= last_end:
+            selected.append((start_time, end_time))
+            last_end = end_time
+
+    return sorted(selected, key=lambda slot: slot[0])
+
+
+def _write_exam_export_time_rows(
+    ws,
+    exam_schedules,
+    days_order,
+    day_start_col,
+    current_row,
+    thin_border,
+    current_settings
+):
+    """
+    Write time rows for exam exports.
+
+    Off-grid schedules are rendered by vertically merging the day's Subject and
+    Proctor cells across the overlapping canonical rows.
+    """
+    from openpyxl.styles import Font, Alignment
+
+    base_time_slots = _select_exam_export_base_slots(exam_schedules)
+    if not base_time_slots:
+        return current_row
+
+    if current_settings and current_settings.exam_lunch_start and current_settings.exam_lunch_end:
+        lunch_end = current_settings.exam_lunch_end
+        lunch_end_mins = lunch_end.hour * 60 + lunch_end.minute
+    else:
+        lunch_end_mins = 13 * 60
+
+    # 1) Draw canonical rows and keep row lookup.
+    slot_row_map = {}
+    lunch_added = False
+
+    for slot_start, slot_end in base_time_slots:
+        slot_start_mins = slot_start.hour * 60 + slot_start.minute
+        if slot_start_mins >= lunch_end_mins and not lunch_added:
+            ws.merge_cells(f'A{current_row}:M{current_row}')
+            cell = ws.cell(row=current_row, column=1, value='LUNCH')
+            cell.font = Font(bold=True, size=9)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            for col in range(1, 14):
+                ws.cell(row=current_row, column=col).border = thin_border
+            current_row += 1
+            lunch_added = True
+
+        slot_row_map[(slot_start, slot_end)] = current_row
+
+        time_key = _format_exam_export_time_range(slot_start, slot_end)
+        cell = ws.cell(row=current_row, column=1, value=time_key)
+        cell.font = Font(size=9)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin_border
+
+        for day in days_order:
+            col = day_start_col[day]
+            ws.cell(row=current_row, column=col, value='').border = thin_border
+            ws.cell(row=current_row, column=col + 1, value='').border = thin_border
+
+        current_row += 1
+
+    # 2) Place each exam into canonical rows (merge vertically when off-grid).
+    merged_subject_ranges = set()
+    merged_proctor_ranges = set()
+
+    ordered_exams = sorted(
+        exam_schedules,
+        key=lambda exam: (exam.exam_date, exam.start_time, exam.end_time)
+    )
+
+    for exam in ordered_exams:
+        day_name = exam.exam_date.strftime('%A')
+        if day_name not in day_start_col:
+            continue
+
+        overlapping_slots = [
+            slot for slot in base_time_slots
+            if slot[0] < exam.end_time and slot[1] > exam.start_time
+        ]
+        if not overlapping_slots:
+            continue
+
+        first_row = slot_row_map[overlapping_slots[0]]
+        last_row = slot_row_map[overlapping_slots[-1]]
+        col = day_start_col[day_name]
+
+        exact_slot_match = (exam.start_time, exam.end_time) in slot_row_map
+        merge_needed = first_row != last_row
+        include_extended_subject = merge_needed or not exact_slot_match
+
+        subject_code = exam.subject.subject_code if exam.subject else ''
+        subject_lines = [subject_code] if subject_code else []
+
+        if include_extended_subject:
+            subject_lines.append(f"({_format_exam_export_time_range(exam.start_time, exam.end_time)})")
+            room_name = exam.room.room_number if exam.room else ''
+            if room_name:
+                subject_lines.append(room_name)
+
+        subject_text = '\n'.join(subject_lines)
+        proctor_text = _format_exam_export_proctor_name(exam.faculty)
+
+        if merge_needed:
+            subject_range_key = (first_row, col, last_row, col)
+            proctor_range_key = (first_row, col + 1, last_row, col + 1)
+            if subject_range_key not in merged_subject_ranges:
+                ws.merge_cells(
+                    start_row=first_row,
+                    start_column=col,
+                    end_row=last_row,
+                    end_column=col
+                )
+                merged_subject_ranges.add(subject_range_key)
+            if proctor_range_key not in merged_proctor_ranges:
+                ws.merge_cells(
+                    start_row=first_row,
+                    start_column=col + 1,
+                    end_row=last_row,
+                    end_column=col + 1
+                )
+                merged_proctor_ranges.add(proctor_range_key)
+
+        subject_cell = ws.cell(row=first_row, column=col)
+        if subject_cell.value and subject_text:
+            subject_cell.value = f"{subject_cell.value}\n{subject_text}"
+        elif subject_text:
+            subject_cell.value = subject_text
+        subject_cell.font = Font(size=8)
+        subject_cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        subject_cell.border = thin_border
+
+        proctor_cell = ws.cell(row=first_row, column=col + 1)
+        if proctor_cell.value and proctor_text:
+            proctor_cell.value = f"{proctor_cell.value}\n{proctor_text}"
+        elif proctor_text:
+            proctor_cell.value = proctor_text
+        proctor_cell.font = Font(size=8)
+        proctor_cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        proctor_cell.border = thin_border
+
+    return current_row
+
+
 @exam_schedule_bp.route('/add', methods=['POST'])
 @login_required
 def add():
@@ -1840,92 +2019,15 @@ def export_for_posting(section_id):
             current_row += 1
             
             # === TIME SLOT ROWS ===
-            # Group exams by time slot
-            exams_by_time = defaultdict(lambda: defaultdict(list))
-            all_time_slots = set()
-            
-            for exam in exam_schedules:
-                start_str = exam.start_time.strftime('%I:%M').lstrip('0')
-                end_str = exam.end_time.strftime('%I:%M').lstrip('0')
-                time_key = f"{start_str}-{end_str}"
-                day_name = exam.exam_date.strftime('%A')
-                exams_by_time[time_key][day_name].append(exam)
-                all_time_slots.add((exam.start_time, exam.end_time, time_key))
-            
-            # Sort time slots by start time
-            sorted_time_slots = sorted(all_time_slots, key=lambda x: x[0])
-            
-            # Get lunch break times from settings
-            if current_settings and current_settings.exam_lunch_start and current_settings.exam_lunch_end:
-                lunch_end = current_settings.exam_lunch_end
-                lunch_end_mins = lunch_end.hour * 60 + lunch_end.minute
-            else:
-                lunch_end_mins = 13 * 60
-            
-            # Track lunch break
-            lunch_added = False
-            
-            for start_time, end_time, time_key in sorted_time_slots:
-                # Check if we need to add LUNCH break
-                if ((start_time.hour * 60 + start_time.minute) >= lunch_end_mins) and not lunch_added:
-                    # Add LUNCH row (no fill - white background)
-                    ws.merge_cells(f'A{current_row}:M{current_row}')
-                    cell = ws.cell(row=current_row, column=1, value="LUNCH")
-                    cell.font = Font(bold=True, size=9)
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
-                    for col in range(1, 14):
-                        ws.cell(row=current_row, column=col).border = thin_border
-                    current_row += 1
-                    lunch_added = True
-                
-                # Time cell
-                cell = ws.cell(row=current_row, column=1, value=time_key)
-                cell.font = Font(size=9)
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                cell.border = thin_border
-                
-                # For each day, show Subject and Proctor in separate columns
-                for day in days_order:
-                    col = day_start_col[day]
-                    if day in exams_by_time[time_key]:
-                        exams_for_slot = exams_by_time[time_key][day]
-                        # Get subject(s) and proctor(s)
-                        subjects = []
-                        proctors = []
-                        for exam in exams_for_slot:
-                            subj = exam.subject.subject_code if exam.subject else ''
-                            # Format proctor as "Mr./Ms. [Initial]. [Surname]"
-                            if exam.faculty and exam.faculty.last_name:
-                                salutation = "Ms." if exam.faculty.gender == "Female" else "Mr."
-                                first_initial = exam.faculty.first_name[0].upper() if exam.faculty.first_name else ''
-                                surname = exam.faculty.last_name
-                                proctor = f"{salutation} {first_initial}. {surname}" if first_initial else f"{salutation} {surname}"
-                            else:
-                                proctor = ''
-                            if subj:
-                                subjects.append(subj)
-                            if proctor:
-                                proctors.append(proctor)
-                        
-                        # Subject cell
-                        cell = ws.cell(row=current_row, column=col, value='\n'.join(subjects))
-                        cell.font = Font(size=8)
-                        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-                        cell.border = thin_border
-                        
-                        # Proctor cell
-                        cell = ws.cell(row=current_row, column=col+1, value='\n'.join(proctors))
-                        cell.font = Font(size=8)
-                        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-                        cell.border = thin_border
-                    else:
-                        # Empty cells
-                        cell = ws.cell(row=current_row, column=col, value='')
-                        cell.border = thin_border
-                        cell = ws.cell(row=current_row, column=col+1, value='')
-                        cell.border = thin_border
-                
-                current_row += 1
+            current_row = _write_exam_export_time_rows(
+                ws=ws,
+                exam_schedules=exam_schedules,
+                days_order=days_order,
+                day_start_col=day_start_col,
+                current_row=current_row,
+                thin_border=thin_border,
+                current_settings=current_settings
+            )
             
             # Add spacing between sections
             current_row += 1
@@ -2288,92 +2390,15 @@ def export_exam_schedule(section_id):
         current_row += 1
         
         # === TIME SLOT ROWS ===
-        # Group exams by time slot
-        exams_by_time = defaultdict(lambda: defaultdict(list))
-        all_time_slots = set()
-        
-        for exam in exam_schedules:
-            start_str = exam.start_time.strftime('%I:%M').lstrip('0')
-            end_str = exam.end_time.strftime('%I:%M').lstrip('0')
-            time_key = f"{start_str}-{end_str}"
-            day_name = exam.exam_date.strftime('%A')
-            exams_by_time[time_key][day_name].append(exam)
-            all_time_slots.add((exam.start_time, exam.end_time, time_key))
-        
-        # Sort time slots by start time
-        sorted_time_slots = sorted(all_time_slots, key=lambda x: x[0])
-        
-        # Get lunch break times from settings
-        if current_settings and current_settings.exam_lunch_start and current_settings.exam_lunch_end:
-            lunch_end = current_settings.exam_lunch_end
-            lunch_end_mins = lunch_end.hour * 60 + lunch_end.minute
-        else:
-            lunch_end_mins = 13 * 60
-        
-        # Track lunch break
-        lunch_added = False
-        
-        for start_time, end_time, time_key in sorted_time_slots:
-            # Check if we need to add LUNCH break
-            if ((start_time.hour * 60 + start_time.minute) >= lunch_end_mins) and not lunch_added:
-                # Add LUNCH row (no fill - white background)
-                ws.merge_cells(f'A{current_row}:M{current_row}')
-                cell = ws.cell(row=current_row, column=1, value="LUNCH")
-                cell.font = Font(bold=True, size=9)
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                for col in range(1, 14):
-                    ws.cell(row=current_row, column=col).border = thin_border
-                current_row += 1
-                lunch_added = True
-            
-            # Time cell
-            cell = ws.cell(row=current_row, column=1, value=time_key)
-            cell.font = Font(size=9)
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-            cell.border = thin_border
-            
-            # For each day, show Subject and Proctor in separate columns
-            for day in days_order:
-                col = day_start_col[day]
-                if day in exams_by_time[time_key]:
-                    exams_for_slot = exams_by_time[time_key][day]
-                    # Get subject(s) and proctor(s)
-                    subjects = []
-                    proctors = []
-                    for exam in exams_for_slot:
-                        subj = exam.subject.subject_code if exam.subject else ''
-                        # Format proctor as "Mr./Ms. [Initial]. [Surname]"
-                        if exam.faculty and exam.faculty.last_name:
-                            salutation = "Ms." if exam.faculty.gender == "Female" else "Mr."
-                            first_initial = exam.faculty.first_name[0].upper() if exam.faculty.first_name else ''
-                            surname = exam.faculty.last_name
-                            proctor = f"{salutation} {first_initial}. {surname}" if first_initial else f"{salutation} {surname}"
-                        else:
-                            proctor = ''
-                        if subj:
-                            subjects.append(subj)
-                        if proctor:
-                            proctors.append(proctor)
-                    
-                    # Subject cell
-                    cell = ws.cell(row=current_row, column=col, value='\n'.join(subjects))
-                    cell.font = Font(size=8)
-                    cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-                    cell.border = thin_border
-                    
-                    # Proctor cell
-                    cell = ws.cell(row=current_row, column=col+1, value='\n'.join(proctors))
-                    cell.font = Font(size=8)
-                    cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-                    cell.border = thin_border
-                else:
-                    # Empty cells
-                    cell = ws.cell(row=current_row, column=col, value='')
-                    cell.border = thin_border
-                    cell = ws.cell(row=current_row, column=col+1, value='')
-                    cell.border = thin_border
-            
-            current_row += 1
+        current_row = _write_exam_export_time_rows(
+            ws=ws,
+            exam_schedules=exam_schedules,
+            days_order=days_order,
+            day_start_col=day_start_col,
+            current_row=current_row,
+            thin_border=thin_border,
+            current_settings=current_settings
+        )
         
         # === SIGNATURE SECTION ===
         sig_start_row = current_row + 1

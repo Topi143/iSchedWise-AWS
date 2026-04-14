@@ -15,6 +15,10 @@ let hasExamConflictsAdd = false;
 let hasExamConflictsEdit = false;
 let autoCheckExamFieldObserver = null;
 let autoCheckExamRebindTimer = null;
+const examAutoCheckCompletionState = {
+    add: false,
+    edit: false
+};
 
 function getExamAutoCheckFieldIds(mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
@@ -158,6 +162,20 @@ function setupAutoCheckForExamModal(mode) {
     return missingCount;
 }
 
+function getExamAutoCheckScheduleType(mode) {
+    const suffix = mode === 'add' ? '_add' : '_edit';
+    const scheduleTypeField = document.getElementById('schedule_type_exam' + suffix);
+
+    if (!scheduleTypeField) {
+        return { requiresSelection: false, value: 'lecture' };
+    }
+
+    return {
+        requiresSelection: true,
+        value: String(scheduleTypeField.value || '').trim()
+    };
+}
+
 function canRunExamAutoCheckNow(mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
     const sectionId = document.getElementById('section_id_exam' + suffix)?.value;
@@ -167,8 +185,56 @@ function canRunExamAutoCheckNow(mode) {
     const examDate = document.getElementById('exam_date' + suffix)?.value;
     const startTime = document.getElementById('start_time_exam' + suffix)?.value;
     const endTime = document.getElementById('end_time_exam' + suffix)?.value;
+    const scheduleTypeState = getExamAutoCheckScheduleType(mode);
 
-    return Boolean(sectionId && subjectId && facultyId && roomId && examDate && startTime && endTime);
+    return Boolean(
+        sectionId &&
+        subjectId &&
+        facultyId &&
+        roomId &&
+        examDate &&
+        startTime &&
+        endTime &&
+        (!scheduleTypeState.requiresSelection || scheduleTypeState.value)
+    );
+}
+
+function getActiveExamAutoCheckMode(mode) {
+    if (window.examModalMode === 'edit') {
+        return 'edit';
+    }
+    if (window.examModalMode === 'add') {
+        return 'add';
+    }
+    return mode === 'edit' ? 'edit' : 'add';
+}
+
+function maybeRevealExamScheduleCheckPanel(mode, allFieldsFilled) {
+    const activeMode = getActiveExamAutoCheckMode(mode);
+
+    if (!allFieldsFilled) {
+        examAutoCheckCompletionState[activeMode] = false;
+        return;
+    }
+
+    if (examAutoCheckCompletionState[activeMode]) {
+        return;
+    }
+
+    examAutoCheckCompletionState[activeMode] = true;
+
+    const openButtonId = activeMode === 'edit'
+        ? 'aiPanelEditExamOpenBtn'
+        : 'aiPanelAddExamOpenBtn';
+    const openButton = document.getElementById(openButtonId);
+
+    if (openButton && !openButton.classList.contains('hidden')) {
+        openButton.click();
+    }
+
+    if (typeof autoOpenDrawer === 'function') {
+        autoOpenDrawer();
+    }
 }
 
 function runImmediateExamAutoConflictCheck(mode) {
@@ -249,6 +315,7 @@ function scheduleAutoExamConflictCheck(mode) {
  */
 function performAutoExamConflictCheck(mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
+    const scheduleTypeState = getExamAutoCheckScheduleType(mode);
     
     // Get form data - with detailed element checking
     const sectionIdEl = document.getElementById('section_id_exam' + suffix);
@@ -275,8 +342,11 @@ function performAutoExamConflictCheck(mode) {
         roomId &&
         examDate &&
         startTime &&
-        endTime
+        endTime &&
+        (!scheduleTypeState.requiresSelection || scheduleTypeState.value)
     );
+
+    maybeRevealExamScheduleCheckPanel(mode, allFieldsFilled);
 
     if (!allFieldsFilled) {
         const modeSuffix = mode === 'add' ? 'Add' : 'Edit';
@@ -326,6 +396,7 @@ function performAutoExamConflictCheck(mode) {
     const requestData = {
         section_id: parseInt(sectionId),
         subject_id: subjectId ? parseInt(subjectId) : null,
+        schedule_type: scheduleTypeState.value || 'lecture',
         faculty_id: facultyId ? parseInt(facultyId) : null,
         room_id: roomId ? parseInt(roomId) : null,
         exam_date: examDate,
@@ -398,8 +469,6 @@ function performAutoExamConflictCheck(mode) {
                 showAutoCheckExamStatus(mode, 'success', 'No conflicts found. You can proceed.');
                 updateExamConflictState(mode, false, false);
                 hideExamResolveAllOption(mode);
-
-                if (typeof autoCloseDrawer === 'function') autoCloseDrawer();
             }
 
             // Process faculty availability and schedule-hours warnings in Quick mode.
@@ -489,9 +558,6 @@ function performAutoExamConflictCheck(mode) {
             const explanationWrapper = document.getElementById('aiExplanationWrapperExam' + suffix);
             if (explanationWrapper) explanationWrapper.classList.add('hidden');
             document.getElementById('aiWorkloadSummaryExam' + suffix)?.classList.add('hidden');
-            
-            // Auto-close drawer if conflicts were resolved
-            if (typeof autoCloseDrawer === 'function') autoCloseDrawer();
         }
     })
     .catch(error => {
@@ -662,6 +728,9 @@ function resetAutoCheckExamState(mode) {
     
     // Reset conflict state
     updateExamConflictState(mode, false, true);
+
+    const activeMode = getActiveExamAutoCheckMode(mode);
+    examAutoCheckCompletionState[activeMode] = false;
     
     // Reset resolve-all state
     hideExamResolveAllOption(mode);
@@ -856,11 +925,15 @@ function hideExamResolveAllOption(mode) {
  */
 function _gatherExamFormData(mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
+    const scheduleTypeState = getExamAutoCheckScheduleType(mode);
+    const scheduleType = scheduleTypeState.requiresSelection
+        ? scheduleTypeState.value
+        : 'lecture';
 
     return {
         section_id: parseInt(document.getElementById('section_id_exam' + suffix)?.value) || null,
         subject_id: parseInt(document.getElementById('subject_id_exam' + suffix)?.value) || null,
-        schedule_type: document.getElementById('schedule_type_exam' + suffix)?.value || 'lecture',
+        schedule_type: scheduleType,
         faculty_id: parseInt(document.getElementById('faculty_id_exam' + suffix)?.value) || null,
         room_id: parseInt(document.getElementById('room_id_exam' + suffix)?.value) || null,
         exam_date: document.getElementById('exam_date' + suffix)?.value || '',

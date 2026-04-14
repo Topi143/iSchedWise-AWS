@@ -9,11 +9,12 @@
 let _batchData = null;           // Full response from backend
 let _batchSectionId = null;      // Current section ID
 let _batchCurriculumId = null;   // Selected curriculum ID
+let _batchCurricula = [];        // Available curricula for selected section
 let _batchModeActive = false;    // Whether inline batch panel is visible
 let _facultyCache = {};          // Cache faculty lists per subject_id
 let _availableSubjects = null;   // Unscheduled subjects for "Add Subject"
 let _activeDropdown = null;      // Currently open dropdown element
-let _preferredBuildingId = null; // Building preference for room prioritisation
+let _preferredBuildingId = null; // Soft room-filter hint; stays empty without configure step
 
 // ─── Conflict Detection State ─────────────────────────────────────
 let _batchConflicts = {};        // Map of rowIndex → { status, conflicts[] }
@@ -24,6 +25,7 @@ const CONFLICT_CHECK_DEBOUNCE_MS = 800;
 // DAYS will be overridden by template-injected window.OPERATION_DAYS if available
 const DAYS = (typeof window !== 'undefined' && window.OPERATION_DAYS) ? window.OPERATION_DAYS : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const BATCH_STATE_KEY = 'ischedwise_batch_mode';
+const BATCH_CURRICULUM_MEMORY_KEY = 'ischedwise_curriculum_by_year';
 
 function syncBatchCalendarAlignment() {
     if (typeof queueWeekCalendarHeaderAlignmentSync === 'function') {
@@ -85,13 +87,13 @@ function _updateBatchStep(activeStep) {
         const dot = s.querySelector('.batch-step-dot');
         const label = s.querySelector('.batch-step-label');
         if (step < activeStep) {
-            dot.className = 'batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-violet-600 text-white shadow-sm ring-2 ring-violet-200 dark:ring-violet-800';
+            dot.className = 'batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 dark:ring-blue-800';
             dot.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
-            if (label) { label.className = 'batch-step-label text-[11px] font-semibold text-violet-700 dark:text-violet-300 hidden sm:inline'; }
+            if (label) { label.className = 'batch-step-label text-[11px] font-semibold text-blue-700 dark:text-blue-300 hidden sm:inline'; }
         } else if (step === activeStep) {
-            dot.className = 'batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-violet-600 text-white shadow-sm ring-2 ring-violet-200 dark:ring-violet-800';
+            dot.className = 'batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 dark:ring-blue-800';
             dot.textContent = step;
-            if (label) { label.className = 'batch-step-label text-[11px] font-semibold text-violet-700 dark:text-violet-300 hidden sm:inline'; }
+            if (label) { label.className = 'batch-step-label text-[11px] font-semibold text-blue-700 dark:text-blue-300 hidden sm:inline'; }
         } else {
             dot.className = 'batch-step-dot w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500';
             dot.textContent = step;
@@ -99,7 +101,7 @@ function _updateBatchStep(activeStep) {
         }
     });
     lines.forEach((line, i) => {
-        line.className = 'batch-step-line w-10 sm:w-16 h-0.5 mx-2 rounded-full transition-all duration-500 ' + ((i + 1 < activeStep) ? 'bg-violet-400 dark:bg-violet-500' : 'bg-gray-200 dark:bg-gray-600');
+        line.className = 'batch-step-line w-10 sm:w-16 h-0.5 mx-2 rounded-full transition-all duration-500 ' + ((i + 1 < activeStep) ? 'bg-blue-400 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600');
     });
 }
 
@@ -136,10 +138,10 @@ function enterBatchMode() {
     _batchData = null;
     _batchSectionId = sectionId;
     _batchCurriculumId = null;
+    _batchCurricula = [];
     _batchModeActive = true;
     _facultyCache = {};
     _availableSubjects = null;
-    _preferredBuildingId = null;
     _batchConflicts = {};
     _conflictCheckInFlight = false;
     if (_conflictCheckTimer) { clearTimeout(_conflictCheckTimer); _conflictCheckTimer = null; }
@@ -147,12 +149,12 @@ function enterBatchMode() {
     // Reset step indicator to step 1
     _updateBatchStep(1);
 
-    // Reset batch panel UI — show curriculum step first
+    // Reset batch panel UI
     const displaySectionName = resolveFullSectionName(sectionId, sectionName);
     document.getElementById('autoScheduleSectionName').textContent = 'Section: ' + displaySectionName;
-    document.getElementById('batchCurriculumStep').classList.remove('hidden');
-    document.getElementById('autoScheduleLoading').classList.add('hidden');
+    document.getElementById('autoScheduleLoading').classList.remove('hidden');
     document.getElementById('autoScheduleError').classList.add('hidden');
+    document.getElementById('autoScheduleCurriculumPrompt')?.classList.add('hidden');
     document.getElementById('autoScheduleAllDone').classList.add('hidden');
     document.getElementById('autoScheduleResults').classList.add('hidden');
     document.getElementById('autoScheduleStats').classList.add('hidden');
@@ -160,9 +162,6 @@ function enterBatchMode() {
     document.getElementById('batchAddSubjectPanel').classList.add('hidden');
     document.getElementById('batchAddSubjectBtn').classList.add('hidden');
     document.getElementById('batchInlineViewToggle')?.classList.add('hidden');
-
-    // Load buildings list for the building preference dropdown
-    loadBuildingsForBatch();
 
     // Swap panels: hide form, show batch builder
     if (formPanel) formPanel.classList.add('hidden');
@@ -198,10 +197,10 @@ function enterBatchMode() {
         if (iconSvg && iconSvg._batchOriginalClass === undefined) iconSvg._batchOriginalClass = iconSvg.className.baseVal || iconSvg.className;
 
         iconAdd.classList.remove('hidden', 'bg-emerald-100', 'dark:bg-emerald-900/30', 'bg-blue-100', 'dark:bg-blue-900/30', 'bg-orange-100', 'dark:bg-orange-900/30');
-        iconAdd.classList.add('bg-violet-100', 'dark:bg-violet-900/30');
+        iconAdd.classList.add('bg-blue-100', 'dark:bg-blue-900/30');
         if (iconSvg) {
             iconSvg.classList.remove('text-emerald-600', 'dark:text-emerald-400', 'text-blue-600', 'dark:text-blue-400', 'text-orange-600', 'dark:text-orange-400');
-            iconSvg.classList.add('text-violet-600', 'dark:text-violet-300');
+            iconSvg.classList.add('text-blue-600', 'dark:text-blue-300');
         }
     }
     if (iconEdit) {
@@ -223,115 +222,349 @@ function enterBatchMode() {
     // Persist batch mode so a page refresh stays in batch
     sessionStorage.setItem(BATCH_STATE_KEY, 'class');
 
-    // Load curricula for selection step (don't start preview yet)
-    loadBatchCurricula(sectionId);
+    // Load curricula first; preview starts only after explicit curriculum selection.
+    if (document.getElementById('batchCurriculumSelect')) {
+        _loadBatchCurriculaIntoSelector(sectionId);
+    } else {
+        // Legacy modal fallback when selector UI is unavailable.
+        _startBatchPreview(sectionId);
+    }
 }
 
-// ─── Curriculum Selection Step ──────────────────────────────────────────
+// ─── Curriculum Selection & Preview Gating ────────────────────────────
 
-async function loadBatchCurricula(sectionId) {
-    const select = document.getElementById('batchCurriculumSelect');
-    const btn = document.getElementById('batchCurriculumConfirmBtn');
-    if (!select) return;
+function _getBatchSectionOption(sectionId) {
+    if (!sectionId) return null;
 
-    select.innerHTML = '<option value="">Loading curricula...</option>';
-    if (btn) btn.disabled = true;
+    const sectionIdStr = String(sectionId);
+    const switcherIds = ['modalSectionSwitcher', 'section_id_add', 'section_id_edit', 'section_id'];
+
+    for (const switcherId of switcherIds) {
+        const switcher = document.getElementById(switcherId);
+        if (!switcher) continue;
+
+        const option = Array.from(switcher.options || []).find((candidate) => String(candidate.value) === sectionIdStr);
+        if (option) return option;
+    }
+
+    return null;
+}
+
+function _getBatchCurriculumMemoryKey(sectionId) {
+    const sectionOption = _getBatchSectionOption(sectionId);
+    if (!sectionOption) return '';
+
+    const yearLevel = String(sectionOption.dataset.yearLevel || '').trim();
+    if (!yearLevel) return '';
+
+    const programId = String(sectionOption.dataset.programId || '').trim() || '0';
+    return `class:${programId}:${yearLevel}`;
+}
+
+function _readBatchCurriculumMemoryMap() {
+    try {
+        const raw = sessionStorage.getItem(BATCH_CURRICULUM_MEMORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function _writeBatchCurriculumMemoryMap(memoryMap) {
+    try {
+        sessionStorage.setItem(BATCH_CURRICULUM_MEMORY_KEY, JSON.stringify(memoryMap));
+    } catch (error) {
+        // Ignore storage write failures and keep flow working.
+    }
+}
+
+function _rememberBatchCurriculumId(sectionId, curriculumId) {
+    if (!sectionId || !curriculumId) return;
+
+    const memoryKey = _getBatchCurriculumMemoryKey(sectionId);
+    if (!memoryKey) return;
+
+    const memoryMap = _readBatchCurriculumMemoryMap();
+    memoryMap[memoryKey] = String(curriculumId);
+    _writeBatchCurriculumMemoryMap(memoryMap);
+}
+
+function _showBatchLoadingState(title, hint) {
+    const loading = document.getElementById('autoScheduleLoading');
+    const error = document.getElementById('autoScheduleError');
+    const prompt = document.getElementById('autoScheduleCurriculumPrompt');
+    const allDone = document.getElementById('autoScheduleAllDone');
+    const results = document.getElementById('autoScheduleResults');
+    const stats = document.getElementById('autoScheduleStats');
+    const footer = document.getElementById('autoScheduleFooter');
+    const addPanel = document.getElementById('batchAddSubjectPanel');
+    const addBtn = document.getElementById('batchAddSubjectBtn');
+    const viewToggle = document.getElementById('batchInlineViewToggle');
+    const titleEl = document.getElementById('autoScheduleLoadingTitle');
+    const hintEl = document.getElementById('autoScheduleLoadingHint');
+
+    if (titleEl && title) titleEl.textContent = title;
+    if (hintEl && hint) hintEl.textContent = hint;
+
+    loading?.classList.remove('hidden');
+    error?.classList.add('hidden');
+    prompt?.classList.add('hidden');
+    allDone?.classList.add('hidden');
+    results?.classList.add('hidden');
+    stats?.classList.add('hidden');
+    footer?.classList.add('hidden');
+    addPanel?.classList.add('hidden');
+    addBtn?.classList.add('hidden');
+    viewToggle?.classList.add('hidden');
+}
+
+function _showBatchCurriculumPrompt() {
+    const loading = document.getElementById('autoScheduleLoading');
+    const error = document.getElementById('autoScheduleError');
+    const prompt = document.getElementById('autoScheduleCurriculumPrompt');
+    const allDone = document.getElementById('autoScheduleAllDone');
+    const results = document.getElementById('autoScheduleResults');
+    const stats = document.getElementById('autoScheduleStats');
+    const footer = document.getElementById('autoScheduleFooter');
+    const addPanel = document.getElementById('batchAddSubjectPanel');
+    const addBtn = document.getElementById('batchAddSubjectBtn');
+    const viewToggle = document.getElementById('batchInlineViewToggle');
+
+    loading?.classList.add('hidden');
+    error?.classList.add('hidden');
+    prompt?.classList.remove('hidden');
+    allDone?.classList.add('hidden');
+    results?.classList.add('hidden');
+    stats?.classList.add('hidden');
+    footer?.classList.add('hidden');
+    addPanel?.classList.add('hidden');
+    addBtn?.classList.add('hidden');
+    viewToggle?.classList.add('hidden');
+}
+
+async function _loadBatchCurriculaIntoSelector(sectionId) {
+    const curriculumSelect = document.getElementById('batchCurriculumSelect');
+    const hint = document.getElementById('batchCurriculumHint');
+    if (!curriculumSelect) return;
+
+    _batchCurriculumId = null;
+    _batchCurricula = [];
+    curriculumSelect.disabled = true;
+    curriculumSelect.innerHTML = '<option value="">Loading curricula...</option>';
+
+    _showBatchLoadingState('Loading curricula...', 'Fetching available curricula for this section');
 
     try {
-        const res = await fetch(`/schedule/get-curricula/${sectionId}`);
-        const data = await parseBatchApiJson(res, 'Unable to load curricula');
-        const curricula = data.curricula || [];
+        const response = await fetch(`/schedule/get-curricula/${sectionId}`);
+        const data = await parseBatchApiJson(response, 'Unable to load curricula');
+        const curricula = Array.isArray(data.curricula) ? data.curricula : [];
+        _batchCurricula = curricula;
 
-        if (curricula.length === 0) {
-            select.innerHTML = '<option value="">No curricula found for this program</option>';
+        if (!curricula.length) {
+            curriculumSelect.innerHTML = '<option value="">No curricula available</option>';
+            curriculumSelect.disabled = true;
+            if (hint) hint.textContent = 'No curricula are available for this section.';
+            showBatchError('No curricula are available for this section.');
             return;
         }
 
-        select.innerHTML = '<option value="">Select a curriculum...</option>';
-        curricula.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = `${c.curriculum_code} — ${c.degree_program}`;
-            select.appendChild(opt);
+        const memoryKey = _getBatchCurriculumMemoryKey(sectionId);
+        const memoryMap = _readBatchCurriculumMemoryMap();
+        const rememberedCurriculumId = memoryKey ? String(memoryMap[memoryKey] || '') : '';
+        const hasRememberedCurriculum = rememberedCurriculumId
+            && curricula.some((curriculum) => String(curriculum.id) === rememberedCurriculumId);
+
+        curriculumSelect.innerHTML = '<option value="">Select a curriculum...</option>';
+        curricula.forEach((curriculum) => {
+            const option = document.createElement('option');
+            option.value = curriculum.id;
+            option.textContent = curriculum.display;
+            curriculumSelect.appendChild(option);
         });
 
-        // If only one curriculum, auto-select and proceed immediately
-        if (curricula.length === 1) {
-            select.value = curricula[0].id;
-            if (btn) btn.disabled = false;
-            // Auto-confirm if there's only one
-            confirmBatchCurriculum();
+        curriculumSelect.disabled = false;
+
+        if (hasRememberedCurriculum) {
+            curriculumSelect.value = rememberedCurriculumId;
+            if (hint) {
+                hint.textContent = 'Select a curriculum to load schedule preview.';
+            }
+            await onBatchCurriculumSelectionChange(curriculumSelect);
             return;
         }
 
-        // Enable button when selection changes
-        select.onchange = function() {
-            if (btn) btn.disabled = !this.value;
-        };
-    } catch (e) {
-        console.error('[BATCH] Failed to load curricula:', e);
-        select.innerHTML = '<option value="">Error loading curricula</option>';
+        curriculumSelect.value = '';
+        if (hint) {
+            hint.textContent = 'Select a curriculum to load schedule preview.';
+        }
+
+        _showBatchCurriculumPrompt();
+    } catch (error) {
+        console.error('[BATCH] Failed to load curricula:', error);
+        curriculumSelect.innerHTML = '<option value="">Error loading curricula</option>';
+        curriculumSelect.disabled = false;
+        if (hint) hint.textContent = 'Unable to load curricula. Retry and select a curriculum.';
+        showBatchError(error.message || 'Unable to load curricula for this section.');
         if (typeof showToast === 'function') {
-            showToast(e.message || 'Error loading curricula', 'error');
+            showToast(error.message || 'Unable to load curricula for this section.', 'error');
         }
     }
 }
 
-function confirmBatchCurriculum() {
-    const select = document.getElementById('batchCurriculumSelect');
-    const curriculumId = select ? select.value : null;
-    if (!curriculumId || !_batchSectionId) return;
+async function onBatchCurriculumSelectionChange(selectElement) {
+    if (!_batchSectionId) return;
 
-    _batchCurriculumId = parseInt(curriculumId);
+    const selectedValue = String(selectElement?.value || '').trim();
+    if (!selectedValue) {
+        _batchCurriculumId = null;
+        _showBatchCurriculumPrompt();
+        return;
+    }
 
-    // Hide curriculum step, show loading
-    document.getElementById('batchCurriculumStep').classList.add('hidden');
-    document.getElementById('autoScheduleLoading').classList.remove('hidden');
+    _batchCurriculumId = parseInt(selectedValue, 10);
+    if (!Number.isInteger(_batchCurriculumId) || _batchCurriculumId <= 0) {
+        _batchCurriculumId = null;
+        showBatchError('Invalid curriculum selection. Please choose a valid curriculum.');
+        return;
+    }
 
-    generateBatchPreview(_batchSectionId);
+    _rememberBatchCurriculumId(_batchSectionId, _batchCurriculumId);
+    await _startBatchPreview(_batchSectionId);
 }
 
-// ─── Building Preference ─────────────────────────────────────────────
+window.onBatchCurriculumSelectionChange = onBatchCurriculumSelectionChange;
 
-async function loadBuildingsForBatch() {
-    const select = document.getElementById('batchBuildingSelect');
-    if (!select) return;
+function _syncBatchCurriculumToClassDetails(sectionId, curriculumId) {
+    if (!sectionId || !curriculumId) return;
+
+    const sectionIdStr = String(sectionId);
+    const curriculumIdStr = String(curriculumId);
+
+    const sectionInput = document.getElementById('section_id_add');
+    if (sectionInput) {
+        sectionInput.value = sectionIdStr;
+    }
+
+    const sectionSwitcher = document.getElementById('modalSectionSwitcher');
+    if (sectionSwitcher) {
+        sectionSwitcher.value = sectionIdStr;
+    }
+
+    if (typeof window.loadCurriculaForSection === 'function') {
+        window.loadCurriculaForSection(sectionIdStr, 'add');
+    }
+
+    const applyCurriculumSelection = () => {
+        const curriculumSelect = document.getElementById('curriculum_id_add');
+        if (!curriculumSelect) return false;
+
+        const hasMatchingOption = Array.from(curriculumSelect.options || []).some(
+            (option) => String(option.value) === curriculumIdStr
+        );
+        if (!hasMatchingOption) return false;
+
+        curriculumSelect.value = curriculumIdStr;
+        if (typeof window.loadSubjectsForCurriculum === 'function') {
+            window.loadSubjectsForCurriculum('add');
+        } else {
+            curriculumSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        return true;
+    };
+
+    if (applyCurriculumSelection()) {
+        return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 20;
+    const timer = setInterval(() => {
+        attempts += 1;
+        if (applyCurriculumSelection() || attempts >= maxAttempts) {
+            clearInterval(timer);
+        }
+    }, 100);
+}
+
+async function _resolveBatchCurriculumId(sectionId) {
+    const response = await fetch(`/schedule/get-curricula/${sectionId}`);
+    const data = await parseBatchApiJson(response, 'Unable to load curricula');
+    const curricula = data.curricula || [];
+
+    if (!curricula.length) {
+        throw new Error('No curricula are available for this section.');
+    }
+
+    const memoryKey = _getBatchCurriculumMemoryKey(sectionId);
+    if (!memoryKey) {
+        throw new Error('Cannot auto-resolve curriculum for this section. Select a curriculum first in regular scheduling.');
+    }
+
+    const memoryMap = _readBatchCurriculumMemoryMap();
+    const rememberedCurriculumId = String(memoryMap[memoryKey] || '');
+    if (!rememberedCurriculumId) {
+        throw new Error('No remembered curriculum for this year level. Select a curriculum first in regular scheduling.');
+    }
+
+    const isRememberedCurriculumAvailable = curricula.some((curriculum) => String(curriculum.id) === rememberedCurriculumId);
+    if (!isRememberedCurriculumAvailable) {
+        throw new Error('Remembered curriculum is no longer available. Re-select curriculum in regular scheduling first.');
+    }
+
+    return parseInt(rememberedCurriculumId, 10);
+}
+
+async function _startBatchPreview(sectionId) {
+    const hasSelector = !!document.getElementById('batchCurriculumSelect');
 
     try {
-        const res = await fetch('/schedule/get-buildings');
-        const data = await res.json();
-        const buildings = data.buildings || [];
+        if (!_batchCurriculumId) {
+            if (hasSelector) {
+                _showBatchCurriculumPrompt();
+                return;
+            }
 
-        // Keep "All Buildings" default, append fetched options
-        select.innerHTML = '<option value="">All Buildings</option>';
-        buildings.forEach(b => {
-            const opt = document.createElement('option');
-            opt.value = b.id;
-            opt.textContent = b.building_name;
-            select.appendChild(opt);
-        });
-
-        // Restore previous selection if any
-        if (_preferredBuildingId) {
-            select.value = _preferredBuildingId;
+            // Legacy fallback for old modal flows without selector UI.
+            _batchCurriculumId = await _resolveBatchCurriculumId(sectionId);
         }
-    } catch (e) {
-        console.warn('Could not load buildings for batch filter:', e);
+
+        _showBatchLoadingState(
+            'Building schedule preview...',
+            'Fast pass first, with optimized fallback when needed'
+        );
+
+        await generateBatchPreview(sectionId);
+    } catch (error) {
+        console.error('[BATCH] Curriculum preview bootstrap failed:', error);
+        document.getElementById('autoScheduleLoading').classList.add('hidden');
+        showBatchError(error.message || 'Unable to load schedule preview for the selected curriculum.');
+        if (typeof showToast === 'function') {
+            showToast(error.message || 'Unable to load schedule preview for the selected curriculum.', 'error');
+        }
     }
 }
 
-function onBatchBuildingChange(value) {
-    _preferredBuildingId = value ? parseInt(value) : null;
-    // If batch data is already rendered, regenerate to apply building preference
-    if (_batchData && _batchSectionId) {
-        document.getElementById('autoScheduleLoading').classList.remove('hidden');
-        document.getElementById('autoScheduleResults').classList.add('hidden');
-        document.getElementById('batchInlineViewToggle')?.classList.add('hidden');
-        generateBatchPreview(_batchSectionId);
+function retryBatchPreview() {
+    if (!_batchSectionId) return;
+
+    if (document.getElementById('batchCurriculumSelect') && !_batchCurriculumId) {
+        _showBatchCurriculumPrompt();
+        if (typeof showToast === 'function') {
+            showToast('Select a curriculum first to load schedule preview.', 'error');
+        }
+        return;
     }
+
+    document.getElementById('autoScheduleError').classList.add('hidden');
+    _startBatchPreview(_batchSectionId);
 }
 
 function exitBatchMode(silent) {
+    const exitSectionId = _batchSectionId;
+    const exitCurriculumId = _batchCurriculumId;
+
     // Clear persisted batch mode state
     sessionStorage.removeItem(BATCH_STATE_KEY);
 
@@ -339,11 +572,16 @@ function exitBatchMode(silent) {
     _batchData = null;
     _batchSectionId = null;
     _batchCurriculumId = null;
+    _batchCurricula = [];
     _activeDropdown = null;
-    _preferredBuildingId = null;
     _batchConflicts = {};
     _conflictCheckInFlight = false;
     if (_conflictCheckTimer) { clearTimeout(_conflictCheckTimer); _conflictCheckTimer = null; }
+
+    const curriculumSelect = document.getElementById('batchCurriculumSelect');
+    if (curriculumSelect) {
+        curriculumSelect.value = '';
+    }
 
     // Remove any open tooltip
     const tooltip = document.getElementById('batchConflictTooltip');
@@ -403,6 +641,8 @@ function exitBatchMode(silent) {
         const aiBadge = document.getElementById('aiBadge');
         if (aiBadge) { aiBadge.classList.remove('hidden'); aiBadge.classList.add('flex'); }
     }
+
+    _syncBatchCurriculumToClassDetails(exitSectionId, exitCurriculumId);
 }
 
 // ─── Modal-based Open / Close (for schedule_class.html backward compat) ─
@@ -422,6 +662,8 @@ function openAutoScheduleModal(sectionId, sectionName) {
 
     _batchData = null;
     _batchSectionId = sectionId;
+    _batchCurriculumId = null;
+    _batchCurricula = [];
     _facultyCache = {};
     _availableSubjects = null;
 
@@ -438,7 +680,11 @@ function openAutoScheduleModal(sectionId, sectionName) {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    generateBatchPreview(sectionId);
+    if (document.getElementById('batchCurriculumSelect')) {
+        _loadBatchCurriculaIntoSelector(sectionId);
+    } else {
+        _startBatchPreview(sectionId);
+    }
 }
 
 function closeBatchModal() {
@@ -467,7 +713,6 @@ async function generateBatchPreview(sectionId) {
     try {
         const body = { section_id: sectionId };
         if (_batchCurriculumId) body.curriculum_id = _batchCurriculumId;
-        if (_preferredBuildingId) body.preferred_building_id = _preferredBuildingId;
 
         // Update loading text for auto scheduling mode
         const loadTitle = document.getElementById('autoScheduleLoadingTitle');
@@ -496,7 +741,10 @@ async function generateBatchPreview(sectionId) {
         const unplaceableItems = Array.isArray(data.unplaceable) ? data.unplaceable : [];
 
         const existingRows = existingItems.map(item => ({ ...item, is_existing: true }));
-        data.proposed = existingRows.concat(proposedItems);
+        const unplaceableRows = unplaceableItems.map(mapBatchUnplaceableToRowItem);
+        data.proposed = existingRows.concat(proposedItems, unplaceableRows);
+        // Keep unplaceable count in stats, but render all subjects directly in table rows.
+        data.unplaceable = [];
         data.stats = data.stats || {};
         data.stats.already_scheduled = data.stats.already_scheduled || existingItems.length;
 
@@ -524,13 +772,36 @@ async function generateBatchPreview(sectionId) {
     }
 }
 
+function mapBatchUnplaceableToRowItem(item) {
+    const scheduleType = (item?.schedule_type || 'lecture').toLowerCase();
+    return {
+        subject_id: item?.subject_id || null,
+        subject_code: item?.subject_code || '',
+        course_description: item?.course_description || '',
+        schedule_type: scheduleType,
+        faculty_id: null,
+        faculty_name: '',
+        room_id: null,
+        room_name: '',
+        building_name: '',
+        day_of_week: 'Monday',
+        start_time: '',
+        end_time: '',
+        lec_units: 0,
+        lab_units: 0,
+        total_units: 0,
+        is_existing: false,
+        unplaceable_reason: item?.reason || ''
+    };
+}
+
 // ─── Render Results ───────────────────────────────────────────────
 
 function renderBatchResults(data) {
     const stats = data.stats || {};
 
-    // Step indicator → step 2
-    _updateBatchStep(2);
+    // Step indicator: Review & Edit
+    _updateBatchStep(1);
 
     // Stats
     const total = stats.total_subjects || 0;
@@ -874,8 +1145,8 @@ function _focusBatchRow(rowIdx) {
     const row = document.querySelector(`#autoScheduleTableBody tr[data-row-index="${rowIdx}"]`);
     if (row) {
         row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        row.classList.add('bg-violet-50', 'dark:bg-violet-900/20', 'ring-2', 'ring-violet-300', 'dark:ring-violet-700');
-        setTimeout(() => { row.classList.remove('bg-violet-50', 'dark:bg-violet-900/20', 'ring-2', 'ring-violet-300', 'dark:ring-violet-700'); }, 2000);
+        row.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'ring-2', 'ring-blue-300', 'dark:ring-blue-700');
+        setTimeout(() => { row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20', 'ring-2', 'ring-blue-300', 'dark:ring-blue-700'); }, 2000);
     }
 }
 
@@ -938,7 +1209,7 @@ function _markBatchRowDirtyState(row) {
 function buildBatchRow(item, idx) {
     const row = document.createElement('tr');
     const isExisting = item.is_existing === true || item.is_existing === 'true';
-    row.className = 'hover:bg-violet-50/30 dark:hover:bg-gray-750 transition-all group';
+    row.className = 'hover:bg-blue-50/30 dark:hover:bg-gray-750 transition-all group';
     row.dataset.rowIndex = idx;
     row.dataset.subjectId = item.subject_id;
     row.dataset.isExisting = isExisting ? 'true' : 'false';
@@ -992,7 +1263,7 @@ function buildBatchRow(item, idx) {
         <td class="px-3 py-2.5">
             <div class="flex items-center gap-1">
                 ${typeDot}
-                <select data-field="schedule_type" onchange="onTypeChange(this)" class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 w-[52px] cursor-pointer">
+                <select data-field="schedule_type" onchange="onTypeChange(this)" class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-800 w-[52px] cursor-pointer">
                     ${typeOptions}
                 </select>
             </div>
@@ -1002,7 +1273,7 @@ function buildBatchRow(item, idx) {
                 <button type="button" onclick="toggleBatchFacultyDropdown(this, ${idx})"
                         class="batch-faculty-trigger w-full text-left px-2 py-1.5 rounded-md border text-[11px] flex items-center justify-between gap-1 min-w-0 transition-colors
                         ${hasFaculty
-                            ? 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-violet-300'
+                            ? 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-blue-300'
                             : 'border-dashed border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:border-amber-500'}"
                         title="${hasFaculty ? '' : 'Faculty not assigned'}">
                     ${!hasFaculty ? '<svg class="batch-faculty-warning-icon w-3 h-3 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>' : ''}
@@ -1013,7 +1284,7 @@ function buildBatchRow(item, idx) {
                 <input type="hidden" data-field="faculty_name" value="${escapeHtml(facultyDisplay)}">
                 <div class="batch-faculty-dropdown hidden fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl w-[290px] max-h-[260px] flex flex-col overflow-hidden">
                     <div class="p-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-                        <input type="text" placeholder="Search faculty..." class="batch-faculty-search w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:bg-white dark:focus:bg-gray-600 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800" oninput="filterBatchFacultyDropdown(this, ${idx})">
+                        <input type="text" placeholder="Search faculty..." class="batch-faculty-search w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:border-blue-400 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-gray-600 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-800" oninput="filterBatchFacultyDropdown(this, ${idx})">
                     </div>
                     <div class="batch-faculty-list flex-1 overflow-y-auto custom-scrollbar" data-row="${idx}">
                         <div class="p-3 text-center text-[10px] text-gray-400">Loading...</div>
@@ -1022,7 +1293,7 @@ function buildBatchRow(item, idx) {
             </div>
         </td>
         <td class="px-3 py-2.5">
-            <select data-field="day_of_week" onchange="onDayTimeChange(this)" class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 w-[70px] cursor-pointer">
+            <select data-field="day_of_week" onchange="onDayTimeChange(this)" class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-800 w-[70px] cursor-pointer">
                 ${dayOptions}
             </select>
         </td>
@@ -1032,14 +1303,14 @@ function buildBatchRow(item, idx) {
                      data-hidden-field="start_time"
                      data-value="${item.start_time || ''}"
                      data-onchange="onStartTimeChange(input)"
-                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 min-w-[96px] sm:w-[104px]">
+                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-800 min-w-[96px] sm:w-[104px]">
                 </div>
                 <span class="text-gray-300 dark:text-gray-600 text-[9px] select-none px-0.5">–</span>
                 <div class="custom-time-picker !w-fit" data-time-picker
                      data-hidden-field="end_time"
                      data-value="${item.end_time || ''}"
                      data-onchange="onEndTimeChange(input)"
-                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800 min-w-[96px] sm:w-[104px]">
+                     data-input-class="batch-field text-[10px] px-1.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-800 min-w-[96px] sm:w-[104px]">
                 </div>
             </div>
         </td>
@@ -1048,7 +1319,7 @@ function buildBatchRow(item, idx) {
                 <button type="button" onclick="toggleBatchRoomDropdown(this, ${idx})"
                         class="batch-room-trigger w-full text-left px-2 py-1.5 rounded-md border text-[11px] flex items-center justify-between gap-1 min-w-0 transition-colors
                         ${hasRoom
-                            ? 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-violet-300'
+                            ? 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-blue-300'
                             : 'border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:border-gray-400'}">
                     <span class="truncate flex-1 min-w-0">
                         ${item.room_name ? escapeHtml(item.room_name) + (item.building_name ? '<span class="text-gray-400 dark:text-gray-500"> · ' + escapeHtml(item.building_name) + '</span>' : '') : 'Select Room'}
@@ -1060,7 +1331,7 @@ function buildBatchRow(item, idx) {
                 <input type="hidden" data-field="building_name" value="${escapeHtml(item.building_name || '')}">
                 <div class="batch-room-dropdown hidden fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl w-[250px] max-h-[220px] flex flex-col overflow-hidden">
                     <div class="p-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-                        <input type="text" placeholder="Search rooms..." class="batch-room-search w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:border-violet-400 dark:focus:border-violet-500 focus:bg-white dark:focus:bg-gray-600 focus:ring-1 focus:ring-violet-200 dark:focus:ring-violet-800" oninput="filterBatchRoomDropdown(this, ${idx})">
+                        <input type="text" placeholder="Search rooms..." class="batch-room-search w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:border-blue-400 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-gray-600 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-800" oninput="filterBatchRoomDropdown(this, ${idx})">
                     </div>
                     <div class="batch-room-list flex-1 overflow-y-auto custom-scrollbar" data-row="${idx}">
                         <div class="p-3 text-center text-[10px] text-gray-400">Loading...</div>
@@ -1083,28 +1354,8 @@ function buildBatchRow(item, idx) {
 function renderUnplaceableItems(items) {
     const section = document.getElementById('autoScheduleUnplaceableSection');
     const list = document.getElementById('autoScheduleUnplaceableList');
-    list.innerHTML = '';
-
-    if (items && items.length > 0) {
-        section.classList.remove('hidden');
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-lg';
-            div.innerHTML = `
-                <svg class="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
-                <div>
-                    <span class="font-semibold text-red-700 text-[11px]">${escapeHtml(item.subject_code)}</span>
-                    <span class="text-red-500 ml-1 text-[10px]">(${item.schedule_type || 'lecture'})</span>
-                    <p class="text-[10px] text-red-400 mt-0.5">${escapeHtml(item.reason)}</p>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    } else {
-        section.classList.add('hidden');
-    }
+    if (list) list.innerHTML = '';
+    if (section) section.classList.add('hidden');
 }
 
 // ─── Faculty Dropdown ─────────────────────────────────────────────
@@ -1189,7 +1440,7 @@ function renderFacultyOptions(rowIdx, facultyList) {
         }
 
         const opt = document.createElement('div');
-        opt.className = 'batch-faculty-option px-3 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer transition-colors flex items-center justify-between gap-2' + (batchConflictLabel ? ' bg-red-50/60 dark:bg-red-900/20' : '');
+        opt.className = 'batch-faculty-option px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer transition-colors flex items-center justify-between gap-2' + (batchConflictLabel ? ' bg-red-50/60 dark:bg-red-900/20' : '');
         opt.dataset.facultyId = f.id;
         opt.dataset.facultyName = f.full_name;
         opt.dataset.searchText = (f.full_name + ' ' + (f.department_code || '')).toLowerCase();
@@ -1247,7 +1498,7 @@ function setBatchFacultyTriggerState(row, facultyId, facultyName) {
 
     const assignedClasses = [
         'border-gray-200', 'dark:border-gray-600', 'bg-white', 'dark:bg-gray-700',
-        'text-gray-700', 'dark:text-gray-200', 'hover:border-violet-300'
+        'text-gray-700', 'dark:text-gray-200', 'hover:border-blue-300'
     ];
     const unassignedClasses = [
         'border-dashed', 'border-amber-400', 'border-amber-300', 'bg-amber-50', 'dark:bg-amber-900/20',
@@ -1416,7 +1667,7 @@ function renderRoomOptions(rowIdx, rooms, usedFallback = false) {
         const hasConflictLabel = Boolean(isOccupied || batchConflictLabel);
 
         const opt = document.createElement('div');
-        opt.className = 'batch-room-option px-3 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer transition-colors' + (hasConflictLabel ? ' bg-red-50/60 dark:bg-red-900/20' : '');
+        opt.className = 'batch-room-option px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer transition-colors' + (hasConflictLabel ? ' bg-red-50/60 dark:bg-red-900/20' : '');
         opt.dataset.roomId = r.id;
         opt.dataset.roomNumber = r.room_number;
         opt.dataset.buildingName = r.building_name || '';
@@ -1758,8 +2009,8 @@ function addSelectedSubject() {
 
     // Scroll to new row
     row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    row.classList.add('bg-violet-50', 'dark:bg-violet-900/20');
-    setTimeout(() => row.classList.remove('bg-violet-50', 'dark:bg-violet-900/20'), 1500);
+    row.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+    setTimeout(() => row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20'), 1500);
 
     closeAddSubjectDropdown();
 }
@@ -1971,7 +2222,6 @@ function validateAllRows() {
     if (hasFormIssues || hasConflicts) {
         confirmBtn.disabled = true;
         const allIssues = [...formIssues];
-        if (hasConflicts) allIssues.push(`${conflictRows} conflict(s)`);
         if (facultyRowDetails.length > 0) {
             const examples = facultyRowDetails
                 .slice(0, 3)
@@ -1979,8 +2229,12 @@ function validateAllRows() {
                 .join(' · ');
             allIssues.push(`Examples — ${examples}`);
         }
-        msgText.textContent = allIssues.join(', ');
-        msgEl.classList.remove('hidden');
+        if (allIssues.length > 0) {
+            msgText.textContent = allIssues.join(', ');
+            msgEl.classList.remove('hidden');
+        } else {
+            msgEl.classList.add('hidden');
+        }
     } else {
         confirmBtn.disabled = false;
         msgEl.classList.add('hidden');
@@ -2042,7 +2296,7 @@ async function confirmBatchSchedule() {
     const conflictRows = Object.entries(_batchConflicts)
         .filter(([idx, r]) => r.status === 'conflict' && _isBatchRowSaveable(allRows[parseInt(idx, 10)]));
     if (conflictRows.length > 0) {
-        if (typeof showToast === 'function') showToast(`${conflictRows.length} row(s) have conflicts. Resolve them before saving.`, 'error');
+        if (typeof showToast === 'function') showToast('Some rows still need review before saving.', 'error');
         return;
     }
 
@@ -2075,7 +2329,7 @@ async function confirmBatchSchedule() {
             const updated = result.updated || 0;
             if (rowErrors.length > 0) {
                 if (typeof showToast === 'function') {
-                    showToast(`Saved ${result.created + updated} schedule(s) (${result.created} created, ${updated} updated). ${rowErrors.length} row(s) had conflicts.`, 'error');
+                    showToast(`Saved ${result.created + updated} schedule(s) (${result.created} created, ${updated} updated). ${rowErrors.length} row(s) were skipped.`, 'error');
                 }
                 // Highlight error rows
                 rowErrors.forEach(e => {
@@ -2094,7 +2348,7 @@ async function confirmBatchSchedule() {
             sessionStorage.removeItem(BATCH_STATE_KEY);
 
             closeBatchModal();
-            _updateBatchStep(3);
+            _updateBatchStep(2);
             if (typeof showToast === 'function') {
                 showToast(`Saved ${result.created + updated} schedule(s) (${result.created} created, ${updated} updated).`, 'success');
             }
@@ -2279,7 +2533,7 @@ function renderRowConflictStatus(row, idx, result) {
         row.classList.add('bg-red-50/50', 'dark:bg-red-900/20');
         const count = result.conflicts.length;
         statusCell.innerHTML = `
-            <button type="button" onclick="showRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/60 focus-visible:ring-2 focus-visible:ring-red-400/60 transition-colors cursor-pointer" title="${count} conflict(s) — click for details">
+            <button type="button" onclick="showRowConflictTooltip(${idx})" class="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/60 focus-visible:ring-2 focus-visible:ring-red-400/60 transition-colors cursor-pointer" title="${count} issue(s) — click for details">
                 <svg class="w-3 h-3 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </button>`;
     } else if (result.status === 'warning') {
@@ -2450,10 +2704,7 @@ function updateFooterBanner(status, count) {
     banner.className = 'px-4 sm:px-5 py-1.5 text-[11px] font-medium flex items-center gap-2 border-b border-gray-100 dark:border-gray-700';
 
     if (status === 'conflict') {
-        banner.classList.remove('hidden');
-        banner.classList.add('bg-red-50', 'dark:bg-red-900/20', 'text-red-700', 'dark:text-red-300');
-        icon.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
-        text.textContent = `${count} row(s) have conflicts — resolve before saving`;
+        banner.classList.add('hidden');
     } else if (status === 'warning') {
         banner.classList.remove('hidden');
         banner.classList.add('bg-amber-50', 'dark:bg-amber-900/20', 'text-amber-700', 'dark:text-amber-300');
@@ -2577,6 +2828,14 @@ document.addEventListener('click', function(e) {
 
 function showBatchError(message) {
     document.getElementById('autoScheduleErrorMsg').textContent = message;
+    document.getElementById('autoScheduleLoading').classList.add('hidden');
+    document.getElementById('autoScheduleCurriculumPrompt')?.classList.add('hidden');
+    document.getElementById('autoScheduleResults').classList.add('hidden');
+    document.getElementById('autoScheduleStats').classList.add('hidden');
+    document.getElementById('autoScheduleFooter').classList.add('hidden');
+    document.getElementById('batchAddSubjectPanel').classList.add('hidden');
+    document.getElementById('batchAddSubjectBtn').classList.add('hidden');
+    document.getElementById('batchInlineViewToggle')?.classList.add('hidden');
     document.getElementById('autoScheduleError').classList.remove('hidden');
 }
 

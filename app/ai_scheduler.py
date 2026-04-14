@@ -1185,6 +1185,7 @@ Format: [TAG] Action description — expected impact.
 RULES:
 - Be specific and cite actual numbers from the data
 - {"Focus exclusively on " + program_name + " data." if program_name else "Consider institution-wide patterns."}
+- Use "sections" terminology for schedule completion metrics (never "subjects")
 - DO NOT use any markdown formatting (no **, *, #, or _)
 - DO NOT number the bullet points
 - Each bullet point must start with a dash (-)

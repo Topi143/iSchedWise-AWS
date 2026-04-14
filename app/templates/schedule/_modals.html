@@ -93,11 +93,11 @@
         
         <!-- Workspace Content - 3 Panel Layout: Form | Calendar | AI -->
         <div class="flex-1 overflow-hidden flex flex-col md:flex-row relative">
-            <button id="aiPanelAddScheduleOpenBtn" type="button" class="hidden xl:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white/95 text-xs font-semibold text-gray-700 shadow-sm hover:bg-white transition-all" title="Open AI Assistant">
+            <button id="aiPanelAddScheduleOpenBtn" type="button" class="hidden xl:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white/95 text-xs font-semibold text-gray-700 shadow-sm hover:bg-white transition-all" title="Open Schedule Check">
                 <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
                 </svg>
-                Assistant
+                Schedule Check
             </button>
             <!-- Left Panel: Form (Compact) -->
             <div class="w-full md:w-[320px] xl:w-[360px] overflow-y-auto bg-white dark:bg-gray-800 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -406,7 +406,7 @@
                                     class="appearance-none text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 pr-7 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-w-[120px] sm:min-w-[150px] dark:text-gray-200">
                                 <option value="">Switch Section...</option>
                                 {% for section in sections|sort(attribute='program.program_code,year_level,section_name') %}
-                                <option value="{{ section.id }}" data-name="{{ section.full_section_name }}">
+                                <option value="{{ section.id }}" data-name="{{ section.full_section_name }}" data-year-level="{{ section.year_level }}" data-program-id="{{ section.program_id }}">
                                     {{ section.full_section_name }}
                                 </option>
                                 {% endfor %}
@@ -521,11 +521,11 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">AI Assistant</h4>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Schedule Check</h4>
                                 <p class="text-[10px] text-gray-500 dark:text-gray-400">Real-time conflict detection</p>
                             </div>
                         </div>
-                        <button type="button" data-modal-ai-close="aiPanelAddScheduleDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse assistant">
+                        <button type="button" data-modal-ai-close="aiPanelAddScheduleDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse Schedule Check">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
@@ -637,11 +637,11 @@
         
         <!-- Workspace Content -->
         <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-            <button id="aiPanelEditScheduleOpenBtn" type="button" class="hidden md:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white/95 text-xs font-semibold text-gray-700 shadow-sm hover:bg-white transition-all" title="Open AI Assistant">
+            <button id="aiPanelEditScheduleOpenBtn" type="button" class="hidden md:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white/95 text-xs font-semibold text-gray-700 shadow-sm hover:bg-white transition-all" title="Open Schedule Check">
                 <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
                 </svg>
-                Assistant
+                Schedule Check
             </button>
             <!-- Left Panel: Form -->
             <div class="w-full md:w-1/2 xl:w-2/5 overflow-y-auto bg-white dark:bg-gray-800 md:border-r border-gray-200 dark:border-gray-700">
@@ -944,11 +944,11 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-base font-bold text-gray-900 dark:text-white">AI Assistant</h4>
+                                <h4 class="text-base font-bold text-gray-900 dark:text-white">Schedule Check</h4>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Real-time conflict detection & smart suggestions</p>
                             </div>
                         </div>
-                        <button type="button" data-modal-ai-close="aiPanelEditScheduleDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse assistant">
+                        <button type="button" data-modal-ai-close="aiPanelEditScheduleDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse Schedule Check">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
@@ -1073,11 +1073,11 @@
         
         <!-- Workspace Content - 3 Panel Layout: Form | Calendar | AI -->
         <div class="flex-1 overflow-hidden flex flex-col md:flex-row relative">
-            <button id="aiPanelAddExamOpenBtn" type="button" class="hidden xl:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 text-xs font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-all" title="Open AI Assistant">
+            <button id="aiPanelAddExamOpenBtn" type="button" class="hidden xl:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 text-xs font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-all" title="Open Schedule Check">
                 <svg class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
                 </svg>
-                Assistant
+                Schedule Check
             </button>
             <!-- Left Panel: Form (Compact) -->
             <div class="w-full md:w-[320px] xl:w-[360px] overflow-y-auto bg-white dark:bg-gray-800 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -1392,7 +1392,7 @@
                                     class="appearance-none text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 pr-7 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer min-w-[120px] sm:min-w-[150px] dark:text-gray-200">
                                 <option value="">Switch Section...</option>
                                 {% for section in exam_sections|sort(attribute='program.program_code,year_level,section_name') %}
-                                <option value="{{ section.id }}" data-name="{{ section.full_section_name }}">
+                                <option value="{{ section.id }}" data-name="{{ section.full_section_name }}" data-year-level="{{ section.year_level }}" data-program-id="{{ section.program_id }}">
                                     {{ section.full_section_name }}
                                 </option>
                                 {% endfor %}
@@ -1514,11 +1514,11 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">AI Assistant</h4>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Schedule Check</h4>
                                 <p class="text-[10px] text-gray-500 dark:text-gray-400">Real-time conflict detection</p>
                             </div>
                         </div>
-                        <button type="button" data-modal-ai-close="aiPanelAddExamDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse assistant">
+                        <button type="button" data-modal-ai-close="aiPanelAddExamDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse Schedule Check">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
@@ -1627,11 +1627,11 @@
         
         <!-- Workspace Content -->
         <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-            <button id="aiPanelEditExamOpenBtn" type="button" class="hidden md:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 text-xs font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-all" title="Open AI Assistant">
+            <button id="aiPanelEditExamOpenBtn" type="button" class="hidden md:inline-flex absolute top-3 right-3 z-20 items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 text-xs font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-all" title="Open Schedule Check">
                 <svg class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
                 </svg>
-                Assistant
+                Schedule Check
             </button>
             <!-- Left Panel: Form -->
             <div class="w-full md:w-1/2 xl:w-2/5 overflow-y-auto bg-white dark:bg-gray-800 md:border-r border-gray-200 dark:border-gray-700">
@@ -1907,7 +1907,7 @@
                 </form>
             </div>
             
-            <!-- Right Panel: AI Assistant (Desktop) -->
+            <!-- Right Panel: Schedule Check (Desktop) -->
             <div id="aiPanelEditExamDesktop" class="hidden md:flex absolute inset-y-0 right-0 z-30 w-[380px] xl:w-[450px] flex-col bg-slate-50 dark:bg-gray-800 overflow-hidden border-l border-gray-200 dark:border-gray-700 shadow-xl transition-all duration-300 ease-out translate-x-full opacity-0 pointer-events-none">
                 <div class="flex-1 overflow-y-auto p-5 lg:p-6 custom-scrollbar">
                     <!-- AI Header - Enhanced -->
@@ -1919,11 +1919,11 @@
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="text-base font-bold text-gray-900 dark:text-white">AI Assistant</h4>
+                                <h4 class="text-base font-bold text-gray-900 dark:text-white">Schedule Check</h4>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Real-time conflict detection & smart suggestions</p>
                             </div>
                         </div>
-                        <button type="button" data-modal-ai-close="aiPanelEditExamDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse assistant">
+                        <button type="button" data-modal-ai-close="aiPanelEditExamDesktop" class="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-700 transition-colors" title="Collapse Schedule Check">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>

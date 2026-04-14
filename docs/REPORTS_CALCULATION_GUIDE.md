@@ -88,7 +88,9 @@ total_sections = Section.query.filter_by(
 total_rooms = Room.query.filter_by(is_available=True).count()
 ```
 
-**Note:** Rooms are shared across all departments; the count shows all available rooms system-wide.
+**Scope behavior:**
+- **Admin (no program filter):** system-wide available room count
+- **Dean/program-filtered views:** available rooms scoped to rooms historically used by the selected/allowed program set
 
 ---
 

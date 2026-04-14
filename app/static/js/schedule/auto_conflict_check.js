@@ -15,6 +15,10 @@ let hasConflictsAdd = false;
 let hasConflictsEdit = false;
 let autoCheckFieldObserver = null;
 let autoCheckRebindTimer = null;
+const classAutoCheckCompletionState = {
+    add: false,
+    edit: false
+};
 
 function getAutoCheckFieldIds(mode) {
     const suffix = mode === 'add' ? '_add' : '_edit';
@@ -161,6 +165,44 @@ function getClassAutoCheckSuffix(mode) {
     return (isUnifiedModal || mode === 'add') ? '_add' : '_edit';
 }
 
+function getActiveClassAutoCheckMode(mode) {
+    if (window.scheduleModalMode === 'edit') {
+        return 'edit';
+    }
+    if (window.scheduleModalMode === 'add') {
+        return 'add';
+    }
+    return mode === 'edit' ? 'edit' : 'add';
+}
+
+function maybeRevealClassScheduleCheckPanel(mode, allRequiredDetailsFilled) {
+    const activeMode = getActiveClassAutoCheckMode(mode);
+
+    if (!allRequiredDetailsFilled) {
+        classAutoCheckCompletionState[activeMode] = false;
+        return;
+    }
+
+    if (classAutoCheckCompletionState[activeMode]) {
+        return;
+    }
+
+    classAutoCheckCompletionState[activeMode] = true;
+
+    const openButtonId = activeMode === 'edit'
+        ? 'aiPanelEditScheduleOpenBtn'
+        : 'aiPanelAddScheduleOpenBtn';
+    const openButton = document.getElementById(openButtonId);
+
+    if (openButton && !openButton.classList.contains('hidden')) {
+        openButton.click();
+    }
+
+    if (typeof autoOpenDrawer === 'function') {
+        autoOpenDrawer();
+    }
+}
+
 function canRunClassAutoCheckNow(mode) {
     const suffix = getClassAutoCheckSuffix(mode);
     const sectionId = document.getElementById('section_id' + suffix)?.value;
@@ -169,7 +211,8 @@ function canRunClassAutoCheckNow(mode) {
     const facultyId = document.getElementById('faculty_id' + suffix)?.value || null;
     const roomId = document.getElementById('room_id' + suffix)?.value || null;
     const dayOfWeek = document.getElementById('day_of_week' + suffix)?.value;
-    const scheduleType = document.getElementById('schedule_type' + suffix)?.value || 'lecture';
+    const scheduleTypeField = document.getElementById('schedule_type' + suffix);
+    const scheduleType = scheduleTypeField ? String(scheduleTypeField.value || '').trim() : 'lecture';
     const startTime = document.getElementById('start_time' + suffix)?.value;
     const endTime = document.getElementById('end_time' + suffix)?.value;
 
@@ -262,7 +305,8 @@ function performAutoConflictCheck(mode) {
     const facultyId = document.getElementById('faculty_id' + suffix)?.value || null;
     const roomId = document.getElementById('room_id' + suffix)?.value || null;
     const dayOfWeek = document.getElementById('day_of_week' + suffix)?.value;
-    const scheduleType = document.getElementById('schedule_type' + suffix)?.value || 'lecture';
+    const scheduleTypeField = document.getElementById('schedule_type' + suffix);
+    const scheduleType = scheduleTypeField ? String(scheduleTypeField.value || '').trim() : 'lecture';
     const startTime = document.getElementById('start_time' + suffix)?.value;
     const endTime = document.getElementById('end_time' + suffix)?.value;
     
@@ -282,6 +326,8 @@ function performAutoConflictCheck(mode) {
         startTime &&
         endTime
     );
+
+    maybeRevealClassScheduleCheckPanel(mode, allRequiredDetailsFilled);
 
     if (!allRequiredDetailsFilled) {
         const panelSuffix = mode === 'add' ? 'Add' : 'Edit';
@@ -393,8 +439,6 @@ function performAutoConflictCheck(mode) {
                 if (expWrapper) expWrapper.classList.add('hidden');
                 const wlEl = document.getElementById('aiWorkloadSummary' + suffix);
                 if (wlEl) wlEl.classList.add('hidden');
-
-                if (typeof autoCloseDrawer === 'function') autoCloseDrawer();
             }
 
             // Process warnings in Quick mode.
@@ -482,9 +526,6 @@ function performAutoConflictCheck(mode) {
             if (expWrapper) expWrapper.classList.add('hidden');
             const wlEl = document.getElementById('aiWorkloadSummary' + suffix);
             if (wlEl) wlEl.classList.add('hidden');
-            
-            // Auto-close drawer if conflicts were resolved
-            if (typeof autoCloseDrawer === 'function') autoCloseDrawer();
         }
     })
     .catch(error => {
@@ -652,6 +693,9 @@ function resetAutoCheckState(mode) {
     
     // Reset conflict state
     updateConflictState(mode, false, true);
+
+    const activeMode = getActiveClassAutoCheckMode(mode);
+    classAutoCheckCompletionState[activeMode] = false;
     
     // Reset floating AI badge to idle
     if (typeof updateAIBadge === 'function') updateAIBadge('idle');
@@ -905,6 +949,8 @@ function hideResolveAllOption(mode) {
 function _gatherScheduleFormData(mode) {
     const isUnifiedModal = window.scheduleModalMode !== undefined;
     const suffix = (isUnifiedModal || mode === 'add') ? '_add' : '_edit';
+    const scheduleTypeField = document.getElementById('schedule_type' + suffix);
+    const scheduleType = scheduleTypeField ? String(scheduleTypeField.value || '').trim() : 'lecture';
 
     return {
         section_id: parseInt(document.getElementById('section_id' + suffix)?.value) || null,
@@ -912,7 +958,7 @@ function _gatherScheduleFormData(mode) {
         faculty_id: parseInt(document.getElementById('faculty_id' + suffix)?.value) || null,
         room_id: parseInt(document.getElementById('room_id' + suffix)?.value) || null,
         day_of_week: document.getElementById('day_of_week' + suffix)?.value || '',
-        schedule_type: document.getElementById('schedule_type' + suffix)?.value || 'lecture',
+        schedule_type: scheduleType,
         start_time: document.getElementById('start_time' + suffix)?.value || '',
         end_time: document.getElementById('end_time' + suffix)?.value || '',
         schedule_id: document.getElementById('schedule_id')?.value || document.getElementById('schedule_id_edit')?.value || null

@@ -175,9 +175,15 @@
                 if (subSel && (subSel.options.length <= 1 || subSel.disabled)) {
                     // Need to load subjects for this curriculum
                     if (typeof window.loadSubjectsForCurriculum === 'function') {
-                        window.loadSubjectsForCurriculum('add');
+                        const curriculumId = String(fields['curriculum_id_add']);
+                        if (_restoreSubjectLoadRequestedForCurriculum !== curriculumId) {
+                            _restoreSubjectLoadRequestedForCurriculum = curriculumId;
+                            window.loadSubjectsForCurriculum('add');
+                        }
                     }
                     allDone = false;
+                } else {
+                    _restoreSubjectLoadRequestedForCurriculum = null;
                 }
             }
         }
@@ -252,6 +258,7 @@
 
     let _restoreTimer = null;
     let _saveInterval = null;
+    let _restoreSubjectLoadRequestedForCurriculum = null;
 
     function init() {
         // Only run on add mode
@@ -290,6 +297,7 @@
                     if (done || attempts >= maxAttempts) {
                         clearInterval(_restoreTimer);
                         _restoreTimer = null;
+                        _restoreSubjectLoadRequestedForCurriculum = null;
                         
                         window._formStateRestoring = false;
 
@@ -304,6 +312,7 @@
                     }
                 }, 100);
             } else {
+                _restoreSubjectLoadRequestedForCurriculum = null;
                 window._formStateRestoring = false;
             }
         }

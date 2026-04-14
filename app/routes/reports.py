@@ -312,6 +312,114 @@ def _apply_user_activity_filters(query, filters):
     return query
 
 
+def _normalize_program_scope(user_program_ids=None, filter_department=None):
+    """Normalize requested program scope against the user's allowed programs."""
+    requested_program_id = int(filter_department) if filter_department else None
+
+    # Admin users can query all programs when no explicit filter is provided.
+    if user_program_ids is None:
+        effective_program_ids = {requested_program_id} if requested_program_id else None
+        return {
+            'is_dean_scope': False,
+            'requested_program_id': requested_program_id,
+            'selected_program_id': requested_program_id,
+            'effective_program_ids': effective_program_ids
+        }
+
+    allowed_program_ids = {int(pid) for pid in user_program_ids if pid is not None}
+    selected_program_id = requested_program_id if requested_program_id in allowed_program_ids else None
+
+    if selected_program_id:
+        effective_program_ids = {selected_program_id}
+    else:
+        effective_program_ids = allowed_program_ids
+
+    return {
+        'is_dean_scope': True,
+        'requested_program_id': requested_program_id,
+        'selected_program_id': selected_program_id,
+        'effective_program_ids': effective_program_ids
+    }
+
+
+def _resolve_scope_context(user_program_ids=None, filter_department=None):
+    """Resolve user-visible scope labels and AI context label from program scope."""
+    scope = _normalize_program_scope(user_program_ids, filter_department)
+    effective_program_ids = scope['effective_program_ids']
+    selected_program_id = scope['selected_program_id']
+
+    programs = []
+    if effective_program_ids:
+        programs = Program.query.filter(
+            Program.id.in_(effective_program_ids),
+            Program.is_active == True
+        ).order_by(Program.program_code).all()
+
+    program_lookup = {p.id: p for p in programs}
+    selected_program = program_lookup.get(selected_program_id)
+
+    ai_program_name = None
+    if selected_program:
+        ai_program_name = f"{selected_program.program_name} ({selected_program.program_code})"
+    elif scope['is_dean_scope'] and programs:
+        if len(programs) == 1:
+            only_program = programs[0]
+            ai_program_name = f"{only_program.program_name} ({only_program.program_code})"
+        else:
+            codes = [p.program_code for p in programs if p.program_code]
+            if len(codes) > 4:
+                ai_program_name = f"Dean Programs: {', '.join(codes[:4])} (+{len(codes) - 4} more)"
+            elif codes:
+                ai_program_name = f"Dean Programs: {', '.join(codes)}"
+            else:
+                ai_program_name = 'Dean Program Scope'
+
+    if selected_program:
+        scope_label = f"Analysis for {selected_program.program_name}"
+    elif scope['is_dean_scope']:
+        if len(programs) == 1:
+            scope_label = f"Analysis for {programs[0].program_name}"
+        elif programs:
+            scope_label = 'Analysis for Your Department Programs'
+        else:
+            scope_label = 'Analysis for Your Department'
+    else:
+        scope_label = 'Analysis for All Programs'
+
+    return {
+        'is_dean_scope': scope['is_dean_scope'],
+        'selected_program_id': selected_program_id,
+        'effective_program_ids': effective_program_ids,
+        'scope_label': scope_label,
+        'ai_program_name': ai_program_name,
+        'unassigned_label': 'Unassigned Faculty in Your Department' if scope['is_dean_scope'] else 'Unassigned Faculty',
+        'all_assigned_label': 'All faculty in your department assigned' if scope['is_dean_scope'] else 'All faculty assigned'
+    }
+
+
+def _get_program_room_scope_ids(program_ids):
+    """Return room IDs historically used by schedules/exams in the given programs."""
+    if not program_ids:
+        return set()
+
+    schedule_room_rows = db.session.query(Schedule.room_id).join(Section).filter(
+        Schedule.is_active == True,
+        Schedule.room_id.isnot(None),
+        Section.program_id.in_(program_ids)
+    ).distinct().all()
+
+    exam_room_rows = db.session.query(ExamSchedule.room_id).join(Section).filter(
+        ExamSchedule.is_active == True,
+        ExamSchedule.room_id.isnot(None),
+        Section.program_id.in_(program_ids)
+    ).distinct().all()
+
+    return {
+        row[0] for row in (schedule_room_rows + exam_room_rows)
+        if row and row[0] is not None
+    }
+
+
 @reports_bp.route('/api/filtered-data')
 @login_required
 def get_filtered_data():
@@ -368,10 +476,13 @@ def get_ai_summary():
         
         # Get user's program access
         user_program_ids = current_user.get_program_ids()
-        
+
         # Get filter parameters from request
         filter_department = request.args.get('program', type=int)
-        
+
+        # Resolve scope context for dean/admin users
+        scope_context = _resolve_scope_context(user_program_ids, filter_department)
+
         # Calculate statistics with filters
         stats = calculate_statistics(
             academic_year, 
@@ -379,21 +490,23 @@ def get_ai_summary():
             user_program_ids,
             filter_department
         )
-        
-        # Get program name for AI context
-        program_name = None
-        if filter_department:
-            program = Program.query.get(filter_department)
-            if program:
-                program_name = f"{program.program_name} ({program.program_code})"
-        
+
         # Generate AI summary with program context
         ai_summary = ai_scheduler.generate_report_summary(
             stats, 
             academic_year, 
             semester,
-            program_name
+            scope_context['ai_program_name']
         )
+
+        ai_summary['scope'] = {
+            'is_dean_scope': scope_context['is_dean_scope'],
+            'scope_label': scope_context['scope_label'],
+            'selected_program_id': scope_context['selected_program_id'],
+            'effective_program_ids': sorted(scope_context['effective_program_ids']) if scope_context['effective_program_ids'] else [],
+            'unassigned_label': scope_context['unassigned_label'],
+            'all_assigned_label': scope_context['all_assigned_label']
+        }
         
         # Add detailed metrics to the response for dashboard display
         ai_summary['metrics'] = {
@@ -592,6 +705,10 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
         include = {'counts', 'faculty', 'rooms', 'weekly', 'completion'}
 
     stats = {}
+
+    # Normalize dean/admin scope to avoid mixed filtering behavior.
+    scope = _normalize_program_scope(user_program_ids, filter_department)
+    effective_program_ids = scope['effective_program_ids']
     
     # Build base queries - include archived schedules for historical comparison
     if include_archived:
@@ -608,42 +725,20 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
     if semester:
         schedule_query = schedule_query.filter_by(semester=semester)
         exam_query = exam_query.filter_by(semester=semester)
-    
-    # Track if we've already joined Section
-    schedule_has_section_join = False
-    exam_has_section_join = False
-    
-    # Filter by user program access
-    if user_program_ids is not None:
-        schedule_query = schedule_query.join(Section)
-        exam_query = exam_query.join(Section)
-        schedule_query = schedule_query.filter(Section.program_id.in_(user_program_ids))
-        exam_query = exam_query.filter(Section.program_id.in_(user_program_ids))
-        schedule_has_section_join = True
-        exam_has_section_join = True
-    
-    # Apply additional filters
-    if filter_department:
-        if not schedule_has_section_join:
-            schedule_query = schedule_query.join(Section)
-            schedule_has_section_join = True
-        schedule_query = schedule_query.filter(Section.program_id == filter_department)
-        
-        if not exam_has_section_join:
-            exam_query = exam_query.join(Section)
-            exam_has_section_join = True
-        exam_query = exam_query.filter(Section.program_id == filter_department)
+
+    # Apply normalized scope to class and exam schedules.
+    if effective_program_ids is not None:
+        schedule_query = schedule_query.join(Section).filter(Section.program_id.in_(effective_program_ids))
+        exam_query = exam_query.join(Section).filter(Section.program_id.in_(effective_program_ids))
     
     # Total schedules
     stats['total_schedules'] = schedule_query.count()
     stats['total_exam_schedules'] = exam_query.count()
     
-    # Active sections - apply both user program access AND filter_department
+    # Active sections in the effective scope
     section_query = Section.query
-    if filter_department:
-        section_query = section_query.filter(Section.program_id == filter_department)
-    elif user_program_ids is not None:
-        section_query = section_query.filter(Section.program_id.in_(user_program_ids))
+    if effective_program_ids is not None:
+        section_query = section_query.filter(Section.program_id.in_(effective_program_ids))
     stats['total_sections'] = section_query.count()
     
     # Active faculty - filter by department (derived from program filter) OR teaching in those programs
@@ -659,34 +754,17 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
     if semester:
         teaching_fac_query = teaching_fac_query.filter(Schedule.semester == semester)
 
-    if filter_department:
-        teaching_fac_query = teaching_fac_query.filter(Section.program_id == filter_department)
+    if effective_program_ids is not None:
+        teaching_fac_query = teaching_fac_query.filter(Section.program_id.in_(effective_program_ids))
         teaching_ids = [r[0] for r in teaching_fac_query.distinct().all()]
         
         from app.models.program import Program as _Dept
-        _dept_obj = _Dept.query.get(filter_department)
-        
-        if _dept_obj and _dept_obj.department_id:
-            if teaching_ids:
-                faculty_query = faculty_query.filter(
-                    or_(
-                        Faculty.department_id == _dept_obj.department_id,
-                        Faculty.id.in_(teaching_ids)
-                    )
-                )
-            else:
-                faculty_query = faculty_query.filter(Faculty.department_id == _dept_obj.department_id)
-        elif teaching_ids:
-            faculty_query = faculty_query.filter(Faculty.id.in_(teaching_ids))
-            
-    elif user_program_ids is not None:
-        teaching_fac_query = teaching_fac_query.filter(Section.program_id.in_(user_program_ids))
-        teaching_ids = [r[0] for r in teaching_fac_query.distinct().all()]
-        
-        from app.models.program import Program as _Dept
-        _department_ids = db.session.query(_Dept.department_id).filter(
-            _Dept.id.in_(user_program_ids), _Dept.department_id.isnot(None)
-        ).distinct().all()
+        if effective_program_ids:
+            _department_ids = db.session.query(_Dept.department_id).filter(
+                _Dept.id.in_(effective_program_ids), _Dept.department_id.isnot(None)
+            ).distinct().all()
+        else:
+            _department_ids = []
         _dept_id_list = [c[0] for c in _department_ids]
         
         if _dept_id_list:
@@ -701,11 +779,23 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
                 faculty_query = faculty_query.filter(Faculty.department_id.in_(_dept_id_list))
         elif teaching_ids:
             faculty_query = faculty_query.filter(Faculty.id.in_(teaching_ids))
+        else:
+            faculty_query = faculty_query.filter(Faculty.id == -1)
             
     stats['total_faculty'] = faculty_query.count()
-    
-    # Available rooms
-    stats['total_rooms'] = Room.query.filter_by(is_available=True).count()
+
+    room_scope_ids = None
+    if effective_program_ids is None:
+        stats['total_rooms'] = Room.query.filter_by(is_available=True).count()
+    else:
+        room_scope_ids = _get_program_room_scope_ids(effective_program_ids)
+        if room_scope_ids:
+            stats['total_rooms'] = Room.query.filter(
+                Room.is_available == True,
+                Room.id.in_(room_scope_ids)
+            ).count()
+        else:
+            stats['total_rooms'] = 0
     
     # Faculty with schedules
     faculty_with_schedules = schedule_query.filter(Schedule.faculty_id.isnot(None))\
@@ -759,11 +849,7 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
         system_max_units = AcademicSettings.get_default_faculty_max_units()
         
         # Determine program filter set for Python-side filtering
-        dept_filter_set = None
-        if filter_department:
-            dept_filter_set = {filter_department}
-        elif user_program_ids is not None:
-            dept_filter_set = set(user_program_ids)
+        dept_filter_set = set(effective_program_ids) if effective_program_ids is not None else None
         
         # Build a department_id filter set for Faculty-level filtering
         # (dept_filter_set has program IDs; Faculty uses department_id)
@@ -804,8 +890,9 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
                         weekly_minutes += (end_minutes - start_minutes)
             weekly_hours = round(weekly_minutes / 60, 1)
             
-            # Load status from ALL schedules (not dept-filtered) — matches get_load_status behavior
-            current_load = sum(float(s.subject.total_units) if s.subject and s.subject.total_units else 0 for s in fac_all_schedules)
+            # Dean/program views should reflect scoped program state, while admin keeps institution-wide load.
+            load_source_schedules = fac_schedules if dept_filter_set is not None else fac_all_schedules
+            current_load = sum(float(s.subject.total_units) if s.subject and s.subject.total_units else 0 for s in load_source_schedules)
             max_units = faculty.max_units if faculty.max_units is not None else system_max_units
             utilization_pct = (current_load / max_units * 100) if max_units > 0 else 0
             
@@ -1181,11 +1268,7 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
         all_room_exams = all_room_exam_query.all()
         
         # Determine program filter set for Python-side filtering
-        room_dept_filter = None
-        if filter_department:
-            room_dept_filter = {filter_department}
-        elif user_program_ids is not None:
-            room_dept_filter = set(user_program_ids)
+        room_dept_filter = set(effective_program_ids) if effective_program_ids is not None else None
         
         # Group by room_id with program filtering in Python
         schedules_by_room = _defaultdict(list)
@@ -1202,7 +1285,13 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
                     continue
             exams_by_room[e.room_id].append(e)
         
-        rooms = Room.query.options(db.joinedload(Room.building)).filter_by(is_available=True).all()
+        rooms_query = Room.query.options(db.joinedload(Room.building)).filter_by(is_available=True)
+        if room_scope_ids is not None:
+            if room_scope_ids:
+                rooms_query = rooms_query.filter(Room.id.in_(room_scope_ids))
+            else:
+                rooms_query = rooms_query.filter(Room.id == -1)
+        rooms = rooms_query.all()
         room_utilizations = []
         room_availability = []
         total_hours_all_rooms = 0
@@ -1340,10 +1429,8 @@ def calculate_statistics(academic_year=None, semester=None, user_program_ids=Non
         if semester:
             sections_scheduled_query = sections_scheduled_query.filter(Schedule.semester == semester)
         
-        if filter_department:
-            sections_scheduled_query = sections_scheduled_query.filter(Section.program_id == filter_department)
-        elif user_program_ids is not None:
-            sections_scheduled_query = sections_scheduled_query.filter(Section.program_id.in_(user_program_ids))
+        if effective_program_ids is not None:
+            sections_scheduled_query = sections_scheduled_query.filter(Section.program_id.in_(effective_program_ids))
         
         sections_with_schedules = sections_scheduled_query.scalar() or 0
         

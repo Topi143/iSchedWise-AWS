@@ -3886,6 +3886,12 @@
     function openLineupExportModal() {
         document.getElementById('lineupExportModal').classList.remove('hidden');
         document.getElementById('lineupExportModal').classList.add('flex');
+
+        const selectEl = document.getElementById('lineupProgramSelect');
+        const requiresSelection = getLineupRequiresSelection();
+        if (!requiresSelection && selectEl?.dataset?.defaultProgramId) {
+            selectEl.value = selectEl.dataset.defaultProgramId;
+        }
     }
 
     function closeLineupExportModal() {
@@ -3893,13 +3899,26 @@
         document.getElementById('lineupExportModal').classList.remove('flex');
     }
 
+    function getLineupRequiresSelection() {
+        const modalEl = document.getElementById('lineupExportModal');
+        return modalEl?.dataset?.requiresProgramSelection !== 'false';
+    }
+
     function downloadLineup() {
-        const programId = document.getElementById('lineupProgramSelect').value;
+        const selectEl = document.getElementById('lineupProgramSelect');
+        let programId = selectEl ? selectEl.value : '';
+        const requiresSelection = getLineupRequiresSelection();
+
+        if (!programId && !requiresSelection && selectEl?.dataset?.defaultProgramId) {
+            programId = selectEl.dataset.defaultProgramId;
+        }
+
         if (!programId) {
             // Show a quick warning
-            const sel = document.getElementById('lineupProgramSelect');
-            sel.classList.add('ring-2', 'ring-red-400');
-            setTimeout(() => sel.classList.remove('ring-2', 'ring-red-400'), 1500);
+            if (selectEl) {
+                selectEl.classList.add('ring-2', 'ring-red-400');
+                setTimeout(() => selectEl.classList.remove('ring-2', 'ring-red-400'), 1500);
+            }
             return;
         }
         window.location.href = `{{ url_for('faculty.export_faculty_lineup') }}?program_id=${programId}`;
@@ -3908,7 +3927,7 @@
 </script>
 
 <!-- Faculty Line-Up Export Modal -->
-<div id="lineupExportModal" class="hidden fixed inset-0 z-[60] items-center justify-center overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="lineupExportModalTitle">
+<div id="lineupExportModal" data-requires-program-selection="{{ 'false' if lineup_has_single_dean_program else 'true' }}" class="hidden fixed inset-0 z-[60] items-center justify-center overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="lineupExportModalTitle">
     <div class="absolute inset-0 bg-black bg-opacity-40" onclick="closeLineupExportModal()"></div>
     <div class="relative z-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <!-- Modal Header -->
@@ -3930,12 +3949,15 @@
         <!-- Modal Body -->
         <div class="px-5 py-4">
             <label for="lineupProgramSelect" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Select Program</label>
-            <select id="lineupProgramSelect" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors">
-                <option value="">- Choose a program -</option>
+            <select id="lineupProgramSelect" data-default-program-id="{{ lineup_single_dean_program_id or '' }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors">
+                <option value="" {% if lineup_has_single_dean_program %}disabled{% else %}selected{% endif %}>- Choose a program -</option>
                 {% for program in export_programs %}
-                <option value="{{ program.id }}">{{ program.program_code }} - {{ program.program_name }}</option>
+                <option value="{{ program.id }}" {% if lineup_has_single_dean_program and lineup_single_dean_program_id == program.id %}selected{% endif %}>{{ program.program_code }} - {{ program.program_name }}</option>
                 {% endfor %}
             </select>
+            {% if lineup_has_single_dean_program %}
+            <p class="mt-2 text-xs text-emerald-600 dark:text-emerald-400">Program auto-selected from your dean assignment.</p>
+            {% endif %}
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Generates an Excel report listing faculty assigned to all sections under the selected program for the current semester, including subjects, sections, units, and total hours.</p>
         </div>
         <!-- Modal Footer -->

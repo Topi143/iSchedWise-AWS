@@ -108,6 +108,10 @@ def index():
     if user_program_ids is not None:
         export_program_query = export_program_query.filter(Program.id.in_(user_program_ids))
     export_programs = export_program_query.order_by(Program.program_name).all()
+
+    lineup_is_dean_user = current_user.is_dean
+    lineup_has_single_dean_program = lineup_is_dean_user and len(export_programs) == 1
+    lineup_single_dean_program_id = export_programs[0].id if lineup_has_single_dean_program else None
     
     # Calculate workload for each faculty (filtered by current academic settings)
     # Batch-load all assignments & schedules with eager-loaded subjects to avoid N+1 queries
@@ -232,6 +236,8 @@ def index():
                          departments=departments,
                          programs=programs,
                          export_programs=export_programs,
+                         lineup_has_single_dean_program=lineup_has_single_dean_program,
+                         lineup_single_dean_program_id=lineup_single_dean_program_id,
                          curricula=filtered_curricula,
                          selected_faculty=selected_faculty,
                          selected_faculty_assignments=selected_faculty_assignments,
