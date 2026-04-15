@@ -3093,14 +3093,14 @@ def batch_check_conflicts():
                 row_conflicts.append({
                     'type': 'schedule_hours',
                     'severity': 'medium',
-                    'message': f"Start time is before schedule hours ({schedule_start_cfg.strftime('%H:%M')})",
+                    'message': f"Start time is before schedule hours ({schedule_start_cfg.strftime('%I:%M %p').lstrip('0')})",
                     'details': {}
                 })
             if _minutes_of(parsed['end_time']) > _minutes_of(schedule_end_cfg):
                 row_conflicts.append({
                     'type': 'schedule_hours',
                     'severity': 'medium',
-                    'message': f"End time is after schedule hours ({schedule_end_cfg.strftime('%H:%M')})",
+                    'message': f"End time is after schedule hours ({schedule_end_cfg.strftime('%I:%M %p').lstrip('0')})",
                     'details': {}
                 })
 

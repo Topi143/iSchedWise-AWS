@@ -2,6 +2,183 @@
 
 This document explains the actual algorithms and process flows used in iSchedWise V4 for class scheduling, exam scheduling, conflict handling, recommendations, exports, and automated backups.
 
+## 0) Presentation-First Flow (Use This Sequence in Defense)
+
+Use this section as your main presentation script. It starts with Technical Background, then authentication (login and recovery), then transitions to scheduling algorithms.
+
+### 0.1 Slide 1: Technical Background Overview
+
+Goal of this slide:
+
+1. Establish system architecture before discussing algorithms.
+2. Show why iSchedWise is designed for reliability, maintainability, and security.
+
+Speaker script (20-30 seconds):
+
+- "Before discussing scheduling algorithms, I will first explain the technical foundation. iSchedWise follows a client-server setup and a layered architecture so each responsibility is isolated, testable, and easier to scale."
+
+### 0.2 Slide 2: Client-Server Architecture (Figure 2)
+
+Core explanation:
+
+1. Clients (desktop/mobile browsers) send HTTP requests.
+2. Flask server receives and processes requests through route handlers.
+3. Server uses SQLAlchemy to read/write MySQL data.
+4. Server sends rendered HTML or JSON responses back to clients.
+
+Authentication mapping on this diagram:
+
+1. `/login` handles credential request/response.
+2. `/verify-2fa` handles OTP verification roundtrip.
+3. `/forgot-password` issues reset-link request.
+4. `/reset-password/<token>` completes password update request.
+
+Speaker script (30-45 seconds):
+
+- "This diagram shows the request-response lifecycle. Every major operation, including login and password recovery, follows this same path: client request, Flask processing, database validation, then secure response."
+
+### 0.3 Slide 3: Layered Architecture (Figure 3)
+
+Layer responsibilities:
+
+1. Presentation Layer:
+   - templates, forms, route entry points, user input handling.
+2. Business Layer:
+   - scheduling rules, conflict checks, recommendation logic, authentication workflows.
+3. Persistence Layer:
+   - SQLAlchemy models, MySQL data, archives, logs, and backups.
+
+Code mapping:
+
+1. Presentation: `app/templates/*`, `app/routes/*`
+2. Business: `app/services/*`, auth orchestration in `app/routes/auth.py`
+3. Persistence: `app/models/*`, backup services
+
+Speaker script (30-45 seconds):
+
+- "The layered design prevents tight coupling. UI changes do not require database rewrites, and business logic remains centralized for consistency and auditability."
+
+### 0.4 Slide 4: Login Page and Authentication Algorithm
+
+Endpoint and files:
+
+1. Endpoint: `/login` (GET/POST)
+2. Route: `app/routes/auth.py` -> `login()`
+3. Form: `LoginForm` in `app/forms.py`
+4. UI: `app/templates/login.html`
+
+Algorithm flow:
+
+1. Clear stale pending 2FA state on GET.
+2. If already authenticated and valid, redirect to dashboard.
+3. Validate username/email + password.
+4. Validate account status (active, non-expired temporary account).
+5. If 2FA is enabled:
+   - check trusted device,
+   - if untrusted: issue OTP challenge and redirect to `/verify-2fa`.
+6. Finalize authenticated session (`login_user`), write activity and login history.
+
+Security controls to mention:
+
+1. Password verification before session issuance.
+2. Pending 2FA challenge has expiration and attempt limits.
+3. Trusted device token is bounded by configured trust days.
+
+Speaker script (40-60 seconds):
+
+- "The login algorithm is multi-step, not just password check. After credential verification, the system evaluates account state, then enforces 2FA when enabled, and only then creates a session with audit logs."
+
+### 0.5 Slide 5: Forgot Password Algorithm
+
+Endpoint and files:
+
+1. Endpoint: `/forgot-password`
+2. Route: `forgot_password()` in `app/routes/auth.py`
+3. Form: `ForgotPasswordForm`
+4. UI: `app/templates/forgot_password.html`
+
+Algorithm flow:
+
+1. Validate email input.
+2. Lookup account by email.
+3. Generate reset token.
+4. Send branded reset email payload.
+5. Redirect to login with status feedback.
+
+Speaker script (25-35 seconds):
+
+- "Forgot-password is token-based and email-mediated. The user never changes credentials directly here; this step only issues a time-bound recovery link."
+
+### 0.6 Slide 6: Reset Password Algorithm
+
+Endpoint and files:
+
+1. Endpoint: `/reset-password/<token>`
+2. Route: `reset_password(token)` in `app/routes/auth.py`
+3. Form: `ResetPasswordForm`
+4. UI: `app/templates/reset_password.html`
+
+Algorithm flow:
+
+1. Verify token validity/expiration.
+2. Validate password policy and confirmation match.
+3. Update password hash in database.
+4. Clear `needs_password_change` flag.
+5. Redirect to login.
+
+Speaker script (25-35 seconds):
+
+- "Password reset is completed only after token verification and policy checks. This prevents unauthorized resets and ensures the new password follows system security rules."
+
+### 0.7 Slide 7: 2FA Verification and Resend Algorithm
+
+Endpoints and files:
+
+1. `/verify-2fa` -> `verify_two_factor()`
+2. `/verify-2fa/resend` -> `resend_two_factor_code()`
+3. UI: `app/templates/verify_two_factor.html`
+
+Algorithm flow:
+
+1. Load pending challenge from session.
+2. Verify OTP hash and enforce max attempts.
+3. On success, clear pending challenge and finalize login.
+4. Optional trusted-device token issuance.
+5. Resend endpoint enforces cooldown before issuing new code.
+
+Speaker script (30-45 seconds):
+
+- "The OTP workflow is rate-limited and attempt-limited. This reduces brute-force risk while still giving users controlled recovery through resend cooldown."
+
+### 0.8 Slide 8: Logout and Session Termination
+
+Endpoint and flow:
+
+1. Endpoint: `/logout`
+2. Log `logout` activity and close login-history session.
+3. Commit logs, clear Flask session, and redirect to login.
+
+Speaker script (15-25 seconds):
+
+- "Logout is also part of security. It is audited, session metadata is closed, and browser session context is cleared before redirecting to login."
+
+### 0.9 Slide 9: Transition to Scheduling Algorithms
+
+Transition line:
+
+- "With architecture and access-control workflows established, we can now move to the core scheduling engine: conflict detection, batch placement, recommendation scoring, and resolution strategies."
+
+Where to continue in this document:
+
+1. Core conflict and scheduling algorithms: Sections 2 to 12.
+2. Page-by-page scheduling presentation narrative: Section 16.
+
+---
+
+Presentation note:
+
+- If time is limited, cover Slides 1 to 4 in full, then summarize Slides 5 to 8, and proceed to scheduling core.
+
 ## 1) Scope and Source Files
 
 Main implementation files covered:
@@ -798,3 +975,354 @@ Use this sequence for a clear defense narrative:
 Short closing line:
 
 - "iSchedWise combines deterministic scheduling algorithms, scoped analytics, and governance workflows to produce conflict-aware, auditable, and operationally feasible academic schedules."
+
+## 17) Algorithm Selection Rationale (Why This Design)
+
+This section explains why the system combines multiple algorithms instead of using only one method.
+
+### 17.1 Why quick greedy + smart backtracking
+
+1. Greedy scheduling gives fast previews suitable for interactive use.
+2. Backtracking is more complete but computationally heavier.
+3. Auto mode uses a hybrid policy:
+   - run quick first for speed,
+   - run smart only when quick leaves unplaceable rows,
+   - accept smart only if it objectively improves placement.
+
+Design benefit:
+
+- Users get fast response in easy cases and stronger solving only when needed.
+
+### 17.2 Why deterministic core + optional AI explanation
+
+1. Conflict detection, recommendation scoring, and resolution search are deterministic.
+2. AI is used for explanation and summarization, not for final validation.
+3. If AI is unavailable, the system still produces complete rule-based outputs.
+
+Design benefit:
+
+- Reliability is preserved even without external AI connectivity.
+
+### 17.3 Why archive-based lifecycle instead of hard-delete
+
+1. Academic scheduling needs historical traceability per term.
+2. Archive and restore allow term transitions without losing prior records.
+3. Permission-gated permanent delete is kept as an explicit administrative action.
+
+Design benefit:
+
+- Supports governance, auditing, and rollback workflows.
+
+## 18) Complexity and Performance Snapshot
+
+The table below summarizes practical runtime characteristics.
+
+| Component | Dominant Work | Worst-Case Complexity | Practical Mitigation in Code |
+|---|---|---|---|
+| Manual class/exam add/edit | overlap checks + validations | query-dominated | indexed filters, scoped term filters, lock-based race protection |
+| Batch quick mode | evaluate candidate slots per unscheduled item | $O(S \cdot C)$ | heuristic pruning through hard constraints and scoring |
+| Batch smart mode | recursive search with forward checking | $O(C^S)$ (worst case) | timeout, per-subject/global backtrack caps, quick fallback |
+| Conflict resolver | candidate simulation across change combinations | combinational growth | bounded options, bounded rounds, early stop at zero critical/high conflicts |
+| Reports statistics | grouped/aggregated queries across scoped rows | near-linear in scoped dataset | include-set partial recompute, scope normalization |
+
+Where:
+
+- $S$ = number of unscheduled slots/items
+- $C$ = average candidate placements per item
+
+Key practical note:
+
+- The implementation explicitly prefers bounded and fail-safe behavior over unbounded search.
+
+## 19) Reliability and Data Integrity Controls
+
+### 19.1 Concurrency controls
+
+1. Pessimistic locking (`with_for_update`) in create flows for slot/faculty/room conflict windows.
+2. Optimistic checks in edit/update flows to prevent stale-write behavior.
+
+### 19.2 Transaction safety
+
+1. Multi-step operations use transactional commit boundaries.
+2. On exceptions, rollback is applied to avoid partial state.
+
+### 19.3 Consistency controls
+
+1. Soft-deleted rows can be reactivated instead of duplicated.
+2. Missing faculty-subject assignment links are auto-created on valid save/confirm.
+3. Scope and role checks are consistently enforced (admin global, dean constrained).
+
+### 19.4 Administrative safety controls
+
+1. User bulk actions prevent self-lockout and last-admin deactivation.
+2. Archive restore/delete actions are permission-gated.
+3. Settings transitions archive current term data before activating new term context.
+
+## 20) Measurable KPIs You Can Defend
+
+Use these measurable indicators during thesis defense and demo.
+
+| KPI | What It Means | Why It Matters |
+|---|---|---|
+| `schedule_completion_rate` | % of sections with at least one schedule | readiness of class timetable |
+| `faculty_with_schedules` | number of actively assigned faculty | staffing utilization coverage |
+| `avg_faculty_utilization` | average faculty load utilization | workload balance indicator |
+| `overloaded_faculty_count` | faculty at or above overload threshold | risk flag for redistribution |
+| `rooms_in_use` | rooms with active schedules | facility utilization footprint |
+| `avg_room_utilization` | average room-hours utilization % | space efficiency signal |
+| `unassigned_faculty_count` | faculty with zero assigned schedules | underutilization and planning gap |
+| `unused_rooms_count` | rooms with zero usage | facility planning gap |
+
+Suggested interpretation pattern:
+
+1. First present completion and capacity utilization.
+2. Then present risk counters (overload, unassigned, unused).
+3. Finally present balancing actions (resolver/recommendation outcomes).
+
+## 21) Suggested Live Demo Script (7-10 Minutes)
+
+### Minute 1-2: Scope and health overview
+
+1. Open Dashboard.
+2. Explain role-scoped KPIs and smart class counting.
+3. Highlight one risk signal (for example overloaded faculty).
+
+### Minute 3-4: Manual scheduling safeguards
+
+1. Open Class scheduling.
+2. Attempt a conflicting slot to show blocking behavior.
+3. Show valid save and resulting update.
+
+### Minute 5-6: Batch automation
+
+1. Run batch generate in auto mode.
+2. Explain quick first, smart fallback policy.
+3. Show conflict check and confirm workflow.
+
+### Minute 7-8: Exam constraints and decision support
+
+1. Open Exam scheduling.
+2. Show exam-date/window validation and proctor availability rule.
+3. Trigger recommendation/resolution path for a conflict case.
+
+### Minute 9-10: Governance and analytics
+
+1. Open Reports (faculty/rooms/compare) and show KPI deltas.
+2. Open Settings and explain archive/restore term transition.
+3. Open Archive page and show controlled lifecycle.
+
+## 22) Panel Q&A Cheat Sheet
+
+### Q1: Why not use purely AI-based scheduling?
+
+Recommended answer:
+
+- "Core scheduling and conflict checks are deterministic for reliability and auditability. AI is optional and used only for explanation."
+
+### Q2: How does the system prevent double-booking?
+
+Recommended answer:
+
+- "It applies strict overlap predicates for section, faculty, and room, then enforces them during save with locking to reduce race conditions."
+
+### Q3: What happens when schedule generation is too hard?
+
+Recommended answer:
+
+- "Auto mode escalates from greedy to smart backtracking. Smart mode is bounded with time and backtrack limits, then falls back safely."
+
+### Q4: How is historical integrity preserved across semesters?
+
+Recommended answer:
+
+- "Settings transitions archive current schedules and assignments before activating new term context, and restoration is attempted for matching archived data."
+
+### Q5: How do you justify report numbers as reliable?
+
+Recommended answer:
+
+- "Reports use a shared scoped statistics engine with consistent filters and include-set recomputation, so metrics stay aligned across pages."
+
+---
+
+Presentation tip:
+
+- When defending algorithms, always pair each algorithm with: (a) constraint it solves, (b) metric it improves, and (c) safeguard that keeps it reliable.
+
+## 23) Authentication, Login, and Password-Recovery Flows
+
+This section covers the login and account-recovery components that are outside the scheduling pages but critical for full-system presentation.
+
+Primary implementation files:
+
+- `app/routes/auth.py`
+- `app/forms.py`
+- `app/templates/login.html`
+- `app/templates/forgot_password.html`
+- `app/templates/reset_password.html`
+- `app/templates/verify_two_factor.html`
+
+### 23.1 Route map (what page handles what)
+
+| Endpoint | Purpose | Primary Template |
+|---|---|---|
+| `/login` | username/email + password authentication | `login.html` |
+| `/verify-2fa` | verify email OTP for pending login | `verify_two_factor.html` |
+| `/verify-2fa/resend` | resend OTP with cooldown guard | `verify_two_factor.html` |
+| `/forgot-password` | request password reset link | `forgot_password.html` |
+| `/reset-password/<token>` | set new password using secure token | `reset_password.html` |
+| `/logout` | terminate session and clear auth context | redirect to login |
+| `/first-login-setup` | force initial account setup for quick-generated accounts | `first_login_setup.html` |
+
+### 23.2 Login algorithm (`/login`)
+
+High-level sequence:
+
+1. On GET, clear stale pending 2FA challenge state.
+2. If already authenticated:
+   - redirect to dashboard when valid,
+   - otherwise force logout if inactive/archived or blocked by maintenance policy.
+3. Validate login form (`LoginForm`) and locate user by username or email.
+4. Verify password and account status (active, non-expired temporary account).
+5. If 2FA enabled:
+   - check trusted device token,
+   - if not trusted: issue OTP challenge, email code, store pending login context, redirect to `/verify-2fa`.
+6. If trusted (or 2FA not enabled), finalize login:
+   - `login_user(...)`,
+   - update session/login metadata,
+   - write user activity and login history records.
+
+Security controls in flow:
+
+- password verification required before any session issuance,
+- pending 2FA challenge stored in session with expiration,
+- trusted-device cookie is bounded by configured trust days.
+
+### 23.3 Two-factor verification algorithm (`/verify-2fa`)
+
+1. Load pending challenge from session and validate freshness.
+2. Validate user state again (still active and eligible).
+3. Validate submitted 6-digit OTP against stored hash+salt.
+4. Enforce max-attempt guard; clear pending state on limit reached.
+5. On success:
+   - clear pending challenge,
+   - optionally issue trusted-device token,
+   - finalize login and redirect.
+
+Resend logic (`/verify-2fa/resend`):
+
+1. Enforce CSRF and form validity.
+2. Enforce resend cooldown based on stored timestamp.
+3. Re-issue OTP challenge while preserving attempt counter context.
+
+### 23.4 Forgot-password and reset algorithm
+
+Forgot-password (`/forgot-password`):
+
+1. Validate email form (`ForgotPasswordForm`).
+2. Lookup user by email.
+3. If found, generate reset token and send branded email payload.
+4. Redirect to login after handling request.
+
+Reset-password (`/reset-password/<token>`):
+
+1. Verify token validity and expiration.
+2. Validate new password form (`ResetPasswordForm`, 8-30 chars + confirm match).
+3. Update stored password hash.
+4. Clear `needs_password_change` flag and commit.
+5. Redirect user to login.
+
+### 23.5 Logout and first-login setup
+
+Logout (`/logout`) behavior:
+
+1. Log audit event (`logout`) and attempt login-history closeout.
+2. Commit logs.
+3. `logout_user()` and clear session.
+4. Redirect to login page.
+
+First-login setup (`/first-login-setup`) behavior:
+
+1. Forces quick-generated users to set valid account details.
+2. Validates email uniqueness and password rules.
+3. Completes setup and records activity event.
+
+How to present:
+
+- "Authentication is multi-layered: credential validation, optional OTP verification, trusted-device control, and secure password-reset lifecycle with token verification."
+
+## 24) Technical Background Diagram Explanation
+
+This section explains the two architecture diagrams for thesis presentation.
+
+### 24.1 Client-Server Architecture (Figure 2)
+
+Interpretation:
+
+1. Client devices (desktop/mobile) send HTTP requests to the Flask server.
+2. The Flask server processes the request through route handlers and services.
+3. The server queries or updates MySQL data through SQLAlchemy models.
+4. The server returns rendered pages or JSON responses back to clients.
+
+How login/forgot/reset fit this diagram:
+
+1. Login request goes from browser to `/login`.
+2. On 2FA-enabled accounts, OTP verification requests go to `/verify-2fa`.
+3. Forgot-password request goes to `/forgot-password` and triggers email delivery.
+4. Reset-password submission returns to `/reset-password/<token>` to complete update.
+
+Key point for defense:
+
+- The architecture is request-response driven, with email-based verification as a secure side channel for identity confirmation.
+
+### 24.2 Layered Architecture (Figure 3)
+
+#### Presentation Layer
+
+Responsibilities:
+
+1. Render pages and forms (`Jinja2`, HTML/CSS/JS).
+2. Accept user input and submit requests to Flask routes.
+3. Display validation feedback and workflow messages.
+
+Examples in this project:
+
+- `login.html`, `forgot_password.html`, `reset_password.html`, `verify_two_factor.html`
+- route handlers in `app/routes/*.py`
+
+#### Business Layer
+
+Responsibilities:
+
+1. Apply scheduling rules and conflict checks.
+2. Execute login logic, OTP issuance/verification, and password-reset workflow.
+3. Perform reporting, recommendations, and resolver logic.
+
+Examples in this project:
+
+- scheduling services in `app/services/*`
+- auth flow logic in `app/routes/auth.py`
+
+#### Persistence Layer
+
+Responsibilities:
+
+1. Store and retrieve domain data through SQLAlchemy models.
+2. Persist users, schedules, exam schedules, trusted devices, activity logs, and login history.
+3. Support archival data and automated backup operations.
+
+Examples in this project:
+
+- model access via `app/models/*`
+- MySQL-backed storage and backup services
+
+### 24.3 Why this architecture is defendable
+
+1. Separation of concerns: UI concerns do not directly embed persistence logic.
+2. Maintainability: modules can evolve independently (for example auth flow improvements without schedule-engine rewrite).
+3. Security and auditability: authentication and activity logging are centralized and traceable.
+4. Scalability path: clear service boundaries make future API-first or microservice migration easier.
+
+How to present:
+
+- "The client-server model explains communication flow, while the layered model explains responsibility boundaries. Together, they justify reliability, maintainability, and security of the system design."

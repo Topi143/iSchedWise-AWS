@@ -2846,12 +2846,12 @@ def batch_check_conflicts():
             if _minutes_of(parsed['start_time']) < _minutes_of(exam_start_cfg):
                 row_conflicts.append({
                     'type': 'schedule_hours', 'severity': 'medium',
-                    'message': f"Start time before exam hours ({exam_start_cfg.strftime('%H:%M')})", 'details': {}
+                    'message': f"Start time before exam hours ({exam_start_cfg.strftime('%I:%M %p').lstrip('0')})", 'details': {}
                 })
             if _minutes_of(parsed['end_time']) > _minutes_of(exam_end_cfg):
                 row_conflicts.append({
                     'type': 'schedule_hours', 'severity': 'medium',
-                    'message': f"End time after exam hours ({exam_end_cfg.strftime('%H:%M')})", 'details': {}
+                    'message': f"End time after exam hours ({exam_end_cfg.strftime('%I:%M %p').lstrip('0')})", 'details': {}
                 })
 
             # 4) Duration limit
